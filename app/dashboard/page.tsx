@@ -135,11 +135,11 @@ export default function Home() {
   const [recipientLookupStatus, setRecipientLookupStatus] = useState("");
   const [recipientLookupLoading, setRecipientLookupLoading] = useState(false);
   const [activities, setActivities] = useState<DemoActivity[]>([]);
-  const [fundingMethod, setFundingMethod] = useState("card");
   const [fundingCurrency, setFundingCurrency] = useState("USD");
   const [fundingAmount, setFundingAmount] = useState("100");
   const [fundingAsset, setFundingAsset] = useState("SOL");
   const [fundingNotice, setFundingNotice] = useState("");
+  const [fundingLoading, setFundingLoading] = useState(false);
   const [ussdPhone, setUssdPhone] = useState("");
   const [ussdAmount, setUssdAmount] = useState("25");
   const [ussdResult, setUssdResult] = useState("");
@@ -265,17 +265,33 @@ export default function Home() {
   async function prepareDeposit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = Number(fundingAmount);
-    if (!Number.isFinite(value) || value <= 0) {
-      setFundingNotice("Enter a valid deposit amount.");
+    const destinationWallet = wallets[0]?.address;
+    if (!Number.isFinite(value) || value < 10 || value > 500) {
+      setFundingNotice("For sandbox testing, enter an amount between 10 and 500.");
       return;
     }
+    if (!destinationWallet) {
+      setFundingNotice("Connect your Solana wallet below first. The provider will deliver the test purchase to that address.");
+      return;
+    }
+    setFundingLoading(true);
+    setFundingNotice("Preparing a secure sandbox checkout…");
     try {
-      const response = await fetch("/api/funding/readiness");
-      const readiness = await response.json();
-      if (!response.ok) throw new Error("Could not check funding readiness.");
-      setFundingNotice(`${value.toLocaleString()} ${fundingCurrency} via ${fundingMethod.replaceAll("_", " ")} selected for ${fundingAsset} on Solana. ${readiness.message} No payment has been initiated and no funds have moved.`);
-    } catch {
-      setFundingNotice("Funding readiness could not be checked. No payment has been initiated and no funds have moved.");
+      const response = await fetch("/api/funding/card/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: value, currency: fundingCurrency, walletAddress: destinationWallet }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Card checkout could not be prepared.");
+      const checkoutUrl = new URL(data.widgetUrl);
+      if (checkoutUrl.protocol !== "https:" || checkoutUrl.hostname !== "global-stg.transak.com") {
+        throw new Error("The provider returned an unexpected checkout address.");
+      }
+      window.location.assign(checkoutUrl.toString());
+    } catch (error) {
+      setFundingNotice(error instanceof Error ? error.message : "Card checkout is not available yet.");
+      setFundingLoading(false);
     }
   }
   function simulateUssd() {
@@ -474,18 +490,43 @@ export default function Home() {
           </div>
 
           <section className="panel wallet-panel" id="funding">
-            <div className="panel-heading wallet-heading"><div><span className="panel-kicker">UNIFIED FUNDING ENGINE</span><h2>Add money to MYRAVEN</h2><p>Pay with a supported local currency or crypto. MYRAVEN is designed to settle supported deposits into Solana assets.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> PROVIDER SETUP</span></div>
+            <div className="panel-heading wallet-heading">
+              <div>
+                <span className="panel-kicker">CARD FUNDING · SANDBOX</span>
+                <h2>Buy SOL with your card</h2>
+                <p>Use a provider-hosted checkout to test card-to-SOL funding. Your card details stay with the payment provider, never MYRAVEN.</p>
+              </div>
+              <span className="read-only-tag"><ShieldCheck size={12} /> TEST MODE ONLY</span>
+            </div>
             <form onSubmit={prepareDeposit}>
               <div className="recipient-fields">
-                <select value={fundingMethod} onChange={(event) => setFundingMethod(event.target.value)} aria-label="Funding method"><option value="card">Debit / credit card</option><option value="bank_transfer">Bank transfer</option><option value="crypto_wallet">Crypto wallet</option><option value="local_payment">Local payment method</option></select>
-                <div className="amount-field"><input value={fundingAmount} onChange={(event) => setFundingAmount(event.target.value)} type="number" min="0.01" step="0.01" required aria-label="Deposit amount" /><select value={fundingCurrency} onChange={(event) => setFundingCurrency(event.target.value)} aria-label="Funding currency"><option>USD</option><option>EUR</option><option>GBP</option><option>NGN</option><option>KES</option><option>GHS</option><option>CHF</option><option>CAD</option><option>AUD</option><option>BTC</option><option>ETH</option><option>USDC</option><option>SOL</option></select></div>
+                <div className="amount-field">
+                  <input value={fundingAmount} onChange={(event) => setFundingAmount(event.target.value)} type="number" min="10" max="500" step="0.01" required aria-label="Card purchase amount" />
+                  <select value={fundingCurrency} onChange={(event) => setFundingCurrency(event.target.value)} aria-label="Card payment currency">
+                    <option>USD</option><option>EUR</option><option>GBP</option><option>CHF</option><option>CAD</option><option>AUD</option><option>NGN</option><option>KES</option><option>GHS</option>
+                  </select>
+                </div>
+                <div className="amount-field">
+                  <span style={{ color: "#b9a4ff", fontSize: 12, fontWeight: 700 }}>YOU RECEIVE</span>
+                  <span style={{ color: "#f7f5ff", fontWeight: 700 }}>SOL · Solana</span>
+                </div>
               </div>
-              <div className="recipient-fields" style={{ marginTop: 12 }}>
-                <div><label className="field-label">SETTLEMENT NETWORK</label><div className="amount-field"><span style={{ color: "#b9a4ff", fontSize: 12, fontWeight: 700 }}>SOLANA</span></div></div>
-                <div><label className="field-label">MYRAVEN ASSET</label><select value={fundingAsset} onChange={(event) => setFundingAsset(event.target.value)} aria-label="Solana settlement asset"><option value="SOL">SOL on Solana</option></select></div>
+              <div className="receive-address-value" style={{ marginTop: 12 }}>
+                <div>
+                  <span className="panel-kicker">DELIVERY WALLET</span>
+                  <code>{wallets[0] ? shortAddress(wallets[0].address) : "Connect a Solana wallet below"}</code>
+                </div>
+                <span className="read-only-tag">{wallets[0] ? "CONNECTED" : "NOT CONNECTED"}</span>
               </div>
-              <button className="primary-action" type="submit"><WalletCards size={16} /> Prepare deposit <ArrowUpRight size={16} /></button>
-              {fundingNotice ? <p className="ussd-result">{fundingNotice}</p> : <div className="notice-line"><ShieldCheck size={14} /> Provider checkout is not connected yet. This form does not charge or transfer funds.</div>}
+              <button className="primary-action" type="submit" disabled={fundingLoading || !wallets[0]}>
+                {fundingLoading ? <RefreshCw size={16} className="spin" /> : <WalletCards size={16} />}
+                {fundingLoading ? "Preparing checkout…" : "Continue to secure card checkout"}
+                <ArrowUpRight size={16} />
+              </button>
+              {fundingNotice ? <p className="ussd-result" role="status">{fundingNotice}</p> : <div className="notice-line"><ShieldCheck size={14} /> Sandbox only. No live card charge or MYRAVEN ledger credit is enabled.</div>}
+              <p className="wallet-security" style={{ marginTop: 12 }}>
+                This test flow sends any provider-issued test asset to the connected external wallet. It does not add funds to your internal MYRAVEN balance. Live availability, identity checks and payment methods depend on provider approval and the user's country.
+              </p>
             </form>
           </section>
           <section className="panel wallet-panel" id="wallets">
