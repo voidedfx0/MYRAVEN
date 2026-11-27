@@ -14,7 +14,7 @@ export async function GET() {
   let business = null;
   if (accountType === "business") {
     const { data } = await supabase.from("business_profiles")
-      .select("id,business_name,verification_status,country_code")
+      .select("id,business_name,verification_status,country_code,onboarding_status")
       .eq("owner_user_id", user.id).limit(1).maybeSingle();
     business = data;
   }
