@@ -32,12 +32,12 @@ export async function PATCH(request: Request) {
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
-  const businessName = clean(body.businessName, 120);
-  const legalName = clean(body.legalName, 160);
-  const countryCode = clean(body.countryCode, 2).toUpperCase();
-  const businessType = clean(body.businessType, 40);
+  const businessName = clean(body.businessName, 120) || result.business.business_name;
+  const legalName = clean(body.legalName, 160) || result.business.legal_name || "";
+  const countryCode = (clean(body.countryCode, 2) || result.business.country_code || "").toUpperCase();
+  const businessType = clean(body.businessType, 40) || result.business.business_type || "other";
   const registrationNumber = clean(body.registrationNumber, 80);
-  const industry = clean(body.industry, 80);
+  const industry = clean(body.industry, 80) || result.business.industry || "";
   const description = clean(body.description, 500);
   const website = clean(body.website, 200);
   const address = clean(body.address, 180);
@@ -47,7 +47,7 @@ export async function PATCH(request: Request) {
     ? [...new Set(body.operatingCountries.filter((v: unknown): v is string => typeof v === "string" && /^[A-Za-z]{2}$/.test(v)).map((v: string) => v.toUpperCase()))].slice(0, 20)
     : [];
 
-  if (businessName.length < 2 || legalName.length < 2 || !/^[A-Z]{2}$/.test(countryCode) || !businessTypes.has(businessType) || industry.length < 2) {
+  if (!businessName || (completed && (businessName.length < 2 || legalName.length < 2 || !/^[A-Z]{2}$/.test(countryCode) || !businessTypes.has(businessType) || industry.length < 2))) {
     return NextResponse.json({ error: "Complete the business name, legal name, country, business type and industry." }, { status: 400 });
   }
   if (website && !/^https:\/\//i.test(website)) return NextResponse.json({ error: "Website must begin with https://." }, { status: 400 });
