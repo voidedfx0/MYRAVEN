@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AuthActions from "@/components/auth-actions";
 import {
   Activity, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Bell, Check,
@@ -66,6 +66,33 @@ export default function Home() {
   const [notice, setNotice] = useState("Choose your payment details to compare routes.");
   const [loading, setLoading] = useState(false);
   const [wallets, setWallets] = useState<WalletConnection[]>([]);
+  const [availableSol, setAvailableSol] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(true);
+  const [balanceError, setBalanceError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function loadWalletBalance() {
+      try {
+        const response = await fetch("/api/account/summary", { cache: "no-store" });
+        if (!response.ok) throw new Error("Balance unavailable");
+        const data = await response.json();
+        const rows = Array.isArray(data.balances) ? data.balances : [];
+        const total = rows.reduce((sum: number, row: { asset_code?: string; network_code?: string; account_type?: string; balance?: string | number }) => {
+          const isSol = row.asset_code?.toUpperCase() === "SOL" && row.network_code?.toLowerCase() === "solana";
+          const isAvailable = ["available", "spendable"].includes((row.account_type ?? "").toLowerCase());
+          return isSol && isAvailable ? sum + Number(row.balance ?? 0) : sum;
+        }, 0);
+        if (active) setAvailableSol(Number.isFinite(total) ? total : 0);
+      } catch {
+        if (active) { setAvailableSol(null); setBalanceError(true); }
+      } finally {
+        if (active) setBalanceLoading(false);
+      }
+    }
+    void loadWalletBalance();
+    return () => { active = false; };
+  }, []);
   const [walletMessage, setWalletMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState("");
@@ -325,7 +352,7 @@ export default function Home() {
           </section>
 
           <section className="metrics-grid">
-            <article className="metric-card"><div className="metric-top"><span>Connected wallets</span><Wallet size={17} /></div><strong>{wallets.length.toString().padStart(2, "0")}</strong><small>Solana network only</small><div className="metric-line purple-line" /></article>
+            <article className="metric-card balance-metric-card"><div className="metric-top"><span>Available to send</span><Wallet size={17} /></div><strong>{balanceLoading ? "Loading…" : availableSol === null ? "— SOL" : `${availableSol.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 6 })} SOL`}</strong><small>{balanceError ? "Sign in or refresh to load your ledger balance" : "Verified, available SOL · excludes pending funds"}</small><div className="metric-line purple-line" /></article>
             <article className="metric-card"><div className="metric-top"><span>Routes compared</span><ArrowLeftRight size={17} /></div><strong>{quotes.length.toString().padStart(2, "0")}</strong><small>Illustrative route options</small><div className="metric-line cyan-line" /></article>
             <article className="metric-card"><div className="metric-top"><span>Payments completed</span><Check size={17} /></div><strong>{activities.filter((item) => item.status.includes("Completed")).length.toString().padStart(2, "0")}</strong><small>Demo transactions only</small><div className="metric-line green-line" /></article>
             <article className="metric-card"><div className="metric-top"><span>Safety status</span><LockKeyhole size={17} /></div><strong className="metric-word">Protected</strong><small>Approval required for every action</small><div className="metric-line silver-line" /></article>
