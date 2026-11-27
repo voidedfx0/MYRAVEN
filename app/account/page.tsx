@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, LoaderCircle, ShieldCheck } from "lucide-react";
 
 type AccountSummary = {
@@ -146,9 +147,9 @@ export default function AccountPage() {
 
   return (
     <main className="account-shell">
-      <div className="account-top"><a href="/"><ArrowLeft size={16} /> Back to MYRAVEN</a><span>MYRAVEN ACCOUNT</span></div>
+      <div className="account-top"><Link href="/"><ArrowLeft size={16} /> Back to MYRAVEN</Link><span>MYRAVEN ACCOUNT</span></div>
       <section className="account-card">
-        <a className="account-brand" href="/"><span>M</span> MYRAVEN</a>
+        <Link className="account-brand" href="/"><span>M</span> MYRAVEN</Link>
         {summary ? (
           <>
             <div className="account-eyebrow"><ShieldCheck size={14} /> PERSONAL WORKSPACE</div>
