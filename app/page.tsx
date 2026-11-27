@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AuthActions from "@/components/auth-actions";
 import {
   ArrowDown, ArrowUpRight, Wallet, Globe2, ShieldCheck, Sparkles,
   ArrowLeftRight, Building2, CircleDollarSign, CreditCard,
@@ -46,8 +47,7 @@ export default function Home() {
     <header className="marketing-nav">
       <Link href="/" className="marketing-brand"><span className="marketing-brand-mark"><i/><b/></span>MYRAVEN</Link>
       <nav><a href="#platform">Platform</a><a href="#journey">How it works</a><a href="#intelligence">Intelligence</a><a href="#capabilities">Features</a><a href="#audience">For business</a></nav>
-      <div className="marketing-actions"><Link href="/account?mode=signin">Log in</Link><Link className="nav-signup" href="/account">Get started <ArrowUpRight size={15}/></Link></div>
-      <Link className="mobile-nav-cta" href="/account"><ArrowUpRight/></Link>
+      <AuthActions />
     </header>
 
     <section className="marketing-hero">
