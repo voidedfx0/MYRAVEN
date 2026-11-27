@@ -42,7 +42,7 @@ export default function AccountPage() {
   const provisionWorkspace = useCallback(async (type: AccountType) => {
     const response = await fetch("/api/account/setup", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accountType: type, displayName, businessName, countryCode }),
+      body: JSON.stringify({ accountType: type }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "Could not set up your workspace.");
@@ -75,15 +75,7 @@ export default function AccountPage() {
       }
       setChecking(false);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") setSummary(null);
-      if (event === "SIGNED_IN" && session) {
-        const type = new URLSearchParams(window.location.search).get("type") === "business" ? "business" : requestedType;
-        void provisionWorkspace(type).then(() => window.location.replace(type === "business" ? "/business" : "/dashboard"))
-          .catch((error) => setMessage(error instanceof Error ? error.message : "Workspace setup failed."));
-      }
-    });
-    return () => { active = false; listener.subscription.unsubscribe(); };
+    return () => { active = false; };
   }, [supabase, provisionWorkspace]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -94,7 +86,7 @@ export default function AccountPage() {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(), password,
           options: {
-            data: { display_name: displayName.trim(), account_type: accountType },
+            data: { display_name: displayName.trim(), account_type: accountType, business_name: businessName.trim(), country_code: countryCode.trim().toUpperCase() },
             emailRedirectTo: window.location.origin + "/auth/callback?next=/account?type=" + accountType + "%26complete=1",
           },
         });
@@ -127,7 +119,7 @@ export default function AccountPage() {
     try {
       if (!otpSent) {
         const { error } = await supabase.auth.signInWithOtp({
-          phone: phone.trim(), options: { shouldCreateUser: mode === "signup", data: { display_name: displayName.trim(), account_type: accountType } },
+          phone: phone.trim(), options: { shouldCreateUser: mode === "signup", data: { display_name: displayName.trim(), account_type: accountType, business_name: businessName.trim(), country_code: countryCode.trim().toUpperCase() } },
         });
         if (error) throw error;
         setOtpSent(true); setMessage("A one-time code was requested. Enter it to continue.");
