@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowUpRight, LoaderCircle, ShieldCheck } from "lucide-react
 type AccountSummary = {
   profile: { myraven_id: string; display_name: string | null; country_code: string | null } | null;
   email: string | null;
-  balances: { asset: string; network: string; available: number; pending: number }[];
+  balances: { account_id: string; asset_code: string; network_code: string; account_type: string; balance: string }[];
   transactions: { id: string; source_type: string; description: string | null; status: string; created_at: string }[];
   note: string;
 };
@@ -158,10 +158,9 @@ export default function AccountPage() {
             <div className="myraven-id"><span>YOUR MYRAVEN ID</span><strong>{summary.profile?.myraven_id ?? "Provisioning…"}</strong></div>
             <div className="account-section-title">ACCOUNT BALANCES</div>
             {summary.balances.length ? summary.balances.map((balance) => (
-              <div className="account-list-row" key={balance.asset + balance.network}>
-                <span><b>{balance.asset}</b><small>{balance.network} · available</small></span>
-                <strong>{balance.available.toLocaleString(undefined, { maximumFractionDigits: 8 })} {balance.asset}</strong>
-                {balance.pending !== 0 && <small className="account-pending">Pending: {balance.pending.toLocaleString(undefined, { maximumFractionDigits: 8 })} {balance.asset}</small>}
+              <div className="account-list-row" key={balance.account_id}>
+                <span><b>{balance.asset_code}</b><small>{balance.network_code} · {balance.account_type}</small></span>
+                <strong>{balance.balance} {balance.asset_code}</strong>
               </div>
             )) : <div className="account-empty">No posted ledger balance yet. MYRAVEN does not create sample funds.</div>}
             <div className="account-section-title">RECENT ACTIVITY</div>
