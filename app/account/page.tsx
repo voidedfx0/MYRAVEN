@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, ArrowUpRight, LoaderCircle, ShieldCheck } from "lucide-react";
 
@@ -24,14 +24,14 @@ export default function AccountPage() {
 
   const supabase = createClient();
 
-  async function loadSummary() {
+  const loadSummary = useCallback(async () => {
     const response = await fetch("/api/account/summary", { cache: "no-store" });
     if (!response.ok) {
       setSummary(null);
       return;
     }
     setSummary(await response.json());
-  }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -51,7 +51,7 @@ export default function AccountPage() {
       active = false;
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [loadSummary, supabase]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
