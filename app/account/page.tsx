@@ -39,6 +39,7 @@ export default function AccountPage() {
   }, []);
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("mode") === "signin") setMode("signin");
     let active = true;
     supabase.auth.getUser().then(async ({ data }) => {
       if (!active) return;
