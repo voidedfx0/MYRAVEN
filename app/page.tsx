@@ -249,11 +249,19 @@ export default function Home() {
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
         <a className="brand" href="#" aria-label="MYRAVEN home">
           <span className="brand-symbol" aria-hidden="true">
-            <svg viewBox="0 0 40 40" role="img" focusable="false">
-              <defs><linearGradient id="raven-mark" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop stopColor="#D8CCFF"/><stop offset=".52" stopColor="#9B7BFF"/><stop offset="1" stopColor="#54D9EF"/></linearGradient></defs>
-              <path d="M8 28V12.5L19.8 25 32 12v16" fill="none" stroke="url(#raven-mark)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M5.5 20C9 8.8 19.5 4.8 29.2 9.1" fill="none" stroke="#B9A4FF" strokeOpacity=".7" strokeWidth="1.2" strokeLinecap="round"/>
-              <circle cx="30.5" cy="9.4" r="2.1" fill="#54D9EF"/>
+            <svg viewBox="0 0 48 48" role="img" focusable="false">
+              <defs>
+                <linearGradient id="quantum-metal" x1="5" y1="5" x2="43" y2="43" gradientUnits="userSpaceOnUse"><stop stopColor="#F3F0FF"/><stop offset=".28" stopColor="#A78BFA"/><stop offset=".62" stopColor="#55D9F2"/><stop offset="1" stopColor="#D9E2EF"/></linearGradient>
+                <linearGradient id="quantum-violet" x1="7" y1="8" x2="39" y2="40" gradientUnits="userSpaceOnUse"><stop stopColor="#C4B5FD"/><stop offset="1" stopColor="#7C3AED"/></linearGradient>
+                <linearGradient id="quantum-cyan" x1="8" y1="38" x2="40" y2="10" gradientUnits="userSpaceOnUse"><stop stopColor="#67E8F9"/><stop offset="1" stopColor="#A5F3FC"/></linearGradient>
+              </defs>
+              <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <ellipse cx="24" cy="24" rx="17.2" ry="8.1" transform="rotate(-38 24 24)" stroke="url(#quantum-metal)" strokeWidth="3.2"/>
+                <ellipse cx="24" cy="24" rx="17.2" ry="8.1" transform="rotate(38 24 24)" stroke="url(#quantum-violet)" strokeWidth="3.2"/>
+                <path d="M8.8 28.1c3.4 7.1 11.5 10.5 18.5 7.7 7-2.8 10.7-10.6 8.2-17.5" stroke="url(#quantum-cyan)" strokeWidth="2.4" opacity=".95"/>
+              </g>
+              <circle cx="39.1" cy="13.2" r="2.25" fill="#67E8F9"/>
+              <circle cx="8.8" cy="28.1" r="1.65" fill="#C4B5FD"/>
             </svg>
           </span>
           <span className="brand-wordmark">MYRAVEN</span>
