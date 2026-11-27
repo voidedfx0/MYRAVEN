@@ -327,7 +327,7 @@ export default function Home() {
                     <option value="NG">Nigeria</option><option value="GH">Ghana</option><option value="KE">Kenya</option><option value="ZA">South Africa</option><option value="GB">United Kingdom</option><option value="US">United States</option><option value="CH">Switzerland</option><option value="EU">Euro area</option>
                   </select>
                   <label className="field-label">BANK / PAYMENT PROVIDER</label>
-                  <input value={recipientBank} onChange={(event) => { setRecipientBank(event.target.value); setRecipientLookupStatus(""); }} placeholder="Search or enter bank name" aria-label="Recipient bank name" />
+                  <select value={recipientBank} onChange={(event) => { setRecipientBank(event.target.value); setRecipientLookupStatus(""); }} aria-label="Recipient bank" disabled><option value="">Bank list loads from connected payout providers</option></select>
                   <label className="field-label">RECIPIENT ACCOUNT NUMBER</label>
                   <input value={recipientBankAccount} onChange={(event) => { setRecipientBankAccount(event.target.value); setRecipientLookupStatus(""); }} placeholder="Enter recipient account number" aria-label="Recipient bank account number" />
                   <p className="recipient-lookup-status">Country selection is a preview. Live bank lists and account-name verification will appear when a payout provider is connected.</p>
