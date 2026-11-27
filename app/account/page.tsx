@@ -55,7 +55,7 @@ export default function AccountPage() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "Could not set up your workspace.");
     return data;
-  }, []);
+  }, [firstName, lastName, legalFullName, countryCode, countryName, walletAddress]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
