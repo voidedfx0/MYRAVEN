@@ -47,7 +47,14 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState("");
   const [approvalOpen, setApprovalOpen] = useState(false);
-  const [approved, setApproved] = useState(false);\n  const [activities, setActivities] = useState<DemoActivity[]>([\n    { id: "MRV-DEMO-001", title: "Demo wallet funded", detail: "Solana · USDC", amount: "+250.00 USDC", status: "Completed · Demo", time: "Today · 09:42" },\n    { id: "MRV-DEMO-002", title: "Demo conversion", detail: "Stellar · XLM → USDC", amount: "125.00 USDC", status: "Completed · Demo", time: "Today · 08:16" },\n  ]);\n  const [ussdPhone, setUssdPhone] = useState("");\n  const [ussdAmount, setUssdAmount] = useState("25");\n  const [ussdResult, setUssdResult] = useState("");
+  const [approved, setApproved] = useState(false);
+  const [activities, setActivities] = useState<DemoActivity[]>([
+    { id: "MRV-DEMO-001", title: "Demo wallet funded", detail: "Solana · USDC", amount: "+250.00 USDC", status: "Completed · Demo", time: "Today · 09:42" },
+    { id: "MRV-DEMO-002", title: "Demo conversion", detail: "Stellar · XLM → USDC", amount: "125.00 USDC", status: "Completed · Demo", time: "Today · 08:16" },
+  ]);
+  const [ussdPhone, setUssdPhone] = useState("");
+  const [ussdAmount, setUssdAmount] = useState("25");
+  const [ussdResult, setUssdResult] = useState("");
 
   const bestQuote = useMemo(() => quotes.find((quote) => quote.id === selectedRoute) ?? quotes[0], [quotes, selectedRoute]);
 
@@ -134,7 +141,8 @@ export default function Home() {
     { label: "Overview", icon: LayoutDashboard },
     { label: "Payments", icon: ArrowLeftRight },
     { label: "Wallets", icon: Wallet },
-    { label: "Activity", icon: Activity },\n    { label: "USSD Demo", icon: Globe2 },
+    { label: "Activity", icon: Activity },
+    { label: "USSD Demo", icon: Globe2 },
   ];
 
   return (
@@ -150,7 +158,8 @@ export default function Home() {
         <div className="nav-caption tools-caption">TOOLS</div>
         <nav className="side-nav">
           <a href="#payment"><Globe2 size={17} />SmartRoute</a>
-          <a href="#safety"><ShieldCheck size={17} />Payment safety</a>\n          <a href="#ussd"><Globe2 size={17} />USSD simulator</a>
+          <a href="#safety"><ShieldCheck size={17} />Payment safety</a>
+          <a href="#ussd"><Globe2 size={17} />USSD simulator</a>
           <a href="#activity"><Bell size={17} />Notifications</a>
           <a href="#settings"><Settings2 size={17} />Settings</a>
         </nav>
