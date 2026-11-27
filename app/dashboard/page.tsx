@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import AuthActions from "@/components/auth-actions";
 import fundingCountriesData from "../../src/data/funding-countries.json";
 import {
-  Activity, ArrowLeftRight, ArrowUpRight, Bell, Check, CreditCard, Landmark, Smartphone,
+  Activity, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Bell, Check, CreditCard, Landmark, Smartphone,
   ChevronDown, CircleHelp, Globe2, LayoutDashboard, LockKeyhole,
   Menu, Plus, RefreshCw,
   Settings2, ShieldCheck, Sparkles, Wallet, WalletCards, X,
