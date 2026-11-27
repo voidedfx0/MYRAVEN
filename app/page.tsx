@@ -134,7 +134,7 @@ export default function Home() {
     { label: "Overview", icon: LayoutDashboard },
     { label: "Payments", icon: ArrowLeftRight },
     { label: "Wallets", icon: Wallet },
-    { label: "Activity", icon: Activity },
+    { label: "Activity", icon: Activity },\n    { label: "USSD Demo", icon: Globe2 },
   ];
 
   return (
@@ -145,12 +145,12 @@ export default function Home() {
         <div className="workspace-card"><span className="workspace-avatar">M</span><span><b>Personal workspace</b><small>MYRAVEN account</small></span><span className="online-dot" /></div>
         <div className="nav-caption">PLATFORM</div>
         <nav className="side-nav">
-          {nav.map(({ label, icon: Icon }, index) => <a className={index === 0 ? "active" : ""} href={index === 1 ? "#payment" : index === 2 ? "#wallets" : "#activity"} key={label}><Icon size={17} />{label}{label === "Payments" ? <span className="nav-soon">NEW</span> : null}</a>)}
+          {nav.map(({ label, icon: Icon }, index) => <a className={index === 0 ? "active" : ""} href={index === 1 ? "#payment" : index === 2 ? "#wallets" : index === 3 ? "#activity" : "#ussd"} key={label}><Icon size={17} />{label}{label === "Payments" ? <span className="nav-soon">NEW</span> : null}</a>)}
         </nav>
         <div className="nav-caption tools-caption">TOOLS</div>
         <nav className="side-nav">
           <a href="#payment"><Globe2 size={17} />SmartRoute</a>
-          <a href="#safety"><ShieldCheck size={17} />Payment safety</a>
+          <a href="#safety"><ShieldCheck size={17} />Payment safety</a>\n          <a href="#ussd"><Globe2 size={17} />USSD simulator</a>
           <a href="#activity"><Bell size={17} />Notifications</a>
           <a href="#settings"><Settings2 size={17} />Settings</a>
         </nav>
@@ -176,7 +176,7 @@ export default function Home() {
           <section className="metrics-grid">
             <article className="metric-card"><div className="metric-top"><span>Connected wallets</span><Wallet size={17} /></div><strong>{wallets.length.toString().padStart(2, "0")}</strong><small>Solana + Stellar</small><div className="metric-line purple-line" /></article>
             <article className="metric-card"><div className="metric-top"><span>Routes compared</span><ArrowLeftRight size={17} /></div><strong>{quotes.length.toString().padStart(2, "0")}</strong><small>Illustrative route options</small><div className="metric-line cyan-line" /></article>
-            <article className="metric-card"><div className="metric-top"><span>Payments completed</span><Check size={17} /></div><strong>—</strong><small>No live payments processed</small><div className="metric-line green-line" /></article>
+            <article className="metric-card"><div className="metric-top"><span>Payments completed</span><Check size={17} /></div><strong>{activities.filter((item) => item.status.includes("Completed")).length.toString().padStart(2, "0")}</strong><small>Demo transactions only</small><div className="metric-line green-line" /></article>
             <article className="metric-card"><div className="metric-top"><span>Safety status</span><LockKeyhole size={17} /></div><strong className="metric-word">Protected</strong><small>Approval required for every action</small><div className="metric-line silver-line" /></article>
           </section>
 
