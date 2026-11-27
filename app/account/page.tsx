@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Building2, LoaderCircle, ShieldCheck, UserRound } from "lucide-react";
@@ -39,6 +39,7 @@ export default function AccountPage() {
   const [summary, setSummary] = useState<AccountSummary | null>(null);
   const [checking, setChecking] = useState(true);
   const [oauthPending, setOauthPending] = useState(false);
+  const oauthSignupHandled = useRef(false);
   const supabase = createClient();
 
   const destination = accountType === "business" ? "/business" : "/dashboard";
@@ -70,6 +71,8 @@ export default function AccountPage() {
       if (!active) return;
       if (data.user) {
         if (oauthSignup) {
+          if (oauthSignupHandled.current) { setChecking(false); return; }
+          oauthSignupHandled.current = true;
           const metadata = data.user.user_metadata ?? {};
           const fullName = String(metadata.full_name ?? metadata.name ?? "").trim();
           const parts = fullName.split(/\\s+/).filter(Boolean);
