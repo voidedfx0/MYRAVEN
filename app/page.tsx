@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import {
   Activity, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Bell, Check,
-  ChevronDown, CircleHelp, Clock3, Command, CreditCard, Fingerprint,
-  Globe2, LayoutDashboard, LockKeyhole, Menu, Plus, RefreshCw, Send,
+  ChevronDown, CircleHelp, Clock3, Globe2, LayoutDashboard, LockKeyhole,
+  Menu, Plus, RefreshCw,
   Settings2, ShieldCheck, Sparkles, Wallet, WalletCards, X,
 } from "lucide-react";
 
