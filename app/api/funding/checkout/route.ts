@@ -14,6 +14,7 @@ export async function POST(request: Request) {
   const auth = await createClient();
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in before funding your wallet." }, { status: 401 });
+  if (!user.email) return NextResponse.json({ error: "Add and verify an email address before starting a Flutterwave payment." }, { status: 400 });
 
   const secretKey = process.env.FLW_SECRET_KEY;
   if (!secretKey) {
