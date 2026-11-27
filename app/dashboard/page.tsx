@@ -15,6 +15,7 @@ type Quote = {
   recipientAmount: number; score: number; reasons: string[]; simulated: true;
 };
 type WalletConnection = { network: "Solana"; address: string; name: string };
+type ReceiveWallet = { network: string; wallet_address: string | null; status: "awaiting_provider" | "provisioned" | "suspended"; created_at: string };
 type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string };
 type RecipientProfile = { myravenId: string; displayName: string | null; countryCode: string | null };
 
@@ -72,6 +73,9 @@ export default function Home() {
   const [externalSolBalance, setExternalSolBalance] = useState<number | null>(null);
   const [externalBalanceLoading, setExternalBalanceLoading] = useState(false);
   const [externalBalanceError, setExternalBalanceError] = useState("");
+  const [receiveWallet, setReceiveWallet] = useState<ReceiveWallet | null>(null);
+  const [receiveWalletLoading, setReceiveWalletLoading] = useState(true);
+  const [receiveWalletError, setReceiveWalletError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -96,6 +100,24 @@ export default function Home() {
     void loadWalletBalance();
     return () => { active = false; };
   }, []);
+  useEffect(() => {
+    let active = true;
+    async function loadReceiveWallet() {
+      try {
+        const response = await fetch("/api/wallets/solana/receive", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? "Receiving wallet unavailable.");
+        if (active) setReceiveWallet(data.wallet ?? null);
+      } catch (error) {
+        if (active) setReceiveWalletError(error instanceof Error ? error.message : "Could not load wallet profile.");
+      } finally {
+        if (active) setReceiveWalletLoading(false);
+      }
+    }
+    void loadReceiveWallet();
+    return () => { active = false; };
+  }, []);
+
   const [walletMessage, setWalletMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState("");
@@ -474,6 +496,18 @@ export default function Home() {
             </div>
             {walletMessage ? <p className="wallet-message">{walletMessage}</p> : null}
             {wallets.length > 0 ? <div className="connected-list">{wallets.map((wallet) => <div className="connected-wallet" key={wallet.address}><span className={`mini-network ${wallet.network.toLowerCase()}`}>S</span><span><b>{wallet.name}</b><small>{shortAddress(wallet.address)}</small></span><span className="connected-label"><i /> Connected</span><button onClick={() => disconnectWallet(wallet.address)} className="disconnect-button">Disconnect</button></div>)}</div> : <div className="wallet-empty"><WalletCards size={18} /><span>No wallets connected yet</span></div>}
+            <article className="receive-address-panel">
+              <div className="receive-address-heading">
+                <div><span className="panel-kicker">YOUR PERSONAL RECEIVING ADDRESS</span><h3>MYRAVEN Solana address</h3></div>
+                <span className="read-only-tag"><ShieldCheck size={12} /> {receiveWallet?.status === "provisioned" ? "ASSIGNED" : "NOT YET ASSIGNED"}</span>
+              </div>
+              {receiveWalletLoading ? <p className="receive-address-status">Loading your individual wallet record…</p>
+                : receiveWalletError ? <p className="receive-address-status">{receiveWalletError}</p>
+                : receiveWallet?.wallet_address ? <div className="receive-address-value"><code>{receiveWallet.wallet_address}</code><button className="connect-button" onClick={() => { void navigator.clipboard.writeText(receiveWallet.wallet_address as string); setWalletMessage("Your MYRAVEN receiving address was copied."); }}>Copy address</button></div>
+                : <div className="receive-address-pending"><span className="receive-address-orbit"><Wallet size={20} /></span><div><b>Your address has not been generated yet</b><p>MYRAVEN has created your individual wallet record. A unique Solana address will appear here after secure custody provisioning is connected and approved.</p></div></div>}
+              <div className="receive-address-meta"><span><b>Network</b> Solana Mainnet</span><span><b>Asset</b> SOL</span><span><b>Wallet status</b> {receiveWallet?.status === "provisioned" ? "Address assigned" : "Awaiting custody provider"}</span></div>
+              <p className="receive-address-warning"><ShieldCheck size={14} /> Deposits are disabled until address provisioning, blockchain monitoring and deposit verification are operational. Do not send funds to an unassigned address.</p>
+            </article>
             <div className="wallet-balance-grid">
               <article className="wallet-balance-card myraven-wallet-card">
                 <div className="wallet-balance-card-top"><span><Wallet size={15} /> MYRAVEN WALLET</span><small>INTERNAL LEDGER</small></div>
