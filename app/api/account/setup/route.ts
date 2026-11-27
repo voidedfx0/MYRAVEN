@@ -27,6 +27,10 @@ export async function POST(request: Request) {
   const { error: profileError } = await supabase.from("profiles").update({
     account_type: accountType,
     ...(displayName ? { display_name: displayName } : {}),
+    ...(firstName ? { first_name: firstName } : {}),
+    ...(lastName ? { last_name: lastName } : {}),
+    ...(legalFullName ? { legal_full_name: legalFullName } : {}),
+    ...(countryName ? { country_name: countryName } : {}),
     ...(countryCode ? { country_code: countryCode } : {}),
     updated_at: new Date().toISOString(),
   }).eq("id", user.id);
@@ -41,7 +45,7 @@ export async function POST(request: Request) {
     if (!businessId) {
       const { data: created, error: createError } = await supabase.from("business_profiles").insert({
         owner_user_id: user.id, business_name: businessName,
-        legal_name: businessName, country_code: countryCode,
+        legal_name: businessName, country_code: countryCode, country_name: countryName || null,
       }).select("id").single();
       if (createError) return NextResponse.json({ error: "Could not create business profile. " + createError.message }, { status: 400 });
       businessId = created.id;
