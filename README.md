@@ -23,6 +23,15 @@ The current dashboard is a product preview. Phantom connection, when available, 
 
 **No real funds move in the current build.** Do not interpret demo balances, sample fees, estimated timings, route scores or example activity as live financial data.
 
+## Accounts and identity
+
+- Supabase Auth is configured in the app for email/password, Google OAuth and phone OTP flows.
+- Sessions use cookie-based SSR via `@supabase/ssr` and Next.js 15 middleware.
+- A private-schema auth trigger creates each profile and assigns a unique `MRV-` MYRAVEN ID at account creation.
+- `/api/account/summary` returns only the signed-in user's profile, ledger-derived balances and recent activity under RLS.
+- Google OAuth requires the Google provider to be enabled in Supabase. Phone OTP requires an SMS provider and delivery configuration. The Supabase Auth Site URL and redirect allowlist must include the deployed MYRAVEN domain and `/auth/callback`.
+- Account access is currently preview-only. No payment, deposit, conversion or withdrawal function is enabled.
+
 ## Supabase foundation
 
 The connected Supabase project contains user profiles, business memberships, receiving preferences, tokenized payment-method references, payment intents and attempts, notifications, plus the Solana funding and ledger foundation:
