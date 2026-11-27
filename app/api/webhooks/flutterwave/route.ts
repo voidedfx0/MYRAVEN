@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient();
     const { data: deposit } = await admin.from("funding_deposits")
-      .select("id,input_amount,input_currency,status")
+      .select("id,input_amount,input_currency,status,metadata")
       .eq("provider_code", "flutterwave")
       .eq("provider_reference", txRef)
       .maybeSingle();
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     // Fiat collection is confirmed. Do not credit SOL/USDC until an approved conversion and custody rail is connected.
     await admin.from("funding_deposits").update({
       status: "converting",
-      metadata: { flutterwave_transaction_id: String(transactionId), verified_currency: tx.currency, verified_amount: paidAmount, conversion_state: "awaiting_conversion_provider" },
+      metadata: { ...(deposit.metadata ?? {}), flutterwave_transaction_id: String(transactionId), verified_currency: tx.currency, verified_amount: paidAmount, conversion_state: "awaiting_conversion_provider" },
     }).eq("id", deposit.id);
 
     return NextResponse.json({ received: true, verified: true });
