@@ -17,6 +17,10 @@ export default function AccountPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [summary, setSummary] = useState<AccountSummary | null>(null);
@@ -62,7 +66,10 @@ export default function AccountPage() {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { display_name: displayName.trim() } },
+          options: {
+            data: { display_name: displayName.trim() },
+            emailRedirectTo: window.location.origin + "/auth/callback?next=/account",
+          },
         });
         if (error) throw error;
         if (!data.session) {
@@ -84,12 +91,40 @@ export default function AccountPage() {
     }
   }
 
+
+  async function submitPhone(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setMessage("");
+    try {
+      if (!otpSent) {
+        const { error } = await supabase.auth.signInWithOtp({ phone: phone.trim() });
+        if (error) throw error;
+        setOtpSent(true);
+        setMessage("A one-time code was requested. Enter it here to finish signing in.");
+      } else {
+        const { error } = await supabase.auth.verifyOtp({
+          phone: phone.trim(),
+          token: otp.trim(),
+          type: "sms",
+        });
+        if (error) throw error;
+        setMessage("Phone verified. Loading your MYRAVEN account…");
+        await loadSummary();
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Phone verification is unavailable. Check that an SMS provider is configured.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function signInWithGoogle() {
     setLoading(true);
     setMessage("");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + "/account" },
+      options: { redirectTo: window.location.origin + "/auth/callback?next=/account" },
     });
     if (error) {
       setMessage(error.message);
@@ -143,17 +178,26 @@ export default function AccountPage() {
             <h1>{mode === "signup" ? "Create your account." : "Welcome back."}</h1>
             <p className="account-subtitle">Explore MYRAVEN and keep your preferences and activity together.</p>
             <div className="account-mode">
-              <button className={mode === "signup" ? "selected" : ""} onClick={() => setMode("signup")}>Create account</button>
-              <button className={mode === "signin" ? "selected" : ""} onClick={() => setMode("signin")}>Sign in</button>
+              <button className={mode === "signup" ? "selected" : ""} onClick={() => { setMode("signup"); setAuthMethod("email"); setOtpSent(false); }}>Create account</button>
+              <button className={mode === "signin" ? "selected" : ""} onClick={() => { setMode("signin"); setOtpSent(false); }}>Sign in</button>
             </div>
-            <form className="account-form" onSubmit={submit}>
+            {mode === "signin" && <div className="account-mode account-method">
+              <button className={authMethod === "email" ? "selected" : ""} onClick={() => { setAuthMethod("email"); setOtpSent(false); }}>Email</button>
+              <button className={authMethod === "phone" ? "selected" : ""} onClick={() => { setAuthMethod("phone"); setOtpSent(false); }}>Phone</button>
+            </div>}
+            {mode === "signin" && authMethod === "phone" ? <form className="account-form" onSubmit={submitPhone}>
+              <label>PHONE NUMBER<input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} required placeholder="+ country code" autoComplete="tel" /></label>
+              {otpSent && <label>ONE-TIME CODE<input inputMode="numeric" value={otp} onChange={(event) => setOtp(event.target.value)} required maxLength={8} autoComplete="one-time-code" /></label>}
+              <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16} /> : null}{otpSent ? "Verify phone" : "Send verification code"}<ArrowUpRight size={16} /></button>
+              <p className="account-legal">Phone sign-in requires an SMS provider to be configured in Supabase.</p>
+            </form> : <form className="account-form" onSubmit={submit}>
               {mode === "signup" && <label>DISPLAY NAME<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} required maxLength={60} autoComplete="name" /></label>}
               <label>EMAIL ADDRESS<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" /></label>
               <label>PASSWORD<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} /></label>
               <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16} /> : null}{mode === "signup" ? "Create MYRAVEN account" : "Sign in"}<ArrowUpRight size={16} /></button>
-            </form>
-            <div className="account-or"><span /> OR <span /></div>
-            <button className="account-google" onClick={signInWithGoogle} disabled={loading}>Continue with Google <ArrowUpRight size={15} /></button>
+            </form>}
+            {mode === "signin" && authMethod === "email" && <><div className="account-or"><span /> OR <span /></div>
+            <button className="account-google" onClick={signInWithGoogle} disabled={loading}>Continue with Google <ArrowUpRight size={15} /></button></>}
             {message && <p className="account-message" role="status">{message}</p>}
             <p className="account-legal">Early-access account only. Payment, conversion and withdrawal functions remain disabled in this preview. Any future financial services will require applicable eligibility, provider and compliance checks.</p>
           </>
