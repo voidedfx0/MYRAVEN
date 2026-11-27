@@ -15,6 +15,7 @@ type Quote = {
 };
 type WalletConnection = { network: "Solana"; address: string; name: string };
 type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string };
+type RecipientProfile = { myravenId: string; displayName: string | null; countryCode: string | null };
 
 declare global {
   interface Window {
@@ -73,14 +74,15 @@ export default function Home() {
   const [payAiPrompt, setPayAiPrompt] = useState("");
   const [payAiMessage, setPayAiMessage] = useState("");
   const [recipientReference, setRecipientReference] = useState("");
-  const [activities, setActivities] = useState<DemoActivity[]>([
-    { id: "MRV-DEMO-001", title: "Demo wallet funded", detail: "Solana · USDC", amount: "+250.00 USDC", status: "Completed · Demo", time: "Today · 09:42" },
-    { id: "MRV-DEMO-002", title: "Demo conversion", detail: "Solana · SOL → USDC", amount: "125.00 USDC", status: "Completed · Demo", time: "Today · 08:16" },
-  ]);
+  const [recipientType, setRecipientType] = useState("myraven");
+  const [recipientProfile, setRecipientProfile] = useState<RecipientProfile | null>(null);
+  const [recipientLookupStatus, setRecipientLookupStatus] = useState("");
+  const [recipientLookupLoading, setRecipientLookupLoading] = useState(false);
+  const [activities, setActivities] = useState<DemoActivity[]>([]);
   const [fundingMethod, setFundingMethod] = useState("card");
   const [fundingCurrency, setFundingCurrency] = useState("USD");
   const [fundingAmount, setFundingAmount] = useState("100");
-  const [fundingAsset, setFundingAsset] = useState("USDC");
+  const [fundingAsset, setFundingAsset] = useState("SOL");
   const [fundingNotice, setFundingNotice] = useState("");
   const [ussdPhone, setUssdPhone] = useState("");
   const [ussdAmount, setUssdAmount] = useState("25");
@@ -128,6 +130,46 @@ export default function Home() {
     } catch {
       setWalletMessage("Wallet connection was cancelled or unavailable.");
     }
+  }
+
+  async function verifyRecipient() {
+    const reference = recipientReference.trim();
+    setRecipientProfile(null);
+    setRecipientLookupStatus("");
+    if (!reference) {
+      setRecipientLookupStatus("Enter a recipient identifier first.");
+      return;
+    }
+
+    if (recipientType === "myraven") {
+      setRecipientLookupLoading(true);
+      try {
+        const response = await fetch("/api/recipients/lookup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ myravenId: reference }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? "Recipient lookup failed.");
+        setRecipientProfile(data.recipient);
+        setRecipientLookupStatus("MYRAVEN profile matched. Check the displayed name and ID before continuing.");
+      } catch (error) {
+        setRecipientLookupStatus(error instanceof Error ? error.message : "Recipient lookup failed.");
+      } finally {
+        setRecipientLookupLoading(false);
+      }
+      return;
+    }
+
+    if (recipientType === "solana") {
+      const base58Address = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(reference);
+      setRecipientLookupStatus(base58Address
+        ? "Address format looks valid, but the wallet owner is unverified. Confirm the full address independently."
+        : "That does not look like a valid Solana address. Check the full address and try again.");
+      return;
+    }
+
+    setRecipientLookupStatus("MYRAVEN account-number lookup is not available yet. Use a MYRAVEN ID for verified profile matching.");
   }
 
   function confirmDemoPayment() {
@@ -265,8 +307,27 @@ export default function Home() {
                 <div className="transfer-connector"><span><ArrowDownLeft size={15} /></span><i /></div>
                 <label className="field-label">RECIPIENT GETS</label>
                 <div className="recipient-fields"><select value={destinationCurrency} onChange={(event) => setDestinationCurrency(event.target.value)} aria-label="Recipient currency">{["NGN","USD","EUR","GBP","KES","GHS"].map((currency) => <option key={currency}>{currency}</option>)}</select><select value={destination} onChange={(event) => setDestination(event.target.value)} aria-label="Receiving method"><option value="bank">Local bank payout</option><option value="solana">Solana wallet</option></select></div>
-                <label className="field-label preference-label">RECIPIENT / MYRAVEN ID (OPTIONAL)</label>
-                <input className="recipient-reference-input" value={recipientReference} onChange={(event) => setRecipientReference(event.target.value)} placeholder="Name, phone or MYRAVEN ID" aria-label="Recipient name or MYRAVEN ID" />
+                <label className="field-label preference-label">RECIPIENT IDENTIFIER</label>
+                <div className="recipient-lookup-row">
+                  <select value={recipientType} onChange={(event) => { setRecipientType(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); }} aria-label="Recipient identifier type">
+                    <option value="myraven">MYRAVEN ID</option>
+                    <option value="account">MYRAVEN account number</option>
+                    <option value="solana">Solana address</option>
+                  </select>
+                  <input className="recipient-reference-input" value={recipientReference} onChange={(event) => { setRecipientReference(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); }} placeholder={recipientType === "myraven" ? "MRV-XXXXXXXXXX" : recipientType === "account" ? "MYRAVEN account number" : "Solana wallet address"} aria-label="Recipient identifier" />
+                </div>
+                <button type="button" className="verify-recipient-button" onClick={verifyRecipient} disabled={recipientLookupLoading}>
+                  <ShieldCheck size={13} /> {recipientLookupLoading ? "Checking recipient…" : recipientType === "solana" ? "Validate address format" : "Verify recipient"}
+                </button>
+                {recipientProfile ? <div className="recipient-verification-card">
+                  <div className="recipient-avatar">{(recipientProfile.displayName || "M").slice(0, 1).toUpperCase()}</div>
+                  <div className="recipient-verification-copy">
+                    <b>{recipientProfile.displayName || "MYRAVEN user"}</b>
+                    <small>{recipientProfile.myravenId}{recipientProfile.countryCode ? " · " + recipientProfile.countryCode : ""}</small>
+                    <em><Check size={11} /> MYRAVEN profile matched</em>
+                  </div>
+                </div> : null}
+                {recipientLookupStatus ? <p className={recipientProfile ? "recipient-lookup-status verified" : "recipient-lookup-status"} role="status">{recipientLookupStatus}</p> : null}
                 <label className="field-label preference-label">ROUTE PRIORITY</label>
                 <div className="preference-options">{[{id:"balanced",label:"Balanced"},{id:"lowest-cost",label:"Lowest cost"},{id:"fastest",label:"Fastest"},{id:"most-reliable",label:"Reliability"}].map((option) => <button type="button" className={preference === option.id ? "preference-active" : ""} onClick={() => setPreference(option.id)} key={option.id}>{option.label}</button>)}</div>
                 <button className="primary-action" type="submit" disabled={loading}>{loading ? <RefreshCw size={16} className="spin" /> : <Sparkles size={16} />}{loading ? "Comparing routes…" : "Find best route"}<ArrowUpRight size={16} /></button>
@@ -292,7 +353,7 @@ export default function Home() {
               </div>
               <div className="recipient-fields" style={{ marginTop: 12 }}>
                 <div><label className="field-label">SETTLEMENT NETWORK</label><div className="amount-field"><span style={{ color: "#b9a4ff", fontSize: 12, fontWeight: 700 }}>SOLANA</span></div></div>
-                <div><label className="field-label">MYRAVEN ASSET</label><select value={fundingAsset} onChange={(event) => setFundingAsset(event.target.value)} aria-label="Solana settlement asset"><option value="USDC">USDC on Solana</option><option value="SOL">SOL</option></select></div>
+                <div><label className="field-label">MYRAVEN ASSET</label><select value={fundingAsset} onChange={(event) => setFundingAsset(event.target.value)} aria-label="Solana settlement asset"><option value="SOL">SOL on Solana</option></select></div>
               </div>
               <button className="primary-action" type="submit"><WalletCards size={16} /> Prepare deposit <ArrowUpRight size={16} /></button>
               {fundingNotice ? <p className="ussd-result">{fundingNotice}</p> : <div className="notice-line"><ShieldCheck size={14} /> Provider checkout is not connected yet. This form does not charge or transfer funds.</div>}
@@ -306,12 +367,7 @@ export default function Home() {
             </div>
             {walletMessage ? <p className="wallet-message">{walletMessage}</p> : null}
             {wallets.length > 0 ? <div className="connected-list">{wallets.map((wallet) => <div className="connected-wallet" key={wallet.address}><span className={`mini-network ${wallet.network.toLowerCase()}`}>S</span><span><b>{wallet.name}</b><small>{shortAddress(wallet.address)}</small></span><span className="connected-label"><i /> Connected</span><button onClick={() => disconnectWallet(wallet.address)} className="disconnect-button">Disconnect</button></div>)}</div> : <div className="wallet-empty"><WalletCards size={18} /><span>No wallets connected yet</span></div>}
-            <div className="demo-assets-grid">
-              <article className="demo-asset"><span className="asset-symbol solana-logo">◎</span><span><b>SOL</b><small>Solana · Sample balance</small></span><strong>12.4500</strong><em>≈ $1,867.50</em></article>
-              
-              <article className="demo-asset"><span className="asset-symbol usdc-symbol">$</span><span><b>USDC</b><small>Solana · Sample balance</small></span><strong>2,450.00</strong><em>≈ $2,450.00</em></article>
-              
-            </div>
+            <div className="wallet-balance-note"><Wallet size={15} /><span>Your verified SOL balance will appear here after a confirmed deposit is posted to your MYRAVEN ledger. No sample balance is displayed.</span></div>
             <div className="wallet-security"><ShieldCheck size={15} /><span>Wallet connection verifies only your public address. No transaction is signed, and MYRAVEN never requests your seed phrase or private key.</span></div>
           </section>
 
@@ -328,7 +384,7 @@ export default function Home() {
 
           <section className="bottom-grid" id="safety">
             <article className="panel safety-panel"><div className="mini-panel-heading"><span className="safety-icon"><ShieldCheck size={17} /></span><span className="panel-kicker">PAYMENT SAFETY</span></div><h3>You stay in control.</h3><p>Every payment requires a clear review and explicit approval. A quote alone never authorizes a transaction.</p><div className="safety-points"><span><Check size={13} /> Fees shown before approval</span><span><Check size={13} /> No automatic fund movement</span><span><Check size={13} /> No blind payment retries</span></div></article>
-            <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="#activity">View all <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{activities.map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small></span></div>)}</div></article>
+            <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="#activity">View all <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{activities.length ? activities.map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small></span></div>) : <div className="activity-empty"><Activity size={17} /><span><b>No activity yet</b><small>Verified deposits and real transaction events will appear here. Preview approvals stay clearly labelled.</small></span></div>}</div></article>
           </section>
 
           <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>Preview · Solana only</span></footer>
@@ -336,7 +392,7 @@ export default function Home() {
       </section>
 
       {menuOpen ? <button className="mobile-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" /> : null}
-      {approvalOpen && bestQuote ? <div className="modal-backdrop" role="presentation" onClick={() => setApprovalOpen(false)}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setApprovalOpen(false)} aria-label="Close"><X size={18} /></button><span className="panel-kicker">PAYMENT REVIEW · SIMULATION</span><h2 id="approval-title">Review before you approve</h2><p>This is a preview only. No provider has been contacted and no funds can move.</p><div className="review-rows"><span>You send <b>{money(Number(amount), sourceCurrency)}</b></span><span>Route <b>{bestQuote.label}</b></span><span>Estimated fee <b>{money(bestQuote.estimatedFee, sourceCurrency)}</b></span><span>Recipient receives <b>{money(bestQuote.recipientAmount, destinationCurrency)}</b></span></div>{approved ? <div className="approval-result"><Check size={16} /> Demo approval recorded locally. No transaction was submitted.</div> : <button className="primary-action" onClick={confirmDemoPayment}>Confirm demo approval <Check size={16} /></button>}<button className="cancel-review" onClick={() => setApprovalOpen(false)}>Go back</button></section></div> : null}
+      {approvalOpen && bestQuote ? <div className="modal-backdrop" role="presentation" onClick={() => setApprovalOpen(false)}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setApprovalOpen(false)} aria-label="Close"><X size={18} /></button><span className="panel-kicker">PAYMENT REVIEW · SIMULATION</span><h2 id="approval-title">Review before you approve</h2><p>This is a preview only. No provider has been contacted and no funds can move.</p><div className="review-rows"><span>Recipient <b>{recipientProfile?.displayName ?? (recipientType === "solana" ? "External Solana wallet" : "Not verified")}</b></span><span>Recipient check <b>{recipientProfile ? "MYRAVEN profile matched" : recipientLookupStatus || "Not checked"}</b></span><span>Identifier <b>{recipientReference || "Not provided"}</b></span><span>You send <b>{money(Number(amount), sourceCurrency)}</b></span><span>Route <b>{bestQuote.label}</b></span><span>Estimated fee <b>{money(bestQuote.estimatedFee, sourceCurrency)}</b></span><span>Recipient receives <b>{money(bestQuote.recipientAmount, destinationCurrency)}</b></span></div>{approved ? <div className="approval-result"><Check size={16} /> Demo approval recorded locally. No transaction was submitted.</div> : <button className="primary-action" onClick={confirmDemoPayment}>Confirm demo approval <Check size={16} /></button>}<button className="cancel-review" onClick={() => setApprovalOpen(false)}>Go back</button></section></div> : null}
     </main>
   );
 }
