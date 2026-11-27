@@ -524,7 +524,7 @@ export default function Home() {
               </button>
               {fundingNotice ? <p className="ussd-result" role="status">{fundingNotice}</p> : <div className="notice-line"><ShieldCheck size={14} /> Sandbox only. No live card charge or MYRAVEN ledger credit is enabled.</div>}
               <p className="wallet-security" style={{ marginTop: 12 }}>
-                This test flow sends any provider-issued test asset to the connected external wallet. It does not add funds to your internal MYRAVEN balance. Live availability, identity checks and payment methods depend on provider approval and the user's country.
+                This test flow sends any provider-issued test asset to the connected external wallet. It does not add funds to your internal MYRAVEN balance. Live availability, identity checks and payment methods depend on provider approval and the user&apos;s country.
               </p>
             </form>
           </section>
