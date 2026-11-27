@@ -4,6 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
+const TEST_MODE = process.env.MYRAVEN_MODE === "test";
+
 function safeEqual(left: string | null, right: string | undefined) {
   if (!left || !right) return false;
   const a = Buffer.from(left);
@@ -11,7 +13,7 @@ function safeEqual(left: string | null, right: string | undefined) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export async function POST(request: Request) {
+export async function POST(request: Request) {\n  if (!TEST_MODE) return new NextResponse("Test mode is not enabled", { status: 503 });
   const secretHash = process.env.FLW_SECRET_HASH;
   if (!safeEqual(request.headers.get("verif-hash"), secretHash)) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -60,7 +62,7 @@ export async function POST(request: Request) {
     // Fiat collection is confirmed. Do not credit SOL/USDC until an approved conversion and custody rail is connected.
     await admin.from("funding_deposits").update({
       status: "converting",
-      metadata: { ...(deposit.metadata ?? {}), flutterwave_transaction_id: String(transactionId), verified_currency: tx.currency, verified_amount: paidAmount, conversion_state: "awaiting_conversion_provider" },
+      metadata: { ...(deposit.metadata ?? {}), flutterwave_transaction_id: String(transactionId), verified_currency: tx.currency, verified_amount: paidAmount, conversion_state: "awaiting_conversion_provider", environment: "test" },
     }).eq("id", deposit.id);
 
     return NextResponse.json({ received: true, verified: true });
