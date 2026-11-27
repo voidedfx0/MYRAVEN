@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     if (!businessId) {
       const { data: created, error: createError } = await supabase.from("business_profiles").insert({
         owner_user_id: user.id, business_name: businessName,
-        legal_name: businessName, country_code: countryCode, verification_status: "unverified",
+        legal_name: businessName, country_code: countryCode,
       }).select("id").single();
       if (createError) return NextResponse.json({ error: "Could not create business profile. " + createError.message }, { status: 400 });
       businessId = created.id;
