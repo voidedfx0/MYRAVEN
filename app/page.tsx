@@ -115,14 +115,21 @@ export default function Home() {
     setApproved(true);
   }
 
-  function prepareDeposit(event: React.FormEvent<HTMLFormElement>) {
+  async function prepareDeposit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = Number(fundingAmount);
     if (!Number.isFinite(value) || value <= 0) {
       setFundingNotice("Enter a valid deposit amount.");
       return;
     }
-    setFundingNotice(`${value.toLocaleString()} ${fundingCurrency} via ${fundingMethod.replaceAll("_", " ")} selected for ${fundingAsset} on Solana. Provider checkout is not connected, so no payment has been initiated and no funds have moved.`);
+    try {
+      const response = await fetch("/api/funding/readiness");
+      const readiness = await response.json();
+      if (!response.ok) throw new Error("Could not check funding readiness.");
+      setFundingNotice(`${value.toLocaleString()} ${fundingCurrency} via ${fundingMethod.replaceAll("_", " ")} selected for ${fundingAsset} on Solana. ${readiness.message} No payment has been initiated and no funds have moved.`);
+    } catch {
+      setFundingNotice("Funding readiness could not be checked. No payment has been initiated and no funds have moved.");
+    }
   }
   function simulateUssd() {
     if (!/^\+?[0-9]{7,15}$/.test(ussdPhone.replace(/[\s-]/g, ""))) {
