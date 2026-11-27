@@ -247,7 +247,17 @@ export default function Home() {
   return (
     <main className="app-frame">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
-        <a className="brand" href="#"><span className="brand-symbol">M</span><span>MYRAVEN</span></a>
+        <a className="brand" href="#" aria-label="MYRAVEN home">
+          <span className="brand-symbol" aria-hidden="true">
+            <svg viewBox="0 0 40 40" role="img" focusable="false">
+              <defs><linearGradient id="raven-mark" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop stopColor="#D8CCFF"/><stop offset=".52" stopColor="#9B7BFF"/><stop offset="1" stopColor="#54D9EF"/></linearGradient></defs>
+              <path d="M8 28V12.5L19.8 25 32 12v16" fill="none" stroke="url(#raven-mark)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5.5 20C9 8.8 19.5 4.8 29.2 9.1" fill="none" stroke="#B9A4FF" strokeOpacity=".7" strokeWidth="1.2" strokeLinecap="round"/>
+              <circle cx="30.5" cy="9.4" r="2.1" fill="#54D9EF"/>
+            </svg>
+          </span>
+          <span className="brand-wordmark">MYRAVEN</span>
+        </a>
         <div className="workspace-label">WORKSPACE <ChevronDown size={13} /></div>
         <div className="workspace-card"><span className="workspace-avatar">M</span><span><b>Personal workspace</b><small>MYRAVEN account</small></span><span className="online-dot" /></div>
         <div className="nav-caption">PLATFORM</div>
