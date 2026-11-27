@@ -1,12 +1,12 @@
 export type Currency = "USD" | "EUR" | "GBP" | "NGN" | "KES" | "GHS";
-export type Rail = "solana" | "stellar" | "bank";
+export type Rail = "solana" | "bank";
 export type Preference = "balanced" | "lowest-cost" | "fastest" | "most-reliable";
 
 export type QuoteRequest = {
   amount: number;
   sourceCurrency: Currency;
   destinationCurrency: Currency;
-  destination: "solana" | "stellar" | "bank";
+  destination: "solana" | "bank";
   preference: Preference;
 };
 
@@ -28,9 +28,9 @@ const usdRates: Record<Currency, number> = {
   USD: 1, EUR: 0.92, GBP: 0.79, NGN: 1550, KES: 129, GHS: 15.2,
 };
 
-const fees: Record<Rail, number> = { solana: 0.35, stellar: 0.2, bank: 2.5 };
-const speed: Record<Rail, number> = { solana: 1, stellar: 2, bank: 45 };
-const reliability: Record<Rail, number> = { solana: 97, stellar: 98, bank: 94 };
+const fees: Record<Rail, number> = { solana: 0.35, bank: 2.5 };
+const speed: Record<Rail, number> = { solana: 1, bank: 45 };
+const reliability: Record<Rail, number> = { solana: 97, bank: 94 };
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -45,8 +45,7 @@ export function buildDemoQuotes(input: QuoteRequest): RouteQuote[] {
   const usdValue = amount / usdRates[sourceCurrency];
   const fxRate = usdRates[destinationCurrency] / usdRates[sourceCurrency];
   const eligible: Rail[] =
-    destination === "bank" ? ["bank", "stellar", "solana"] :
-    destination === "stellar" ? ["stellar", "solana"] : ["solana", "stellar"];
+    destination === "bank" ? ["bank", "solana"] : ["solana"];
 
   const weights = preference === "lowest-cost"
     ? { cost: 0.65, speed: 0.1, reliability: 0.15 }
@@ -78,7 +77,7 @@ export function buildDemoQuotes(input: QuoteRequest): RouteQuote[] {
     return {
       id: rail,
       rail,
-      label: rail === "solana" ? "Solana route" : rail === "stellar" ? "Stellar route" : "Local bank payout",
+      label: rail === "solana" ? "Solana settlement route" : "Local bank payout",
       estimatedFee,
       estimatedMinutes: speed[rail],
       reliability: reliability[rail],
