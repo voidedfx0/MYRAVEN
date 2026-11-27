@@ -9,14 +9,6 @@ type AccountType = "personal" | "business";
 const countries = [
   ["US","United States"],["GB","United Kingdom"],["NG","Nigeria"],["GH","Ghana"],["KE","Kenya"],["ZA","South Africa"],["UG","Uganda"],["TZ","Tanzania"],["RW","Rwanda"],["ET","Ethiopia"],["EG","Egypt"],["MA","Morocco"],["CI","Côte d’Ivoire"],["SN","Senegal"],["CM","Cameroon"],["IN","India"],["PK","Pakistan"],["BD","Bangladesh"],["PH","Philippines"],["ID","Indonesia"],["MY","Malaysia"],["SG","Singapore"],["AE","United Arab Emirates"],["SA","Saudi Arabia"],["TR","Türkiye"],["CH","Switzerland"],["DE","Germany"],["FR","France"],["IT","Italy"],["ES","Spain"],["NL","Netherlands"],["BE","Belgium"],["SE","Sweden"],["NO","Norway"],["DK","Denmark"],["FI","Finland"],["IE","Ireland"],["PT","Portugal"],["PL","Poland"],["UA","Ukraine"],["CA","Canada"],["MX","Mexico"],["BR","Brazil"],["AR","Argentina"],["CL","Chile"],["AU","Australia"],["NZ","New Zealand"],["JP","Japan"],["KR","South Korea"],["CN","China"],["TH","Thailand"],["VN","Vietnam"]
 ] as const;
-type AccountSummary = {
-  profile: { myraven_id: string; display_name: string | null; country_code: string | null; account_type?: AccountType } | null;
-  email: string | null;
-  balances: { account_id: string; asset_code: string; network_code: string; account_type: string; balance: string }[];
-  transactions: { id: string; source_type: string; description: string | null; status: string; created_at: string }[];
-  note: string;
-};
-
 export default function AccountPage() {
   const [accountType, setAccountType] = useState<AccountType>("personal");
   const [mode, setMode] = useState<"signin" | "signup">("signup");
@@ -32,17 +24,10 @@ export default function AccountPage() {
   const countryName = countries.find(([code]) => code === countryCode)?.[1] ?? "";
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [summary, setSummary] = useState<AccountSummary | null>(null);
   const [checking, setChecking] = useState(true);
   const supabase = createClient();
 
   const destination = accountType === "business" ? "/business" : "/dashboard";
-  const loadSummary = useCallback(async () => {
-    const response = await fetch("/api/account/summary", { cache: "no-store" });
-    if (!response.ok) { setSummary(null); return; }
-    setSummary(await response.json());
-  }, []);
-
   const provisionWorkspace = useCallback(async (type: AccountType) => {
     const response = await fetch("/api/account/setup", {
       method: "POST", headers: { "Content-Type": "application/json" },
