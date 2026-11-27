@@ -14,7 +14,7 @@ async function getOwnerBusiness() {
   const { data: profile } = await supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle();
   if (profile?.account_type !== "business") return { error: NextResponse.json({ error: "A business workspace is required." }, { status: 403 }) };
   const { data: business, error: businessError } = await supabase.from("business_profiles")
-    .select("id,business_name,legal_name,country_code,website_url,business_type,registration_number,industry,business_description,address_line,city,postal_code,operating_countries,onboarding_status,verification_status")
+    .select("id,business_name,legal_name,country_code,country_name,website_url,business_type,registration_number,industry,business_description,address_line,city,postal_code,operating_countries,onboarding_status,verification_status")
     .eq("owner_user_id", user.id).maybeSingle();
   if (businessError || !business) return { error: NextResponse.json({ error: "Business profile not found." }, { status: 404 }) };
   return { supabase, business };
@@ -35,6 +35,7 @@ export async function PATCH(request: Request) {
   const businessName = clean(body.businessName, 120) || result.business.business_name;
   const legalName = clean(body.legalName, 160) || result.business.legal_name || "";
   const countryCode = (clean(body.countryCode, 2) || result.business.country_code || "").toUpperCase();
+  const countryName = clean(body.countryName, 100) || result.business.country_name || "";
   const businessType = clean(body.businessType, 40) || result.business.business_type || "other";
   const registrationNumber = clean(body.registrationNumber, 80);
   const industry = clean(body.industry, 80) || result.business.industry || "";
@@ -53,7 +54,7 @@ export async function PATCH(request: Request) {
   }
   if (website && !/^https:\/\//i.test(website)) return NextResponse.json({ error: "Website must begin with https://." }, { status: 400 });
   const { error } = await result.supabase.from("business_profiles").update({
-    business_name: businessName, legal_name: legalName, country_code: countryCode,
+    business_name: businessName, legal_name: legalName, country_code: countryCode, country_name: countryName || null,
     business_type: businessType, registration_number: registrationNumber || null,
     industry, business_description: description || null, website_url: website || null,
     address_line: address || null, city: city || null, postal_code: postalCode || null,
