@@ -80,6 +80,13 @@ export default function Home() {
   const [fundingTargetAsset, setFundingTargetAsset] = useState("USDC");
   const [fundingCheckoutLoading, setFundingCheckoutLoading] = useState(false);
   const [fundingMessage, setFundingMessage] = useState("");
+  const [fundingHistory, setFundingHistory] = useState<Array<{
+    id: string; funding_method: string; input_kind: string; input_currency: string;
+    input_amount: number | string; target_asset: string; credited_output_amount: number | string | null;
+    status: string; failure_code: string | null; created_at: string;
+  }>>([]);
+  const [fundingHistoryLoading, setFundingHistoryLoading] = useState(false);
+  const [fundingHistoryMessage, setFundingHistoryMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -128,6 +135,25 @@ export default function Home() {
   const [ussdResult, setUssdResult] = useState("");
 
   const bestQuote = useMemo(() => quotes.find((quote) => quote.id === selectedRoute) ?? quotes[0], [quotes, selectedRoute]);
+
+  async function loadFundingHistory() {
+    setFundingHistoryLoading(true);
+    setFundingHistoryMessage("");
+    try {
+      const response = await fetch("/api/funding/deposits", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Funding history could not be loaded.");
+      setFundingHistory(Array.isArray(data.deposits) ? data.deposits : []);
+    } catch (error) {
+      setFundingHistoryMessage(error instanceof Error ? error.message : "Funding history is unavailable.");
+    } finally {
+      setFundingHistoryLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadFundingHistory();
+  }, []);
 
   async function startFundingCheckout() {
     const country = fundingCountriesData.countries.find((item) => item.code === fundingCountry);
@@ -571,6 +597,28 @@ export default function Home() {
               </button>
             </div>
             {fundingMessage ? <p className="funding-disclaimer" role="status">{fundingMessage}</p> : null}
+            <div className="funding-history">
+              <div className="funding-history-heading">
+                <div><span className="panel-kicker">YOUR WALLET FUNDING</span><h3>Recent funding activity</h3></div>
+                <button type="button" className="connect-button" onClick={() => void loadFundingHistory()} disabled={fundingHistoryLoading}>
+                  <RefreshCw size={13} className={fundingHistoryLoading ? "spin" : ""} /> Refresh
+                </button>
+              </div>
+              {fundingHistoryMessage ? <p className="funding-disclaimer" role="status">{fundingHistoryMessage}</p> : null}
+              {fundingHistory.length ? <div className="funding-history-list">
+                {fundingHistory.map((deposit) => <div className="funding-history-item" key={deposit.id}>
+                  <span className="funding-history-mark"><WalletCards size={15} /></span>
+                  <span className="funding-history-copy">
+                    <b>{money(Number(deposit.input_amount), deposit.input_currency)} · {deposit.target_asset} requested</b>
+                    <small>{deposit.funding_method.replaceAll("_", " ")} · {new Date(deposit.created_at).toLocaleString()}</small>
+                  </span>
+                  <span className={`funding-history-status status-${deposit.status}`}>
+                    {deposit.status.replaceAll("_", " ")}
+                    {deposit.credited_output_amount ? <small>{deposit.credited_output_amount} {deposit.target_asset} credited</small> : null}
+                  </span>
+                </div>)}
+              </div> : <p className="funding-history-empty">{fundingHistoryLoading ? "Loading funding activity…" : "Your verified funding requests will appear here."}</p>}
+            </div>
             <p className="funding-disclaimer"><ShieldCheck size={13} /> Test integration only. A successful fiat payment is verified server-side and held for conversion; MYRAVEN will not show SOL or USDC as available until the conversion and settlement provider is connected.</p>
           </section>
           <section className="panel wallet-panel" id="wallets">
