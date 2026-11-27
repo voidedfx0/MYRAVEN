@@ -25,6 +25,31 @@ declare global {
 const money = (value: number, currency: string) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(value);
 
+const currencyAliases: Record<string, string> = {
+  dollar: "USD", dollars: "USD", usd: "USD", euro: "EUR", euros: "EUR", eur: "EUR",
+  pound: "GBP", pounds: "GBP", gbp: "GBP", naira: "NGN", ngn: "NGN",
+  shilling: "KES", shillings: "KES", kes: "KES", cedi: "GHS", cedis: "GHS", ghs: "GHS",
+  franc: "CHF", francs: "CHF", chf: "CHF",
+};
+
+function interpretPayAiRequest(prompt: string) {
+  const amountMatch = prompt.match(/(?:^|\s)(?:send\s+)?([0-9]+(?:[.,][0-9]{1,2})?)/i);
+  const amount = amountMatch ? Number(amountMatch[1].replace(",", ".")) : null;
+  const normalized = prompt.toLowerCase();
+  const currencyMatch = normalized.match(/\b(usd|eur|gbp|ngn|kes|ghs|chf|dollars?|euros?|pounds?|naira|shillings?|cedis?|francs?)\b/);
+  const currency = currencyMatch ? currencyAliases[currencyMatch[1]] : null;
+  const recipientMatch = prompt.match(/\bto\s+(.+?)(?:\s+(?:in|who|with|using|via|should|gets)\b|[,.]|$)/i);
+  const recipient = recipientMatch?.[1]?.trim() ?? "";
+  const destinationCurrency = /\b(naira|ngn)\b/i.test(prompt) ? "NGN"
+    : /\b(dollars?|usd)\b/i.test(prompt) ? "USD"
+    : /\b(euros?|eur)\b/i.test(prompt) ? "EUR"
+    : /\b(pounds?|gbp)\b/i.test(prompt) ? "GBP"
+    : /\b(kes|shillings?)\b/i.test(prompt) ? "KES"
+    : /\b(ghs|cedis?)\b/i.test(prompt) ? "GHS" : null;
+  const destination = /\b(wallet|solana|address)\b/i.test(prompt) ? "solana" : "bank";
+  return { amount, currency, destinationCurrency, destination, recipient };
+}
+
 function shortAddress(address: string) {
   return address.length > 16 ? address.slice(0, 7) + "…" + address.slice(-6) : address;
 }
@@ -44,6 +69,10 @@ export default function Home() {
   const [selectedRoute, setSelectedRoute] = useState("");
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approved, setApproved] = useState(false);
+  const [payAiOpen, setPayAiOpen] = useState(false);
+  const [payAiPrompt, setPayAiPrompt] = useState("");
+  const [payAiMessage, setPayAiMessage] = useState("");
+  const [recipientReference, setRecipientReference] = useState("");
   const [activities, setActivities] = useState<DemoActivity[]>([
     { id: "MRV-DEMO-001", title: "Demo wallet funded", detail: "Solana · USDC", amount: "+250.00 USDC", status: "Completed · Demo", time: "Today · 09:42" },
     { id: "MRV-DEMO-002", title: "Demo conversion", detail: "Solana · SOL → USDC", amount: "125.00 USDC", status: "Completed · Demo", time: "Today · 08:16" },
@@ -212,13 +241,32 @@ export default function Home() {
 
           <div className="work-grid">
             <section className="panel payment-panel" id="payment">
-              <div className="panel-heading"><div><span className="panel-kicker">SMARTROUTE ENGINE</span><h2>Build a payment</h2><p>Compare possible routes before making a decision.</p></div><span className="step-badge">01 / 03</span></div>
+              <div className="panel-heading"><div><span className="panel-kicker">SMARTROUTE ENGINE</span><h2>Build a payment</h2><p>Compare possible routes before making a decision.</p></div><div className="payment-heading-actions"><button type="button" className={payAiOpen ? "pay-ai-trigger pay-ai-active" : "pay-ai-trigger"} onClick={() => setPayAiOpen((open) => !open)}><Sparkles size={13} /> Pay AI</button><span className="step-badge">01 / 03</span></div></div>
+              {payAiOpen ? <div className="pay-ai-box">
+                <div className="pay-ai-title"><span className="pay-ai-orb"><Sparkles size={13} /></span><span><b>Pay AI</b><small>Transfer assistant · Preview</small></span></div>
+                <p>Describe the transfer. I’ll prepare the amount, currencies and recipient reference for you to review.</p>
+                <textarea value={payAiPrompt} onChange={(event) => setPayAiPrompt(event.target.value)} placeholder="e.g. Send 100 CHF to Daniel in Nigeria. He should receive naira in his bank." rows={3} />
+                <button type="button" className="pay-ai-submit" onClick={() => {
+                  const parsed = interpretPayAiRequest(payAiPrompt);
+                  const updates: string[] = [];
+                  if (parsed.amount && Number.isFinite(parsed.amount) && parsed.amount > 0) { setAmount(String(parsed.amount)); updates.push("amount"); }
+                  if (parsed.currency && ["USD","EUR","GBP","NGN","KES","GHS","CHF"].includes(parsed.currency)) { setSourceCurrency(parsed.currency); updates.push("your currency"); }
+                  if (parsed.destinationCurrency) { setDestinationCurrency(parsed.destinationCurrency); updates.push("recipient currency"); }
+                  if (parsed.destination) setDestination(parsed.destination);
+                  if (parsed.recipient) { setRecipientReference(parsed.recipient); updates.push("recipient reference"); }
+                  setPayAiMessage(updates.length ? "Prepared " + updates.join(", ") + ". Check every detail below, then calculate a route. This assistant preview does not identify or contact a real recipient." : "I couldn’t confidently identify the amount or currencies. Include an amount and currency, for example: “Send 100 CHF to Daniel in Nigeria, paid out in NGN.”");
+                }}>Prepare transfer <ArrowUpRight size={13} /></button>
+                {payAiMessage ? <div className="pay-ai-feedback">{payAiMessage}</div> : null}
+                <small className="pay-ai-disclaimer">Assisted form parsing only. Live AI, recipient lookup and payment execution are not connected yet.</small>
+              </div> : null}
               <form onSubmit={calculateRoutes}>
                 <label className="field-label">YOU SEND</label>
-                <div className="amount-field"><input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="0.01" step="0.01" required aria-label="Amount to send" /><select value={sourceCurrency} onChange={(event) => setSourceCurrency(event.target.value)} aria-label="Source currency">{["USD","EUR","GBP","NGN","KES","GHS"].map((currency) => <option key={currency}>{currency}</option>)}</select></div>
+                <div className="amount-field"><input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="0.01" step="0.01" required aria-label="Amount to send" /><select value={sourceCurrency} onChange={(event) => setSourceCurrency(event.target.value)} aria-label="Source currency">{["USD","EUR","GBP","CHF","NGN","KES","GHS"].map((currency) => <option key={currency}>{currency}</option>)}</select></div>
                 <div className="transfer-connector"><span><ArrowDownLeft size={15} /></span><i /></div>
                 <label className="field-label">RECIPIENT GETS</label>
                 <div className="recipient-fields"><select value={destinationCurrency} onChange={(event) => setDestinationCurrency(event.target.value)} aria-label="Recipient currency">{["NGN","USD","EUR","GBP","KES","GHS"].map((currency) => <option key={currency}>{currency}</option>)}</select><select value={destination} onChange={(event) => setDestination(event.target.value)} aria-label="Receiving method"><option value="bank">Local bank payout</option><option value="solana">Solana wallet</option></select></div>
+                <label className="field-label preference-label">RECIPIENT / MYRAVEN ID (OPTIONAL)</label>
+                <input className="recipient-reference-input" value={recipientReference} onChange={(event) => setRecipientReference(event.target.value)} placeholder="Name, phone or MYRAVEN ID" aria-label="Recipient name or MYRAVEN ID" />
                 <label className="field-label preference-label">ROUTE PRIORITY</label>
                 <div className="preference-options">{[{id:"balanced",label:"Balanced"},{id:"lowest-cost",label:"Lowest cost"},{id:"fastest",label:"Fastest"},{id:"most-reliable",label:"Reliability"}].map((option) => <button type="button" className={preference === option.id ? "preference-active" : ""} onClick={() => setPreference(option.id)} key={option.id}>{option.label}</button>)}</div>
                 <button className="primary-action" type="submit" disabled={loading}>{loading ? <RefreshCw size={16} className="spin" /> : <Sparkles size={16} />}{loading ? "Comparing routes…" : "Find best route"}<ArrowUpRight size={16} /></button>
