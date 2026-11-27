@@ -92,7 +92,7 @@ export async function POST(request: Request) {
     try {
       if (typeof rawLink === "string") {
         const parsed = new URL(rawLink);
-        checkoutHost = parsed.hostname.toLowerCase().replace(/\\.$/, "");
+        checkoutHost = parsed.hostname.toLowerCase().replace(/\.$/, "");
         const trustedHost =
           checkoutHost === "checkout.flutterwave.com" ||
           checkoutHost === "flutterwave.com" ||
