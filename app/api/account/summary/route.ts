@@ -13,7 +13,7 @@ export async function GET() {
 
   const [profileResult, balancesResult, transactionsResult] = await Promise.all([
     supabase.from("profiles")
-      .select("myraven_id,display_name,country_code,preferred_language,created_at")
+      .select("myraven_id,display_name,country_code,preferred_language,account_type,created_at")
       .eq("id", user.id)
       .maybeSingle(),
     supabase.from("ledger_account_balances")
