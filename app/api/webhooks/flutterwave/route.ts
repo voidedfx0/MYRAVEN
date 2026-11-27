@@ -13,7 +13,8 @@ function safeEqual(left: string | null, right: string | undefined) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export async function POST(request: Request) {\n  if (!TEST_MODE) return new NextResponse("Test mode is not enabled", { status: 503 });
+export async function POST(request: Request) {
+  if (!TEST_MODE) return new NextResponse("Test mode is not enabled", { status: 503 });
   const secretHash = process.env.FLW_SECRET_HASH;
   if (!safeEqual(request.headers.get("verif-hash"), secretHash)) {
     return new NextResponse("Unauthorized", { status: 401 });
