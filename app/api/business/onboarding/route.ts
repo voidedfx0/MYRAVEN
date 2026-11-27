@@ -45,7 +45,7 @@ export async function PATCH(request: Request) {
   const city = clean(body.city, 100);
   const postalCode = clean(body.postalCode, 24);
   const operatingCountries = Array.isArray(body.operatingCountries)
-    ? [...new Set(body.operatingCountries.filter((v: unknown): v is string => typeof v === "string" && /^[A-Za-z]{2}$/.test(v)).map((v: string) => v.toUpperCase()))].slice(0, 20)
+    ? [...new Set(body.operatingCountries.filter((v: unknown): v is string => typeof v === "string" && v.trim().length > 1).map((v: string) => v.trim().slice(0, 100)))].slice(0, 20)
     : [];
   const completed = body.submit === true;
 
