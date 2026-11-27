@@ -137,7 +137,6 @@ export default function Home() {
   const [activities, setActivities] = useState<DemoActivity[]>([]);
   const [fundingCurrency, setFundingCurrency] = useState("USD");
   const [fundingAmount, setFundingAmount] = useState("100");
-  const [fundingAsset, setFundingAsset] = useState("SOL");
   const [fundingNotice, setFundingNotice] = useState("");
   const [fundingLoading, setFundingLoading] = useState(false);
   const [ussdPhone, setUssdPhone] = useState("");
