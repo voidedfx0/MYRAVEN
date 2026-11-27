@@ -74,6 +74,7 @@ export default function Home() {
   const [externalBalanceLoading, setExternalBalanceLoading] = useState(false);
   const [externalBalanceError, setExternalBalanceError] = useState("");
   const [fundingCountry, setFundingCountry] = useState("NG");
+  const [fundingCurrency, setFundingCurrency] = useState("NGN");
   const [fundingMethod, setFundingMethod] = useState("bank");
   const [fundingAmount, setFundingAmount] = useState("100");
   const [fundingTargetAsset, setFundingTargetAsset] = useState("USDC");
@@ -130,7 +131,7 @@ export default function Home() {
 
   async function startFundingCheckout() {
     const country = fundingCountriesData.countries.find((item) => item.code === fundingCountry);
-    const currency = country?.currency?.[0];
+    const currency = fundingCurrency;
     const amountValue = Number(fundingAmount);
     if (!country || !currency || !Number.isFinite(amountValue) || amountValue <= 0) {
       setFundingMessage("Choose a country and enter a valid funding amount.");
@@ -491,7 +492,7 @@ export default function Home() {
             <div className="funding-country-row">
               <div className="funding-country-field">
                 <label className="field-label" htmlFor="funding-country">YOUR COUNTRY OR REGION</label>
-                <select id="funding-country" value={fundingCountry} onChange={(event) => setFundingCountry(event.target.value)}>
+                <select id="funding-country" value={fundingCountry} onChange={(event) => { const code = event.target.value; setFundingCountry(code); setFundingCurrency(fundingCountriesData.countries.find((item) => item.code === code)?.currency?.[0] ?? ""); }}>
                   <option value="">Choose a country or region</option>
                   {fundingCountriesData.countries.map((country) => (
                     <option value={country.code} key={country.code}>{country.name} ({country.code})</option>
@@ -550,6 +551,12 @@ export default function Home() {
               <label className="funding-country-field">
                 <span className="field-label">AMOUNT TO ADD</span>
                 <input type="number" min="1" max="1000000" step="0.01" value={fundingAmount} onChange={(event) => setFundingAmount(event.target.value)} />
+              </label>
+              <label className="funding-country-field">
+                <span className="field-label">PAYMENT CURRENCY</span>
+                <select value={fundingCurrency} onChange={(event) => setFundingCurrency(event.target.value)}>
+                  {(fundingCountriesData.countries.find((item) => item.code === fundingCountry)?.currency ?? []).map((code) => <option value={code} key={code}>{code}</option>)}
+                </select>
               </label>
               <label className="funding-country-field">
                 <span className="field-label">WALLET ASSET</span>
