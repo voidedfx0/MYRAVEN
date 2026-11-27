@@ -113,3 +113,17 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 @keyframes quantum-orbit-two{to{transform:rotate(-360deg)}}
 @keyframes quantum-orbit-three{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.brand-symbol .quantum-ring{animation:none;will-change:auto}}
+
+/* Full-width Quantum Flow lockup: rings orbit around the MYRAVEN wordmark */
+.brand{display:flex;align-items:center;justify-content:center;gap:0;padding:0 0 2px;min-height:62px}
+.brand-orbit-lockup{position:relative;isolation:isolate;width:100%;max-width:218px;height:64px;display:flex;align-items:center;justify-content:center}
+.brand-orbit-art{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 0 5px rgba(155,123,255,.22))}
+.brand-orbit-ring{transform-box:fill-box;transform-origin:center;will-change:transform}
+.word-orbit-a{animation:word-orbit-spin-a 16s linear infinite}
+.word-orbit-b{animation:word-orbit-spin-b 21s linear infinite}
+.word-orbit-c{animation:word-orbit-spin-c 27s linear infinite}
+.brand .brand-wordmark{position:relative;z-index:1;font-family:'Space Grotesk','Manrope',sans-serif;font-size:15px;font-weight:700;letter-spacing:.12em;white-space:nowrap;text-shadow:0 0 15px rgba(8,9,14,.95),0 0 5px rgba(8,9,14,.95)}
+@keyframes word-orbit-spin-a{to{transform:rotate(360deg)}}
+@keyframes word-orbit-spin-b{to{transform:rotate(-360deg)}}
+@keyframes word-orbit-spin-c{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.brand-orbit-ring{animation:none;will-change:auto}}
