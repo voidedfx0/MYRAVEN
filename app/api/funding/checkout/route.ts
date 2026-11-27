@@ -12,6 +12,23 @@ const allowedAssets = ["SOL", "USDC"] as const;
 const methods = ["card", "bank_transfer", "local_payment"] as const;
 const countries = countriesData.countries as Array<{ code: string; currency: string[] }>;
 
+function isTrustedFlutterwaveCheckout(rawLink: unknown): rawLink is string {
+  if (typeof rawLink !== "string" || rawLink.length > 4096) return false;
+  try {
+    const parsed = new URL(rawLink);
+    const host = parsed.hostname.toLowerCase().replace(/\.$/, "");
+    const trustedHost =
+      host === "checkout.flutterwave.com" ||
+      host === "flutterwave.com" ||
+      host.endsWith(".flutterwave.com") ||
+      host === "checkout-v2.dev-flutterwave.com" ||
+      host.endsWith(".dev-flutterwave.com");
+    return parsed.protocol === "https:" && trustedHost && !parsed.username && !parsed.password;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: Request) {
   if (!TEST_MODE) return NextResponse.json({ error: "MYRAVEN funding is disabled unless test mode is explicitly enabled." }, { status: 503 });
   const auth = await createClient();
@@ -85,31 +102,18 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
     const result = await response.json().catch(() => null);
-    // Flutterwave Standard returns { status: "success", message: "Hosted Link", data: { link } }.
     const rawLink = result?.data?.link ?? result?.data?.checkout_url ?? result?.link;
-    let checkoutUrl = "";
-    let checkoutHost = "";
-    try {
-      if (typeof rawLink === "string") {
-        const parsed = new URL(rawLink);
-        checkoutHost = parsed.hostname.toLowerCase().replace(/\.$/, "");
-        const trustedHost =
-          checkoutHost === "checkout.flutterwave.com" ||
-          checkoutHost === "flutterwave.com" ||
-          checkoutHost.endsWith(".flutterwave.com");
-        if (parsed.protocol === "https:" && trustedHost) checkoutUrl = parsed.toString();
-      }
-    } catch {
-      // Treat malformed or non-HTTPS provider URLs as invalid.
-    }
+    const checkoutUrl = isTrustedFlutterwaveCheckout(rawLink) ? new URL(rawLink).toString() : "";
 
     if (!response.ok || result?.status !== "success" || !checkoutUrl) {
       const providerMessage = typeof result?.message === "string" ? result.message.slice(0, 240) : "No readable error returned by Flutterwave.";
+      let checkoutHost = "missing";
+      try { if (typeof rawLink === "string") checkoutHost = new URL(rawLink).hostname.toLowerCase(); } catch {}
       console.error("[MYRAVEN funding] Flutterwave checkout response could not be used", {
         httpStatus: response.status,
         providerStatus: result?.status ?? "missing",
         providerMessage,
-        checkoutHost: checkoutHost || "missing",
+        checkoutHost,
         hasLink: typeof rawLink === "string",
         responseDataKeys: result?.data && typeof result.data === "object" ? Object.keys(result.data).slice(0, 12) : [],
         currency,
@@ -120,10 +124,10 @@ export async function POST(request: Request) {
       await admin.from("funding_deposits").update({
         status: "failed",
         failure_code: "provider_checkout_failed",
-        metadata: { country_code: countryCode, requested_method: method, provider: "flutterwave", environment: "test", provider_http_status: response.status, provider_error: providerMessage, checkout_host: checkoutHost || null },
+        metadata: { country_code: countryCode, requested_method: method, provider: "flutterwave", environment: "test", provider_http_status: response.status, provider_error: providerMessage, checkout_host: checkoutHost },
       }).eq("id", deposit.id);
       return NextResponse.json({
-        error: `Flutterwave returned a successful response but MYRAVEN could not validate its checkout link. Please retry; if it persists, contact support with reference ${txRef}.`,
+        error: `Flutterwave could not provide a valid test checkout link. Contact support with reference ${txRef}.`,
         code: "FLUTTERWAVE_CHECKOUT_LINK_INVALID",
       }, { status: 502 });
     }
