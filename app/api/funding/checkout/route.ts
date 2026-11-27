@@ -76,6 +76,7 @@ export async function POST(request: Request) {
         tx_ref: txRef,
         amount: amount.toFixed(2),
         currency,
+        payment_options: method === "bank_transfer" ? "banktransfer" : method === "card" ? "card" : undefined,
         redirect_url: `${origin}/dashboard?funding=return`,
         customer: { email: user.email, name: user.user_metadata?.full_name ?? user.email },
         customizations: { title: "MYRAVEN wallet funding", description: `Add funds to your MYRAVEN wallet (${targetAsset})` },
