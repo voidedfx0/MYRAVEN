@@ -75,6 +75,9 @@ export default function Home() {
   const [payAiMessage, setPayAiMessage] = useState("");
   const [recipientReference, setRecipientReference] = useState("");
   const [recipientType, setRecipientType] = useState("myraven");
+  const [recipientCountry, setRecipientCountry] = useState("NG");
+  const [recipientBank, setRecipientBank] = useState("");
+  const [recipientBankAccount, setRecipientBankAccount] = useState("");
   const [recipientProfile, setRecipientProfile] = useState<RecipientProfile | null>(null);
   const [recipientLookupStatus, setRecipientLookupStatus] = useState("");
   const [recipientLookupLoading, setRecipientLookupLoading] = useState(false);
@@ -141,6 +144,11 @@ export default function Home() {
       return;
     }
 
+    if (recipientType === "local-bank") {
+      setRecipientLookupStatus("Bank directory and account-name verification require a connected payout provider. No bank has been selected or verified yet.");
+      return;
+    }
+
     if (recipientType === "myraven") {
       setRecipientLookupLoading(true);
       try {
@@ -169,7 +177,7 @@ export default function Home() {
       return;
     }
 
-    setRecipientLookupStatus("MYRAVEN account-number lookup is not available yet. Use a MYRAVEN ID for verified profile matching.");
+    setRecipientLookupStatus("MYRAVEN account-number lookup is not connected yet. Use a MYRAVEN ID for profile matching.");
   }
 
   function confirmDemoPayment() {
@@ -306,19 +314,29 @@ export default function Home() {
                 <div className="amount-field"><input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="0.01" step="0.01" required aria-label="Amount to send" /><select value={sourceCurrency} onChange={(event) => setSourceCurrency(event.target.value)} aria-label="Source currency">{["USD","EUR","GBP","CHF","NGN","KES","GHS"].map((currency) => <option key={currency}>{currency}</option>)}</select></div>
                 <div className="transfer-connector"><span><ArrowDownLeft size={15} /></span><i /></div>
                 <label className="field-label">RECIPIENT GETS</label>
-                <div className="recipient-fields"><select value={destinationCurrency} onChange={(event) => setDestinationCurrency(event.target.value)} aria-label="Recipient currency">{["NGN","USD","EUR","GBP","KES","GHS"].map((currency) => <option key={currency}>{currency}</option>)}</select><select value={destination} onChange={(event) => setDestination(event.target.value)} aria-label="Receiving method"><option value="bank">Local bank payout</option><option value="solana">Solana wallet</option></select></div>
+                <select className="recipient-method-select" value={recipientType} onChange={(event) => { setRecipientType(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); setRecipientReference(""); setRecipientBank(""); setRecipientBankAccount(""); setRecipientLookupStatus(""); setDestination(event.target.value === "local-bank" ? "bank" : "solana"); if (event.target.value === "solana") setDestinationCurrency("SOL"); }} aria-label="Recipient destination">
+                  <option value="solana">SOL address</option>
+                  <option value="myraven">MYRAVEN ID</option>
+                  <option value="account">MYRAVEN account number</option>
+                  <option value="local-bank">Local bank / payment</option>
+                </select>
                 <label className="field-label preference-label">RECIPIENT IDENTIFIER</label>
-                <div className="recipient-lookup-row">
-                  <select value={recipientType} onChange={(event) => { setRecipientType(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); }} aria-label="Recipient identifier type">
-                    <option value="myraven">MYRAVEN ID</option>
-                    <option value="account">MYRAVEN account number</option>
-                    <option value="solana">Solana address</option>
+                {recipientType === "local-bank" ? <div className="local-bank-fields">
+                  <label className="field-label">RECIPIENT COUNTRY</label>
+                  <select value={recipientCountry} onChange={(event) => { setRecipientCountry(event.target.value); setRecipientBank(""); setRecipientLookupStatus(""); }} aria-label="Recipient country">
+                    <option value="NG">Nigeria</option><option value="GH">Ghana</option><option value="KE">Kenya</option><option value="ZA">South Africa</option><option value="GB">United Kingdom</option><option value="US">United States</option><option value="CH">Switzerland</option><option value="EU">Euro area</option>
                   </select>
-                  <input className="recipient-reference-input" value={recipientReference} onChange={(event) => { setRecipientReference(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); }} placeholder={recipientType === "myraven" ? "MRV-XXXXXXXXXX" : recipientType === "account" ? "MYRAVEN account number" : "Solana wallet address"} aria-label="Recipient identifier" />
-                </div>
-                <button type="button" className="verify-recipient-button" onClick={verifyRecipient} disabled={recipientLookupLoading}>
-                  <ShieldCheck size={13} /> {recipientLookupLoading ? "Checking recipient…" : recipientType === "solana" ? "Validate address format" : "Verify recipient"}
-                </button>
+                  <label className="field-label">BANK / PAYMENT PROVIDER</label>
+                  <input value={recipientBank} onChange={(event) => { setRecipientBank(event.target.value); setRecipientLookupStatus(""); }} placeholder="Search or enter bank name" aria-label="Recipient bank name" />
+                  <label className="field-label">RECIPIENT ACCOUNT NUMBER</label>
+                  <input value={recipientBankAccount} onChange={(event) => { setRecipientBankAccount(event.target.value); setRecipientLookupStatus(""); }} placeholder="Enter recipient account number" aria-label="Recipient bank account number" />
+                  <p className="recipient-lookup-status">Country selection is a preview. Live bank lists and account-name verification will appear when a payout provider is connected.</p>
+                </div> : <div className="recipient-lookup-row">
+                  <input className="recipient-reference-input" value={recipientReference} onChange={(event) => { setRecipientReference(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); }} placeholder={recipientType === "myraven" ? "MRV-XXXXXXXXXX" : recipientType === "account" ? "MYRAVEN account number" : "Paste Solana address"} aria-label="Recipient identifier" />
+                </div>}
+                {recipientType !== "local-bank" ? <button type="button" className="verify-recipient-button" onClick={verifyRecipient} disabled={recipientLookupLoading}>
+                  <ShieldCheck size={13} /> {recipientLookupLoading ? "Checking recipient…" : recipientType === "solana" ? "Validate SOL address" : "Verify recipient"}
+                </button> : <button type="button" className="verify-recipient-button" onClick={verifyRecipient}><ShieldCheck size={13} /> Check bank details</button>}
                 {recipientProfile ? <div className="recipient-verification-card">
                   <div className="recipient-avatar">{(recipientProfile.displayName || "M").slice(0, 1).toUpperCase()}</div>
                   <div className="recipient-verification-copy">
