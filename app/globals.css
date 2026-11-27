@@ -287,3 +287,17 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 .workspace-account-link,.workspace-logout{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;text-decoration:none;font:inherit;font-size:9px;color:#c9c2e8;border:1px solid rgba(255,255,255,.13);border-radius:7px;padding:8px 10px;background:rgba(255,255,255,.025)}
 .workspace-logout{color:#f0c1c1;cursor:pointer}
 @media(max-width:760px){.marketing-nav .marketing-actions{gap:9px}.marketing-actions>a,.marketing-actions>button{font-size:9px}.nav-logout{padding:8px 9px}.workspace-auth-actions{gap:5px}.workspace-account-link,.workspace-logout{font-size:8px;padding:7px}}
+
+
+/* Wallet balance comparison: MYRAVEN ledger vs external read-only wallet */
+.wallet-balance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:17px 0 12px}
+.wallet-balance-card{min-width:0;padding:17px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:linear-gradient(145deg,rgba(155,123,255,.08),rgba(255,255,255,.025))}
+.wallet-balance-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#c5b6f6;font-size:8px;font-weight:800;letter-spacing:.12em}
+.wallet-balance-card-top>span{display:flex;align-items:center;gap:7px}
+.wallet-balance-card-top small{color:#7e8799;font-size:7px;letter-spacing:.1em}
+.wallet-balance-card>strong{display:block;margin:18px 0 7px;color:#f4f2ff;font:600 clamp(21px,3vw,29px)/1.1 'Space Grotesk',sans-serif;letter-spacing:-.04em;overflow-wrap:anywhere}
+.wallet-balance-card>p{min-height:30px;margin:0;color:#929bad;font-size:9px;line-height:1.6;overflow-wrap:anywhere}
+.wallet-card-foot{display:block;margin-top:13px;padding-top:10px;border-top:1px solid rgba(255,255,255,.09);color:#7e8799;font-size:8px;line-height:1.5;overflow-wrap:anywhere}
+.external-wallet-card{background:linear-gradient(145deg,rgba(73,191,210,.07),rgba(255,255,255,.02))}
+.external-wallet-card .wallet-balance-card-top{color:#8ddce9}
+@media(max-width:640px){.wallet-balance-grid{grid-template-columns:1fr}.wallet-balance-card{padding:15px}}
