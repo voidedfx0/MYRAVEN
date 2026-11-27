@@ -86,16 +86,27 @@ export async function POST(request: Request) {
     });
     const result = await response.json().catch(() => null);
     const checkoutUrl = result?.data?.link;
-    const checkoutHostIsValid = typeof checkoutUrl === "string" && (() => {
-      try { return new URL(checkoutUrl).hostname === "checkout.flutterwave.com" && new URL(checkoutUrl).protocol === "https:"; }
-      catch { return false; }
-    })();
-    if (!response.ok || result?.status !== "success" || !checkoutHostIsValid) {
+    let checkoutHost = "";
+    let checkoutUrlIsTrusted = false;
+    if (typeof checkoutUrl === "string") {
+      try {
+        const parsedCheckoutUrl = new URL(checkoutUrl);
+        checkoutHost = parsedCheckoutUrl.hostname.toLowerCase();
+        checkoutUrlIsTrusted =
+          parsedCheckoutUrl.protocol === "https:" &&
+          (checkoutHost === "checkout.flutterwave.com" || checkoutHost.endsWith(".flutterwave.com"));
+      } catch {
+        checkoutUrlIsTrusted = false;
+      }
+    }
+    if (!response.ok || result?.status !== "success" || !checkoutUrlIsTrusted) {
       const providerMessage = typeof result?.message === "string" ? result.message.slice(0, 240) : "No readable error returned by Flutterwave.";
       console.error("[MYRAVEN funding] Flutterwave checkout rejected", {
         httpStatus: response.status,
         providerStatus: result?.status ?? "missing",
         providerMessage,
+        checkoutHost: checkoutHost || "missing",
+        hasCheckoutLink: typeof checkoutUrl === "string",
         currency,
         countryCode,
         method,
