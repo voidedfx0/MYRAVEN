@@ -84,3 +84,10 @@
 .wallet-balance-note{display:flex;align-items:flex-start;gap:9px;margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.018);color:#8d97a8;font-size:8px;line-height:1.6}
 .wallet-balance-note svg{flex:0 0 auto;color:#b8a4ff}
 @media(max-width:430px){.recipient-lookup-row{grid-template-columns:1fr}.recipient-lookup-row select{height:35px}}
+
+
+/* Recipient destination flow */
+.recipient-method-select{width:100%;min-height:42px;margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#1b2030;color:#e7e9f0;font-size:11px;outline:none}
+.local-bank-fields{display:grid;gap:8px;margin-top:10px}
+.local-bank-fields input,.local-bank-fields select{width:100%;min-width:0;min-height:38px;padding:9px 11px;border:1px solid var(--line);border-radius:7px;background:#1b2030;color:#e7e9f0;font-size:10px;outline:none}
+.local-bank-fields .field-label{margin-top:3px}
