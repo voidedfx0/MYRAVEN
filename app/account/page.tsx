@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Building2, LoaderCircle, ShieldCheck, UserRound } from "lucide-react";
