@@ -14,16 +14,16 @@ MYRAVEN is an intelligent global payment-orchestration platform built around **S
 - **Unified ledger:** records deposits, conversions, transfers, fees, holds and payout states with idempotency and audit events.
 - **Global currency engine:** produces timestamped, expiring executable quotes when connected to liquidity providers.
 - **SmartRoute:** ranks eligible payout routes by cost, speed, reliability and recipient preference.
-- **Global receiving:** supported bank accounts, mobile-money methods, MYRAVEN IDs and Solana addresses.
+- **Wallet funding:** bank transfers, local payment methods, mobile money, cards and supported Solana assets, all within one Funding experience.
 - **Payment safety:** explicit user authorization, quote expiry, stage-aware recovery and duplicate-execution protection.
 
-## Global bank receiving catalogue
+## Unified wallet funding
 
-The researched country, currency, and local-payment-rail reference plus the provider-backed account-issuance rules are documented in [Global bank receiving](docs/global-bank-receiving.md). This is a discovery catalogue, not a claim that every listed country can currently receive a generated MYRAVEN bank account. Live account creation remains disabled until an approved provider is configured.
+All fiat and crypto wallet top-ups belong in one Funding page. The full 249-entry ISO country/territory and currency reference is in `src/data/funding-countries.json`. Funding page behavior, live method/bank eligibility, provider rules, and API design are documented in [Funding page](docs/funding-page.md). Country/currency metadata does not mean a funding method is live; only provider-confirmed methods may be offered.
 
 ## Current repository state
 
-The current dashboard is a product preview. Phantom connection, when available, verifies a public Solana address only. The Add Money panel captures a funding-method and settlement-asset selection but does not start a payment. The quote engine still produces illustrative simulation data. No live card processor, bank, fiat on-ramp, crypto exchange, payout provider, custody service, or Solana transaction execution is configured by this repository.
+The current dashboard is a product preview. Phantom connection, when available, verifies a public Solana address only. The Funding panel is currently a product preview and does not start a live fiat or crypto payment. The quote engine still produces illustrative simulation data. No live card processor, bank, fiat on-ramp, crypto exchange, payout provider, custody service, or Solana transaction execution is configured by this repository.
 
 **No real funds move in the current build.** Do not interpret demo balances, sample fees, estimated timings, route scores or example activity as live financial data.
 
