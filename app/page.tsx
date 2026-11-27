@@ -283,7 +283,7 @@ export default function Home() {
                 <radialGradient id="orbit-word-planet"><stop stopColor="#FFFFFF"/><stop offset=".4" stopColor="#C4B5FD"/><stop offset="1" stopColor="#7C3AED"/></radialGradient>
               </defs>
               <ellipse cx="120" cy="36" rx="91" ry="9" fill="none" stroke="url(#orbit-word-crossing)" strokeWidth="1.05" opacity=".9"/>
-              <circle r="3.2" fill="url(#orbit-word-planet)" stroke="#E9D5FF" strokeWidth=".55" filter="url(#orbit-word-glow)">
+              <circle r="3.2" fill="url(#orbit-word-planet)" stroke="#E9D5FF" strokeWidth=".55">
                 <animateMotion dur="7.5s" repeatCount="indefinite" path="M29 36 A91 9 0 1 1 211 36 A91 9 0 1 1 29 36"/>
               </circle>
             </svg>
