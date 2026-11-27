@@ -10,6 +10,8 @@ type Draft = {
   address: string; city: string; postalCode: string; operatingCountries: string;
 };
 
+const countries = [["US","United States"],["GB","United Kingdom"],["NG","Nigeria"],["GH","Ghana"],["KE","Kenya"],["ZA","South Africa"],["UG","Uganda"],["TZ","Tanzania"],["RW","Rwanda"],["IN","India"],["AE","United Arab Emirates"],["CH","Switzerland"],["DE","Germany"],["FR","France"],["CA","Canada"],["AU","Australia"],["SG","Singapore"],["BR","Brazil"],["JP","Japan"],["NL","Netherlands"],["IE","Ireland"],["IT","Italy"],["ES","Spain"],["SE","Sweden"],["NO","Norway"],["DK","Denmark"],["NZ","New Zealand"],["MX","Mexico"],["EG","Egypt"],["MA","Morocco"],["PK","Pakistan"],["PH","Philippines"],["ID","Indonesia"],["MY","Malaysia"],["SA","Saudi Arabia"],["TR","Türkiye"],["KR","South Korea"],["CN","China"],["TH","Thailand"],["VN","Vietnam"]] as const;
+
 const empty: Draft = { businessName: "", legalName: "", countryCode: "", businessType: "limited_company", registrationNumber: "", industry: "", description: "", website: "", address: "", city: "", postalCode: "", operatingCountries: "" };
 
 export default function BusinessOnboardingPage() {
@@ -46,7 +48,7 @@ export default function BusinessOnboardingPage() {
     try {
       const response = await fetch("/api/business/onboarding", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...draft, operatingCountries: draft.operatingCountries.split(",").map(v => v.trim()).filter(Boolean), submit }),
+        body: JSON.stringify({ ...draft, countryName: countries.find(([code]) => code === draft.countryCode)?.[1] ?? "", operatingCountries: draft.operatingCountries.split(",").map(v => v.trim()).filter(Boolean), submit }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Could not save your profile.");
@@ -73,7 +75,7 @@ export default function BusinessOnboardingPage() {
         {step === 1 ? <>
           <label>BUSINESS / TRADING NAME<input value={draft.businessName} onChange={e => update("businessName", e.target.value)} required maxLength={120} /></label>
           <label>LEGAL REGISTERED NAME<input value={draft.legalName} onChange={e => update("legalName", e.target.value)} required maxLength={160}/></label>
-          <div className="business-onboard-two"><label>COUNTRY OF REGISTRATION<input value={draft.countryCode} onChange={e => update("countryCode", e.target.value.toUpperCase())} required maxLength={2} placeholder="2-letter code, e.g. NG"/></label><label>BUSINESS TYPE<select value={draft.businessType} onChange={e => update("businessType", e.target.value)}><option value="limited_company">Limited company</option><option value="sole_proprietor">Sole proprietor</option><option value="partnership">Partnership</option><option value="nonprofit">Non-profit</option><option value="other">Other</option></select></label></div>
+          <div className="business-onboard-two"><label>COUNTRY OF REGISTRATION<select value={draft.countryCode} onChange={e => update("countryCode", e.target.value)} required><option value="">Select country</option>{countries.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label><label>BUSINESS TYPE<select value={draft.businessType} onChange={e => update("businessType", e.target.value)}><option value="limited_company">Limited company</option><option value="sole_proprietor">Sole proprietor</option><option value="partnership">Partnership</option><option value="nonprofit">Non-profit</option><option value="other">Other</option></select></label></div>
           <label>BUSINESS REGISTRATION NUMBER <span className="field-optional">OPTIONAL FOR NOW</span><input value={draft.registrationNumber} onChange={e => update("registrationNumber", e.target.value)} maxLength={80} placeholder="CAC or equivalent registry number"/></label>
           <label>INDUSTRY<input value={draft.industry} onChange={e => update("industry", e.target.value)} required maxLength={80} placeholder="e.g. Retail, software, professional services"/></label>
         </> : <>
@@ -81,7 +83,7 @@ export default function BusinessOnboardingPage() {
           <label>BUSINESS WEBSITE <span className="field-optional">OPTIONAL</span><input type="url" value={draft.website} onChange={e => update("website", e.target.value)} placeholder="https://example.com"/></label>
           <label>BUSINESS ADDRESS <span className="field-optional">OPTIONAL FOR PROFILE</span><input value={draft.address} onChange={e => update("address", e.target.value)} maxLength={180}/></label>
           <div className="business-onboard-two"><label>CITY<input value={draft.city} onChange={e => update("city", e.target.value)} maxLength={100}/></label><label>POSTAL CODE<input value={draft.postalCode} onChange={e => update("postalCode", e.target.value)} maxLength={24}/></label></div>
-          <label>COUNTRIES WHERE YOU OPERATE <span className="field-optional">OPTIONAL · COMMA-SEPARATED CODES</span><input value={draft.operatingCountries} onChange={e => update("operatingCountries", e.target.value.toUpperCase())} placeholder="NG, GH, KE"/></label>
+          <label>COUNTRIES WHERE YOU OPERATE <span className="field-optional">OPTIONAL · ENTER COUNTRY NAMES</span><input value={draft.operatingCountries} onChange={e => update("operatingCountries", e.target.value.toUpperCase())} placeholder="Nigeria, Ghana, Kenya"/></label>
         </>}
         <div className="business-onboard-actions">
           {step === 2 && <button type="button" className="account-google" onClick={() => setStep(1)}><ArrowLeft size={15}/> Back</button>}
