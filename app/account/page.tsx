@@ -154,12 +154,14 @@ export default function AccountPage() {
             <div className="account-eyebrow"><ShieldCheck size={14} /> PERSONAL WORKSPACE</div>
             <h1>Welcome{summary.profile?.display_name ? ", " + summary.profile.display_name : ""}.</h1>
             <p className="account-subtitle">Your MYRAVEN identity and account activity.</p>
+            {summary.email && <p className="account-email">{summary.email}</p>}
             <div className="myraven-id"><span>YOUR MYRAVEN ID</span><strong>{summary.profile?.myraven_id ?? "Provisioning…"}</strong></div>
             <div className="account-section-title">ACCOUNT BALANCES</div>
             {summary.balances.length ? summary.balances.map((balance) => (
               <div className="account-list-row" key={balance.asset + balance.network}>
                 <span><b>{balance.asset}</b><small>{balance.network} · available</small></span>
-                <strong>{balance.available.toLocaleString(undefined, { maximumFractionDigits: 8 })}</strong>
+                <strong>{balance.available.toLocaleString(undefined, { maximumFractionDigits: 8 })} {balance.asset}</strong>
+                {balance.pending !== 0 && <small className="account-pending">Pending: {balance.pending.toLocaleString(undefined, { maximumFractionDigits: 8 })} {balance.asset}</small>}
               </div>
             )) : <div className="account-empty">No posted ledger balance yet. MYRAVEN does not create sample funds.</div>}
             <div className="account-section-title">RECENT ACTIVITY</div>
