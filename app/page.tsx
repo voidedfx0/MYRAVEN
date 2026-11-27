@@ -186,7 +186,7 @@ export default function Home() {
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><span className="help-icon"><CircleHelp size={16} /></span><b>Need a hand?</b><p>Explore how MYRAVEN connects payment methods.</p><a href="#how">Explore platform <ArrowUpRight size={13} /></a></div>
-          <div className="profile-row"><span className="profile-avatar">D</span><span><b>Demo workspace</b><small>Sample data environment</small></span><ChevronDown size={15} /></div>
+          <a className="profile-row" href="/account"><span className="profile-avatar">M</span><span><b>MYRAVEN account</b><small>Sign in or manage profile</small></span><ChevronDown size={15} /></a>
         </div>
       </aside>
 
@@ -194,7 +194,7 @@ export default function Home() {
         <header className="top-header">
           <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu"><Menu size={19} /></button>
           <div className="breadcrumb">Workspace <span>/</span> <b>Overview</b></div>
-          <div className="header-actions"><span className="environment-pill"><i /> DEMO MODE</span><button className="icon-button" aria-label="Notifications"><Bell size={17} /></button><span className="header-avatar">D</span></div>
+          <div className="header-actions"><span className="environment-pill"><i /> PREVIEW MODE</span><a className="account-link" href="/account">My account <ArrowUpRight size={14} /></a><button className="icon-button" aria-label="Notifications"><Bell size={17} /></button><span className="header-avatar">M</span></div>
         </header>
 
         <div className="content-wrap">
