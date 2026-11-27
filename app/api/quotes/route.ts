@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildDemoQuotes, type QuoteRequest } from "@/lib/payments/smart-route";
 
-const currencies = ["USD", "EUR", "GBP", "NGN", "KES", "GHS"];
+const currencies = ["USD", "EUR", "GBP", "CHF", "NGN", "KES", "GHS"];
 const destinations = ["solana", "bank"];
 const preferences = ["balanced", "lowest-cost", "fastest", "most-reliable"];
 
