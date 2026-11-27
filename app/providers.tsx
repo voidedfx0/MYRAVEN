@@ -10,7 +10,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <PrivyProvider appId={appId}>
+    <PrivyProvider appId={appId} config={{ embeddedWallets: { solana: { createOnLogin: "off" }, ethereum: { createOnLogin: "off" } } }}>
       {children}
     </PrivyProvider>
   );
