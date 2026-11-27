@@ -84,12 +84,32 @@ export async function POST(request: Request) {
       }),
       cache: "no-store",
     });
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
     const checkoutUrl = result?.data?.link;
-    if (!response.ok || result?.status !== "success" || typeof checkoutUrl !== "string" ||
-        !checkoutUrl.startsWith("https://checkout.flutterwave.com/")) {
-      await admin.from("funding_deposits").update({ status: "failed", failure_code: "provider_checkout_failed" }).eq("id", deposit.id);
-      return NextResponse.json({ error: "Flutterwave could not start checkout. Try again later." }, { status: 502 });
+    const checkoutHostIsValid = typeof checkoutUrl === "string" && (() => {
+      try { return new URL(checkoutUrl).hostname === "checkout.flutterwave.com" && new URL(checkoutUrl).protocol === "https:"; }
+      catch { return false; }
+    })();
+    if (!response.ok || result?.status !== "success" || !checkoutHostIsValid) {
+      const providerMessage = typeof result?.message === "string" ? result.message.slice(0, 240) : "No readable error returned by Flutterwave.";
+      console.error("[MYRAVEN funding] Flutterwave checkout rejected", {
+        httpStatus: response.status,
+        providerStatus: result?.status ?? "missing",
+        providerMessage,
+        currency,
+        countryCode,
+        method,
+        testMode: true,
+      });
+      await admin.from("funding_deposits").update({
+        status: "failed",
+        failure_code: "provider_checkout_failed",
+        metadata: { country_code: countryCode, requested_method: method, provider: "flutterwave", environment: "test", provider_http_status: response.status, provider_error: providerMessage },
+      }).eq("id", deposit.id);
+      return NextResponse.json({
+        error: `Flutterwave rejected this test checkout (${response.status}): ${providerMessage}`,
+        code: "FLUTTERWAVE_CHECKOUT_REJECTED",
+      }, { status: 502 });
     }
 
     await admin.from("funding_deposits").update({ status: "awaiting_payment" }).eq("id", deposit.id);
