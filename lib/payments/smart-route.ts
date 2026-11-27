@@ -1,4 +1,4 @@
-export type Currency = "USD" | "EUR" | "GBP" | "NGN" | "KES" | "GHS";
+export type Currency = "USD" | "EUR" | "GBP" | "CHF" | "NGN" | "KES" | "GHS";
 export type Rail = "solana" | "bank";
 export type Preference = "balanced" | "lowest-cost" | "fastest" | "most-reliable";
 
@@ -25,7 +25,7 @@ export type RouteQuote = {
 };
 
 const usdRates: Record<Currency, number> = {
-  USD: 1, EUR: 0.92, GBP: 0.79, NGN: 1550, KES: 129, GHS: 15.2,
+  USD: 1, EUR: 0.92, GBP: 0.79, CHF: 0.88, NGN: 1550, KES: 129, GHS: 15.2,
 };
 
 const fees: Record<Rail, number> = { solana: 0.35, bank: 2.5 };
