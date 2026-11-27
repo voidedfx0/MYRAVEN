@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AuthActions from "@/components/auth-actions";
+import fundingCountriesData from "../../src/data/funding-countries.json";
 import {
-  Activity, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Bell, Check,
+  Activity, ArrowLeftRight, ArrowUpRight, Bell, Check, CreditCard, Landmark, Smartphone,
   ChevronDown, CircleHelp, Globe2, LayoutDashboard, LockKeyhole,
   Menu, Plus, RefreshCw,
   Settings2, ShieldCheck, Sparkles, Wallet, WalletCards, X,
@@ -15,7 +16,6 @@ type Quote = {
   recipientAmount: number; score: number; reasons: string[]; simulated: true;
 };
 type WalletConnection = { network: "Solana"; address: string; name: string };
-type ReceiveWallet = { network: string; wallet_address: string | null; status: "awaiting_provider" | "provisioned" | "suspended"; created_at: string };
 type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string };
 type RecipientProfile = { myravenId: string; displayName: string | null; countryCode: string | null };
 
@@ -73,10 +73,8 @@ export default function Home() {
   const [externalSolBalance, setExternalSolBalance] = useState<number | null>(null);
   const [externalBalanceLoading, setExternalBalanceLoading] = useState(false);
   const [externalBalanceError, setExternalBalanceError] = useState("");
-  const [receiveWallet, setReceiveWallet] = useState<ReceiveWallet | null>(null);
-  const [receiveWalletLoading, setReceiveWalletLoading] = useState(true);
-  const [receiveWalletError, setReceiveWalletError] = useState("");
-  const [receiveCountry, setReceiveCountry] = useState("NG");
+  const [fundingCountry, setFundingCountry] = useState("NG");
+  const [fundingMethod, setFundingMethod] = useState("bank");
 
   useEffect(() => {
     let active = true;
@@ -347,8 +345,7 @@ export default function Home() {
         </nav>
         <div className="nav-caption tools-caption">TOOLS</div>
         <nav className="side-nav">
-          <a href="#global-receive"><ArrowDownLeft size={17} />Receive money</a>
-          <a href="#funding"><WalletCards size={17} />Add funds</a>
+          <a href="#funding"><WalletCards size={17} />Funding</a>
           <a href="#payment"><Globe2 size={17} />SmartRoute</a>
           <a href="#safety"><ShieldCheck size={17} />Payment safety</a>
           <a href="#ussd"><Globe2 size={17} />USSD simulator</a>
@@ -454,67 +451,75 @@ export default function Home() {
             </section>
           </div>
 
-          <section className="panel wallet-panel global-receive-panel" id="global-receive">
-            <div className="panel-heading wallet-heading">
+          <section className="panel wallet-panel funding-hub-panel" id="funding">
+            <div className="panel-heading wallet-heading funding-heading">
               <div>
-                <span className="panel-kicker">GLOBAL RECEIVE · COUNTRY ROUTER</span>
-                <h2>Receive money locally or internationally</h2>
-                <p>Choose where you want your receiving account to be based. MYRAVEN will show only rails supported by approved partners.</p>
+                <span className="panel-kicker">MYRAVEN FUNDING · ONE WALLET</span>
+                <h2>Add money to your MYRAVEN wallet</h2>
+                <p>Choose your country to see the funding routes that can serve it. Your local currency is identified from your selection.</p>
               </div>
-              <span className="read-only-tag"><Globe2 size={12} /> PREVIEW</span>
+              <span className="read-only-tag"><LockKeyhole size={12} /> PREVIEW</span>
             </div>
-            <div className="global-receive-layout">
-              <div className="global-receive-controls">
-                <label className="field-label" htmlFor="receive-country">COUNTRY WHERE YOU WANT TO RECEIVE</label>
-                <select id="receive-country" value={receiveCountry} onChange={(event) => setReceiveCountry(event.target.value)}>
-                  <option value="NG">Nigeria · NGN</option>
-                  <option value="GH">Ghana · GHS</option>
-                  <option value="KE">Kenya · KES</option>
-                  <option value="ZA">South Africa · ZAR</option>
-                  <option value="GB">United Kingdom · GBP</option>
-                  <option value="US">United States · USD</option>
-                  <option value="CH">Switzerland · CHF</option>
-                  <option value="EU">Euro area · EUR</option>
+
+            <div className="funding-country-row">
+              <div className="funding-country-field">
+                <label className="field-label" htmlFor="funding-country">YOUR COUNTRY OR REGION</label>
+                <select id="funding-country" value={fundingCountry} onChange={(event) => setFundingCountry(event.target.value)}>
+                  <option value="">Choose a country or region</option>
+                  {fundingCountriesData.countries.map((country) => (
+                    <option value={country.code} key={country.code}>{country.name} ({country.code})</option>
+                  ))}
                 </select>
-                <div className="global-receive-route">
-                  <span className="global-receive-route-icon"><ArrowDownLeft size={17} /></span>
-                  <div>
-                    <small>RECEIVING ROUTE</small>
-                    <b>{receiveCountry === "NG" ? "Nigerian bank transfer / supported local collection" : receiveCountry === "GH" ? "Ghana local payment rails" : receiveCountry === "KE" ? "Kenya local payment rails" : receiveCountry === "ZA" ? "South African bank transfer" : receiveCountry === "GB" ? "UK domestic bank transfer" : receiveCountry === "US" ? "US domestic bank transfer" : receiveCountry === "CH" ? "Swiss domestic bank transfer" : "Euro-area bank transfer"}</b>
-                    <small>{receiveCountry === "NG" ? "NGN · PalmPay partner route under evaluation" : receiveCountry === "GH" ? "GHS · Provider connection required" : receiveCountry === "KE" ? "KES · Provider connection required" : receiveCountry === "ZA" ? "ZAR · Provider connection required" : receiveCountry === "GB" ? "GBP · Virtual account partner required" : receiveCountry === "US" ? "USD · Virtual account partner required" : receiveCountry === "CH" ? "CHF · Virtual account partner required" : "EUR · Virtual IBAN partner required"}</small>
-                  </div>
-                </div>
               </div>
-              <div className="global-receive-preview">
-                <div className="global-receive-preview-top"><span>ACCOUNT DETAILS</span><span className="read-only-tag"><LockKeyhole size={11} /> NOT ISSUED</span></div>
-                <div className="global-receive-empty"><WalletCards size={22} /><b>No receiving account has been issued</b><p>{receiveCountry === "NG" ? "MYRAVEN is evaluating Nigerian collection partners, including PalmPay. Account issuance depends on provider approval and customer eligibility." : "A local receiving account can only be issued after MYRAVEN connects an approved provider for this country and confirms your eligibility."}</p></div>
-                <div className="global-receive-meta"><span><b>Country</b>{receiveCountry}</span><span><b>Settlement asset</b>SOL · planned</span><span><b>Availability</b>Coming soon</span></div>
+              <div className="funding-currency-card">
+                <span>DETECTED LOCAL CURRENCY</span>
+                <strong>{fundingCountriesData.countries.find((country) => country.code === fundingCountry)?.currency?.join(" / ") || "—"}</strong>
+                <small>{fundingCountriesData.countries.find((country) => country.code === fundingCountry)?.currencyName?.join(" / ") || "Select a country to identify its currency"}</small>
               </div>
             </div>
-            <div className="global-receive-flow">
-              <span><i>01</i> Choose country</span><ArrowUpRight size={13} />
-              <span><i>02</i> Partner issues details</span><ArrowUpRight size={13} />
-              <span><i>03</i> Deposit is verified</span><ArrowUpRight size={13} />
-              <span><i>04</i> Convert and credit</span>
+
+            <div className="funding-section-label">
+              <div><span className="panel-kicker">FUNDING METHODS</span><h3>Choose how to add money</h3></div>
+              <span className="funding-method-count">5 METHOD TYPES</span>
             </div>
-            <p className="global-receive-disclaimer"><ShieldCheck size={13} /> Country selection is a preview, not a bank account application. Account availability, identity checks, currencies and transfer rails depend on approved partners. No deposits or SOL conversions are enabled here.</p>
-          </section>
-          <section className="panel wallet-panel coming-soon-panel" id="funding">
-            <div className="panel-heading wallet-heading">
+            <div className="funding-method-grid">
+              {[
+                { id: "bank", title: "Bank transfer", detail: "Local or international bank transfer", note: "Bank partner required", icon: Landmark },
+                { id: "local", title: "Local payment", detail: "Country-specific bank and payment rails", note: "Live country options not connected", icon: Globe2 },
+                { id: "mobile", title: "Mobile money", detail: "Supported mobile-money providers", note: "Provider connection required", icon: Smartphone },
+                { id: "card", title: "Debit or credit card", detail: "Add funds using an eligible card", note: "Card processor not connected", icon: CreditCard },
+                { id: "solana", title: "Solana funding", detail: "Fund with supported SOL or SPL assets", note: "On-chain deposit monitoring not connected", icon: WalletCards },
+              ].map((method) => {
+                const Icon = method.icon;
+                return (
+                  <button type="button" key={method.id} onClick={() => setFundingMethod(method.id)} className={`funding-method-card ${fundingMethod === method.id ? "funding-method-selected" : ""}`}>
+                    <span className="funding-method-icon"><Icon size={18} /></span>
+                    <span className="funding-method-copy"><b>{method.title}</b><small>{method.detail}</small><em>{method.note}</em></span>
+                    <span className="funding-method-radio">{fundingMethod === method.id ? <Check size={13} /> : null}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="funding-route-status">
+              <div className="funding-route-status-icon"><ShieldCheck size={17} /></div>
               <div>
-                <span className="panel-kicker">ACCOUNT FUNDING</span>
-                <h2>Fund My Account</h2>
-                <p>Card purchases will let you add funds using supported debit and credit cards through an approved payment partner.</p>
+                <span className="panel-kicker">COUNTRY ROUTE CHECK</span>
+                <b>{fundingCountry ? `Funding route for ${fundingCountriesData.countries.find((country) => country.code === fundingCountry)?.name || fundingCountry}` : "Choose your country to check funding routes"}</b>
+                <p>{fundingCountry ? "Your country and currency are identified. MYRAVEN will only display banks, payment providers or account details after a connected funding partner confirms they are available for this country and your account." : "Select a country above. MYRAVEN will use it to determine the local currency and check eligible funding methods."}</p>
               </div>
-              <span className="read-only-tag"><LockKeyhole size={12} /> COMING SOON</span>
+              <span className="funding-provider-status">NO LIVE PROVIDER</span>
             </div>
-            <div className="receive-address-pending">
-              <span className="receive-address-orbit"><WalletCards size={20} /></span>
+
+            <div className="funding-next-step">
               <div>
-                <b>Card funding is coming soon</b>
-                <p>We’re finalizing provider support, regional availability and secure account settlement. No card details or payments can be submitted yet.</p>
+                <span className="panel-kicker">SELECTED METHOD</span>
+                <b>{({ bank: "Bank transfer", local: "Local payment", mobile: "Mobile money", card: "Debit or credit card", solana: "Solana funding" } as Record<string, string>)[fundingMethod]}</b>
+                <p>No payment details, virtual account number or deposit address will be fabricated. Once an approved provider is connected, this area will show its real instructions and eligibility requirements.</p>
               </div>
+              <span className="read-only-tag"><LockKeyhole size={11} /> NOT ENABLED</span>
             </div>
+            <p className="funding-disclaimer"><ShieldCheck size={13} /> Preview only. No bank, mobile-money, card or Solana deposit is currently enabled. Selecting a country does not create a bank account or move funds.</p>
           </section>
           <section className="panel wallet-panel" id="wallets">
             <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect a Solana wallet to verify its public address. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
