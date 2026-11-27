@@ -2,38 +2,40 @@
 
 **Money moves. Intelligence connects.**
 
-MYRAVEN is an intelligent payment-orchestration product prototype. Its initial blockchain scope is intentionally limited to **Solana and Stellar**.
+MYRAVEN is an intelligent global payment-orchestration platform built around **Solana as its only blockchain network**.
 
-## Current demo build
+## Product architecture
 
-- Next.js App Router, TypeScript, React and Tailwind CSS
-- SmartRoute simulation ranking routes by cost, speed, reliability and recipient preference
-- Simulated quote API with input validation
-- Fictional Solana and Stellar wallet connections
-- Sample SOL, XLM and USDC portfolio balances
-- Demo payment review and locally recorded demo approvals
-- USSD menu and payment-request simulator
-- Sample payment activity and transaction statuses
-- Responsive dashboard and payment safety messaging
+- **Global funding:** compatible bank transfers, cards, local payment methods and supported crypto assets.
+- **Funding conversion:** fiat deposits are converted by an approved on-ramp into a supported Solana asset selected by the user.
+- **Solana deposit engine:** verifies supported on-chain deposits and confirmation status before crediting an account.
+- **Unified ledger:** records deposits, conversions, transfers, fees, holds and payout states with idempotency and audit events.
+- **Global currency engine:** produces timestamped, expiring executable quotes when connected to liquidity providers.
+- **SmartRoute:** ranks eligible payout routes by cost, speed, reliability and recipient preference.
+- **Global receiving:** supported bank accounts, mobile-money methods, MYRAVEN IDs and Solana addresses.
+- **Payment safety:** explicit user authorization, quote expiry, stage-aware recovery and duplicate-execution protection.
 
-## Demo-only guarantees
+## Current repository state
 
-**Everything in the current experience is simulated.** No real wallet extension is contacted. Wallet addresses, balances, asset valuations, quotes, fees, route speed, reliability scores, transaction references, payment outcomes and USSD requests are fictional sample data. No external provider, bank, blockchain, telecom operator or payment rail is contacted. No funds move, and no real transaction is signed or submitted.
+The current dashboard is a product preview. Phantom connection, when available, verifies a public Solana address only. The quote engine still produces illustrative simulation data. No live card processor, bank, fiat on-ramp, crypto exchange, payout provider, custody service, or Solana transaction execution is configured by this repository.
 
-The demo is designed to exercise product flows and interface behavior. Its sample exchange rates and route scores are not market data, executable offers, availability claims or delivery guarantees.
+**No real funds move in the current build.** Do not interpret demo balances, sample fees, estimated timings, route scores or example activity as live financial data.
+
+## Live integration requirements
+
+Real-money functionality requires selected providers, approved accounts and credentials, supported country corridors, applicable licensing/compliance arrangements, security review, reconciliation and operational monitoring. Provider secrets must remain server-side. Client code must never receive custody keys, service-role keys or signing secrets.
 
 ## Development
 
 ```bash
 npm install
 npm run dev
+npm run typecheck
+npm run build
 ```
 
-Copy `.env.example` to `.env.local` only when configuring Supabase for a later stage. Never commit real credentials.
+## Blockchain scope
 
-## Initial chain scope
-
-- Solana: SOL and selected SPL assets in future integrations
-- Stellar: XLM and selected Stellar assets in future integrations
-
-No other blockchain networks are in the initial scope.
+- Solana mainnet / devnet as configured per environment
+- SOL and supported SPL assets, subject to token and provider allowlists
+- No Stellar or other blockchain networks are in scope.
