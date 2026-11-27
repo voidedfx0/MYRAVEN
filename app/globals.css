@@ -47,3 +47,22 @@
 @media(max-width:560px){.account-shell{padding:18px 13px}.account-card{padding:23px 19px}.account-card h1{font-size:24px}.account-top{font-size:8px}.account-link{display:none}}
 
 .account-email{margin:-15px 0 14px;color:#8d96a8;font-size:10px}.account-pending{display:block;text-align:right;color:#9c91c5;font-size:8px;margin-top:4px}
+
+/* Compact Pay AI transfer companion */
+.payment-heading-actions{display:flex;align-items:flex-start;gap:8px;flex:0 0 auto}
+.pay-ai-trigger{display:inline-flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid rgba(155,123,255,.34);border-radius:7px;background:linear-gradient(120deg,rgba(155,123,255,.15),rgba(84,217,239,.07));color:#d8ceff;font-size:9px;font-weight:700;white-space:nowrap;box-shadow:0 0 18px rgba(155,123,255,.06)}
+.pay-ai-trigger svg{color:#b9a4ff}
+.pay-ai-trigger:hover,.pay-ai-trigger.pay-ai-active{border-color:rgba(155,123,255,.7);background:rgba(155,123,255,.18)}
+.pay-ai-box{margin:-7px 0 18px;padding:12px;border:1px solid rgba(155,123,255,.22);border-radius:9px;background:linear-gradient(135deg,rgba(155,123,255,.09),rgba(84,217,239,.035))}
+.pay-ai-title{display:flex;align-items:center;gap:8px}
+.pay-ai-orb{width:25px;height:25px;display:grid;place-items:center;border-radius:8px;background:rgba(155,123,255,.17);color:#c4b4ff}
+.pay-ai-title b{display:block;font-size:9px;color:#e5defe}
+.pay-ai-title small{display:block;margin-top:3px;color:#858da0;font-size:8px}
+.pay-ai-box>p{margin:9px 0;color:#9ba3b3;font-size:8px;line-height:1.55}
+.pay-ai-box textarea{display:block;width:100%;resize:vertical;min-height:62px;padding:9px;border:1px solid rgba(255,255,255,.1);border-radius:7px;background:rgba(5,7,12,.62);color:#eef0f7;font:inherit;font-size:9px;line-height:1.5;outline:none}
+.pay-ai-box textarea:focus,.recipient-reference-input:focus{border-color:rgba(155,123,255,.6);box-shadow:0 0 0 3px rgba(155,123,255,.07)}
+.pay-ai-submit{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:8px;padding:9px;border:1px solid rgba(155,123,255,.3);border-radius:7px;background:rgba(155,123,255,.14);color:#d8ceff;font-size:9px;font-weight:700}
+.pay-ai-feedback{margin-top:8px;padding:8px;border-radius:6px;background:rgba(142,229,138,.055);color:#a8dca4;font-size:8px;line-height:1.55}
+.pay-ai-disclaimer{display:block;margin-top:8px;color:#737d8e;font-size:7px;line-height:1.5}
+.recipient-reference-input{width:100%;height:36px;padding:8px 10px;border:1px solid rgba(255,255,255,.11);border-radius:7px;background:rgba(0,0,0,.18);color:#eef0f6;font-size:9px;outline:none}
+@media(max-width:430px){.panel-heading{gap:8px}.payment-heading-actions{gap:5px}.pay-ai-trigger{padding:7px 7px;font-size:8px}.step-badge{font-size:7px;padding:6px}}
