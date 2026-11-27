@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import AuthActions from "@/components/auth-actions";
 import {
   Activity, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Bell, Check,
   ChevronDown, CircleHelp, Globe2, LayoutDashboard, LockKeyhole,
@@ -306,7 +307,7 @@ export default function Home() {
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><span className="help-icon"><CircleHelp size={16} /></span><b>Need a hand?</b><p>Explore how MYRAVEN connects payment methods.</p><a href="#how">Explore platform <ArrowUpRight size={13} /></a></div>
-          <a className="profile-row" href="/account"><span className="profile-avatar">M</span><span><b>MYRAVEN account</b><small>Sign in or manage profile</small></span><ChevronDown size={15} /></a>
+          <a className="profile-row" href="/settings"><span className="profile-avatar">M</span><span><b>MYRAVEN account</b><small>Account settings</small></span><ChevronDown size={15} /></a>
         </div>
       </aside>
 
@@ -314,7 +315,7 @@ export default function Home() {
         <header className="top-header">
           <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu"><Menu size={19} /></button>
           <div className="breadcrumb">Workspace <span>/</span> <b>Overview</b></div>
-          <div className="header-actions"><span className="environment-pill"><i /> PREVIEW MODE</span><a className="account-link" href="/account">My account <ArrowUpRight size={14} /></a><button className="icon-button" aria-label="Notifications"><Bell size={17} /></button><span className="header-avatar">M</span></div>
+          <div className="header-actions"><span className="environment-pill"><i /> PREVIEW MODE</span><AuthActions variant="workspace" /><button className="icon-button" aria-label="Notifications"><Bell size={17} /></button><span className="header-avatar">M</span></div>
         </header>
 
         <div className="content-wrap">
