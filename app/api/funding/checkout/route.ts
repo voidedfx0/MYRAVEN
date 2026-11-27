@@ -6,11 +6,13 @@ import countriesData from "@/src/data/funding-countries.json";
 
 export const dynamic = "force-dynamic";
 
+const TEST_MODE = process.env.MYRAVEN_MODE === "test";
+
 const allowedAssets = ["SOL", "USDC"] as const;
 const methods = ["card", "bank_transfer", "local_payment"] as const;
 const countries = countriesData.countries as Array<{ code: string; currency: string[] }>;
 
-export async function POST(request: Request) {
+export async function POST(request: Request) {\n  if (!TEST_MODE) return NextResponse.json({ error: "MYRAVEN funding is disabled unless test mode is explicitly enabled." }, { status: 503 });
   const auth = await createClient();
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in before funding your wallet." }, { status: 401 });
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
     provider_reference: txRef,
     idempotency_key: txRef,
     status: "created",
-    metadata: { country_code: countryCode, requested_method: method, provider: "flutterwave" },
+    metadata: { country_code: countryCode, requested_method: method, provider: "flutterwave", environment: "test" },
   }).select("id").single();
 
   if (insertError || !deposit) {
@@ -76,7 +78,7 @@ export async function POST(request: Request) {
         redirect_url: `${origin}/dashboard?funding=return`,
         customer: { email: user.email, name: user.user_metadata?.full_name ?? user.email },
         customizations: { title: "MYRAVEN wallet funding", description: `Add funds to your MYRAVEN wallet (${targetAsset})` },
-        meta: { funding_deposit_id: deposit.id, user_id: user.id, country_code: countryCode, target_asset: targetAsset },
+        meta: { funding_deposit_id: deposit.id, user_id: user.id, country_code: countryCode, target_asset: targetAsset, environment: "test" },
       }),
       cache: "no-store",
     });
