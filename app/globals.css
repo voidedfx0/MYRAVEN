@@ -128,3 +128,9 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 @keyframes orbit-plane-mid{0%{transform:rotateX(48deg) rotateZ(0deg)}100%{transform:rotateX(48deg) rotateZ(360deg)}}
 @keyframes orbit-plane-front{0%{transform:rotate(16deg) scaleY(.58)}100%{transform:rotate(376deg) scaleY(.58)}}
 @media(prefers-reduced-motion:reduce){.orbit-plane{animation:none!important}.orbit-plane circle animateMotion{display:none}}
+
+
+/* A foreground orbital lane crosses through the MYRAVEN lettering */
+.brand-orbit-front{position:absolute;inset:0;z-index:3;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 0 4px rgba(155,123,255,.55))}
+.brand-orbit-lockup .brand-wordmark{z-index:2}
+@media(prefers-reduced-motion:reduce){.brand-orbit-front circle animateMotion{display:none}}
