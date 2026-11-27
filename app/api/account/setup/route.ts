@@ -10,9 +10,10 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const accountType: AccountType = body.accountType === "business" ? "business" : "personal";
-  const displayName = typeof body.displayName === "string" ? body.displayName.trim().slice(0, 60) : "";
-  const businessName = typeof body.businessName === "string" ? body.businessName.trim().slice(0, 120) : "";
-  const countryCode = typeof body.countryCode === "string" && /^[A-Za-z]{2}$/.test(body.countryCode) ? body.countryCode.toUpperCase() : null;
+  const displayName = (typeof body.displayName === "string" ? body.displayName : user.user_metadata?.display_name ?? "").trim().slice(0, 60);
+  const businessName = (typeof body.businessName === "string" ? body.businessName : user.user_metadata?.business_name ?? "").trim().slice(0, 120);
+  const rawCountry = typeof body.countryCode === "string" ? body.countryCode : user.user_metadata?.country_code ?? "";
+  const countryCode = /^[A-Za-z]{2}$/.test(rawCountry) ? rawCountry.toUpperCase() : null;
 
   if (accountType === "business" && !businessName) {
     return NextResponse.json({ error: "Enter your business or organisation name to create a business workspace." }, { status: 400 });
