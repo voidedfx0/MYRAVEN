@@ -9,11 +9,11 @@ import {
 } from "lucide-react";
 
 type Quote = {
-  id: string; rail: "solana" | "stellar" | "bank"; label: string;
+  id: string; rail: "solana" | "" | "bank"; label: string;
   estimatedFee: number; estimatedMinutes: number; reliability: number;
   recipientAmount: number; score: number; reasons: string[]; simulated: true;
 };
-type WalletConnection = { network: "Solana" | "Stellar"; address: string; name: string };
+type WalletConnection = { network: "Solana"; address: string; name: string };
 type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string };
 
 declare global {
@@ -50,7 +50,7 @@ export default function Home() {
   const [approved, setApproved] = useState(false);
   const [activities, setActivities] = useState<DemoActivity[]>([
     { id: "MRV-DEMO-001", title: "Demo wallet funded", detail: "Solana · USDC", amount: "+250.00 USDC", status: "Completed · Demo", time: "Today · 09:42" },
-    { id: "MRV-DEMO-002", title: "Demo conversion", detail: "Stellar · XLM → USDC", amount: "125.00 USDC", status: "Completed · Demo", time: "Today · 08:16" },
+    { id: "MRV-DEMO-002", title: "Demo conversion", detail: "Solana · SOL → USDC", amount: "125.00 USDC", status: "Completed · Demo", time: "Today · 08:16" },
   ]);
   const [ussdPhone, setUssdPhone] = useState("");
   const [ussdAmount, setUssdAmount] = useState("25");
@@ -91,7 +91,7 @@ export default function Home() {
     setWalletMessage("Demo Solana wallet connected. Sample assets only; no real wallet was contacted.");
   }
 
-  async function connectStellar() {
+  async function connect() {
     const address = "GDEMO...STELLAR...4RAV";
     setWallets((current) => [...current.filter((wallet) => wallet.network !== "Stellar"), { network: "Stellar", address, name: "Stellar demo wallet" }]);
     setWalletMessage("Demo Stellar wallet connected. Sample assets only; no real wallet was contacted.");
@@ -142,7 +142,7 @@ export default function Home() {
     { label: "Payments", icon: ArrowLeftRight },
     { label: "Wallets", icon: Wallet },
     { label: "Activity", icon: Activity },
-    { label: "USSD Demo", icon: Globe2 },
+    { label: "USSD Preview", icon: Globe2 },
   ];
 
   return (
@@ -183,7 +183,7 @@ export default function Home() {
           </section>
 
           <section className="metrics-grid">
-            <article className="metric-card"><div className="metric-top"><span>Connected wallets</span><Wallet size={17} /></div><strong>{wallets.length.toString().padStart(2, "0")}</strong><small>Solana + Stellar</small><div className="metric-line purple-line" /></article>
+            <article className="metric-card"><div className="metric-top"><span>Connected wallets</span><Wallet size={17} /></div><strong>{wallets.length.toString().padStart(2, "0")}</strong><small>Solana network only</small><div className="metric-line purple-line" /></article>
             <article className="metric-card"><div className="metric-top"><span>Routes compared</span><ArrowLeftRight size={17} /></div><strong>{quotes.length.toString().padStart(2, "0")}</strong><small>Illustrative route options</small><div className="metric-line cyan-line" /></article>
             <article className="metric-card"><div className="metric-top"><span>Payments completed</span><Check size={17} /></div><strong>{activities.filter((item) => item.status.includes("Completed")).length.toString().padStart(2, "0")}</strong><small>Demo transactions only</small><div className="metric-line green-line" /></article>
             <article className="metric-card"><div className="metric-top"><span>Safety status</span><LockKeyhole size={17} /></div><strong className="metric-word">Protected</strong><small>Approval required for every action</small><div className="metric-line silver-line" /></article>
@@ -197,7 +197,7 @@ export default function Home() {
                 <div className="amount-field"><input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="0.01" step="0.01" required aria-label="Amount to send" /><select value={sourceCurrency} onChange={(event) => setSourceCurrency(event.target.value)} aria-label="Source currency">{["USD","EUR","GBP","NGN","KES","GHS"].map((currency) => <option key={currency}>{currency}</option>)}</select></div>
                 <div className="transfer-connector"><span><ArrowDownLeft size={15} /></span><i /></div>
                 <label className="field-label">RECIPIENT GETS</label>
-                <div className="recipient-fields"><select value={destinationCurrency} onChange={(event) => setDestinationCurrency(event.target.value)} aria-label="Recipient currency">{["NGN","USD","EUR","GBP","KES","GHS"].map((currency) => <option key={currency}>{currency}</option>)}</select><select value={destination} onChange={(event) => setDestination(event.target.value)} aria-label="Receiving method"><option value="bank">Local bank payout</option><option value="solana">Solana wallet</option><option value="stellar">Stellar wallet</option></select></div>
+                <div className="recipient-fields"><select value={destinationCurrency} onChange={(event) => setDestinationCurrency(event.target.value)} aria-label="Recipient currency">{["NGN","USD","EUR","GBP","KES","GHS"].map((currency) => <option key={currency}>{currency}</option>)}</select><select value={destination} onChange={(event) => setDestination(event.target.value)} aria-label="Receiving method"><option value="bank">Local bank payout</option><option value="solana">Solana wallet</option></select></div>
                 <label className="field-label preference-label">ROUTE PRIORITY</label>
                 <div className="preference-options">{[{id:"balanced",label:"Balanced"},{id:"lowest-cost",label:"Lowest cost"},{id:"fastest",label:"Fastest"},{id:"most-reliable",label:"Reliability"}].map((option) => <button type="button" className={preference === option.id ? "preference-active" : ""} onClick={() => setPreference(option.id)} key={option.id}>{option.label}</button>)}</div>
                 <button className="primary-action" type="submit" disabled={loading}>{loading ? <RefreshCw size={16} className="spin" /> : <Sparkles size={16} />}{loading ? "Comparing routes…" : "Find best route"}<ArrowUpRight size={16} /></button>
@@ -215,20 +215,20 @@ export default function Home() {
           </div>
 
           <section className="panel wallet-panel" id="wallets">
-            <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Explore sample Solana and Stellar wallets, balances and assets. Nothing connects to a real wallet.</p></div><span className="read-only-tag"><Sparkles size={12} /> DEMO DATA</span></div>
+            <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect a Solana wallet to verify its public address. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
             <div className="wallet-connect-grid">
               <article className="wallet-connect-card"><div className="wallet-network-logo solana-logo">S</div><div className="wallet-copy"><b>Solana</b><small>Simulated wallet · Sample SOL and SPL assets</small></div><button onClick={connectSolana} className="connect-button">Add demo <Plus size={14} /></button></article>
-              <article className="wallet-connect-card"><div className="wallet-network-logo stellar-logo">✦</div><div className="wallet-copy"><b>Stellar</b><small>Simulated wallet · Sample XLM and Stellar assets</small></div><button onClick={connectStellar} className="connect-button">Connect <Plus size={14} /></button></article>
+              <article className="wallet-connect-card"><div className="wallet-network-logo stellar-logo">✦</div><div className="wallet-copy"><b>Stellar</b><small>Simulated wallet · Sample  and Stellar assets</small></div><button onClick={connectStellar} className="connect-button">Connect <Plus size={14} /></button></article>
             </div>
             {walletMessage ? <p className="wallet-message">{walletMessage}</p> : null}
             {wallets.length > 0 ? <div className="connected-list">{wallets.map((wallet) => <div className="connected-wallet" key={wallet.address}><span className={`mini-network ${wallet.network.toLowerCase()}`}>{wallet.network === "Solana" ? "S" : "✦"}</span><span><b>{wallet.name}</b><small>{shortAddress(wallet.address)}</small></span><span className="connected-label"><i /> Connected</span><button onClick={() => disconnectWallet(wallet.address)} className="disconnect-button">Disconnect</button></div>)}</div> : <div className="wallet-empty"><WalletCards size={18} /><span>No wallets connected yet</span></div>}
             <div className="demo-assets-grid">
-              <article className="demo-asset"><span className="asset-symbol solana-logo">◎</span><span><b>SOL</b><small>Solana · Demo balance</small></span><strong>12.4500</strong><em>≈ $1,867.50</em></article>
-              <article className="demo-asset"><span className="asset-symbol stellar-logo">✦</span><span><b>XLM</b><small>Stellar · Demo balance</small></span><strong>4,820.00</strong><em>≈ $578.40</em></article>
+              <article className="demo-asset"><span className="asset-symbol solana-logo">◎</span><span><b>SOL</b><small>Solana · Sample balance</small></span><strong>12.4500</strong><em>≈ $1,867.50</em></article>
+              
               <article className="demo-asset"><span className="asset-symbol usdc-symbol">$</span><span><b>USDC</b><small>Solana · Demo balance</small></span><strong>2,450.00</strong><em>≈ $2,450.00</em></article>
-              <article className="demo-asset"><span className="asset-symbol usdc-symbol">$</span><span><b>USDC</b><small>Stellar · Demo balance</small></span><strong>680.00</strong><em>≈ $680.00</em></article>
+              
             </div>
-            <div className="wallet-security"><ShieldCheck size={15} /><span>All balances, wallet addresses and asset valuations above are fictional demo data. No real wallets are contacted and no seed phrases or private keys are requested.</span></div>
+            <div className="wallet-security"><ShieldCheck size={15} /><span>Wallet connection verifies only your public address. No transaction is signed, and MYRAVEN never requests your seed phrase or private key.</span></div>
           </section>
 
           <section className="panel ussd-panel" id="ussd">
@@ -247,7 +247,7 @@ export default function Home() {
             <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="#activity">View all <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{activities.map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small></span></div>)}</div></article>
           </section>
 
-          <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>Demo only · Solana · Stellar</span></footer>
+          <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>Demo only · Solana</span></footer>
         </div>
       </section>
 
