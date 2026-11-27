@@ -85,28 +85,33 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
     const result = await response.json().catch(() => null);
-    const checkoutUrl = result?.data?.link;
+    // Flutterwave Standard returns { status: "success", message: "Hosted Link", data: { link } }.
+    const rawLink = result?.data?.link ?? result?.data?.checkout_url ?? result?.link;
+    let checkoutUrl = "";
     let checkoutHost = "";
-    let checkoutUrlIsTrusted = false;
-    if (typeof checkoutUrl === "string") {
-      try {
-        const parsedCheckoutUrl = new URL(checkoutUrl);
-        checkoutHost = parsedCheckoutUrl.hostname.toLowerCase();
-        checkoutUrlIsTrusted =
-          parsedCheckoutUrl.protocol === "https:" &&
-          (checkoutHost === "checkout.flutterwave.com" || checkoutHost.endsWith(".flutterwave.com"));
-      } catch {
-        checkoutUrlIsTrusted = false;
+    try {
+      if (typeof rawLink === "string") {
+        const parsed = new URL(rawLink);
+        checkoutHost = parsed.hostname.toLowerCase().replace(/\\.$/, "");
+        const trustedHost =
+          checkoutHost === "checkout.flutterwave.com" ||
+          checkoutHost === "flutterwave.com" ||
+          checkoutHost.endsWith(".flutterwave.com");
+        if (parsed.protocol === "https:" && trustedHost) checkoutUrl = parsed.toString();
       }
+    } catch {
+      // Treat malformed or non-HTTPS provider URLs as invalid.
     }
-    if (!response.ok || result?.status !== "success" || !checkoutUrlIsTrusted) {
+
+    if (!response.ok || result?.status !== "success" || !checkoutUrl) {
       const providerMessage = typeof result?.message === "string" ? result.message.slice(0, 240) : "No readable error returned by Flutterwave.";
-      console.error("[MYRAVEN funding] Flutterwave checkout rejected", {
+      console.error("[MYRAVEN funding] Flutterwave checkout response could not be used", {
         httpStatus: response.status,
         providerStatus: result?.status ?? "missing",
         providerMessage,
         checkoutHost: checkoutHost || "missing",
-        hasCheckoutLink: typeof checkoutUrl === "string",
+        hasLink: typeof rawLink === "string",
+        responseDataKeys: result?.data && typeof result.data === "object" ? Object.keys(result.data).slice(0, 12) : [],
         currency,
         countryCode,
         method,
@@ -115,11 +120,11 @@ export async function POST(request: Request) {
       await admin.from("funding_deposits").update({
         status: "failed",
         failure_code: "provider_checkout_failed",
-        metadata: { country_code: countryCode, requested_method: method, provider: "flutterwave", environment: "test", provider_http_status: response.status, provider_error: providerMessage },
+        metadata: { country_code: countryCode, requested_method: method, provider: "flutterwave", environment: "test", provider_http_status: response.status, provider_error: providerMessage, checkout_host: checkoutHost || null },
       }).eq("id", deposit.id);
       return NextResponse.json({
-        error: `Flutterwave rejected this test checkout (${response.status}): ${providerMessage}`,
-        code: "FLUTTERWAVE_CHECKOUT_REJECTED",
+        error: `Flutterwave returned a successful response but MYRAVEN could not validate its checkout link. Please retry; if it persists, contact support with reference ${txRef}.`,
+        code: "FLUTTERWAVE_CHECKOUT_LINK_INVALID",
       }, { status: 502 });
     }
 
