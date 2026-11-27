@@ -251,17 +251,30 @@ export default function Home() {
           <span className="brand-orbit-lockup">
             <svg className="brand-orbit-art" viewBox="0 0 240 72" aria-hidden="true" focusable="false">
               <defs>
-                <linearGradient id="word-orbit-metal" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#F4F1FF"/><stop offset=".38" stopColor="#A78BFA"/><stop offset=".7" stopColor="#67E8F9"/><stop offset="1" stopColor="#E7EAF4"/></linearGradient>
+                <linearGradient id="word-orbit-metal" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#F4F1FF"/><stop offset=".42" stopColor="#B8A5FF"/><stop offset=".72" stopColor="#67E8F9"/><stop offset="1" stopColor="#E7EAF4"/></linearGradient>
                 <linearGradient id="word-orbit-violet" x1="0" y1="1" x2="1" y2="0"><stop stopColor="#7C3AED"/><stop offset=".52" stopColor="#C4B5FD"/><stop offset="1" stopColor="#E9D5FF"/></linearGradient>
                 <linearGradient id="word-orbit-cyan" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#67E8F9"/><stop offset="1" stopColor="#A5F3FC"/></linearGradient>
+                <radialGradient id="orbit-planet-violet"><stop stopColor="#FFF"/><stop offset=".35" stopColor="#D8C8FF"/><stop offset="1" stopColor="#8057E8"/></radialGradient>
+                <radialGradient id="orbit-planet-cyan"><stop stopColor="#FFF"/><stop offset=".38" stopColor="#A5F3FC"/><stop offset="1" stopColor="#159DB8"/></radialGradient>
               </defs>
-              <g fill="none" strokeLinecap="round">
-                <ellipse className="word-orbit-ring word-orbit-a" cx="120" cy="36" rx="105" ry="19" stroke="url(#word-orbit-metal)" strokeWidth="1.7"/>
-                <ellipse className="word-orbit-ring word-orbit-b" cx="120" cy="36" rx="103" ry="17" stroke="url(#word-orbit-violet)" strokeWidth="1.5" transform="rotate(-12 120 36)"/>
-                <ellipse className="word-orbit-ring word-orbit-c" cx="120" cy="36" rx="108" ry="15" stroke="url(#word-orbit-cyan)" strokeWidth="1.25" transform="rotate(12 120 36)" opacity=".9"/>
+              <g className="orbit-plane orbit-plane-back" fill="none" strokeLinecap="round">
+                <ellipse cx="120" cy="36" rx="105" ry="25" stroke="url(#word-orbit-violet)" strokeWidth="1.25" opacity=".72"/>
+                <circle r="3.1" fill="url(#orbit-planet-violet)" stroke="#E9D5FF" strokeWidth=".55">
+                  <animateMotion dur="13s" repeatCount="indefinite" path="M15 36 A105 25 0 1 1 225 36 A105 25 0 1 1 15 36"/>
+                </circle>
               </g>
-              <circle cx="18" cy="29" r="2.3" fill="#C4B5FD"/>
-              <circle cx="222" cy="42" r="2.1" fill="#67E8F9"/>
+              <g className="orbit-plane orbit-plane-mid" fill="none" strokeLinecap="round">
+                <ellipse cx="120" cy="36" rx="99" ry="18" stroke="url(#word-orbit-metal)" strokeWidth="1.45" opacity=".85"/>
+                <circle r="2.7" fill="url(#orbit-planet-cyan)" stroke="#CFFAFE" strokeWidth=".5">
+                  <animateMotion dur="9s" repeatCount="indefinite" path="M21 36 A99 18 0 1 0 219 36 A99 18 0 1 0 21 36"/>
+                </circle>
+              </g>
+              <g className="orbit-plane orbit-plane-front" fill="none" strokeLinecap="round">
+                <ellipse cx="120" cy="36" rx="108" ry="13" stroke="url(#word-orbit-cyan)" strokeWidth="1.15" opacity=".8"/>
+                <circle r="2.4" fill="url(#orbit-planet-violet)" stroke="#E9D5FF" strokeWidth=".45">
+                  <animateMotion dur="17s" repeatCount="indefinite" path="M12 36 A108 13 0 1 1 228 36 A108 13 0 1 1 12 36"/>
+                </circle>
+              </g>
             </svg>
             <span className="brand-wordmark">MYRAVEN</span>
           </span>
