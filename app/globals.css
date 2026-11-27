@@ -371,3 +371,24 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 .funding-disclaimer{display:flex;align-items:flex-start;gap:7px;margin:15px 0 0;color:#858d9e;font-size:9px;line-height:1.6}
 .funding-disclaimer svg{flex:0 0 auto;color:#a995f5;margin-top:1px}
 @media(max-width:720px){.funding-country-row{grid-template-columns:1fr}.funding-method-grid{grid-template-columns:1fr}.funding-route-status{align-items:flex-start;flex-wrap:wrap}.funding-provider-status{margin-left:47px}.funding-next-step{align-items:flex-start;flex-direction:column}.funding-section-label{align-items:flex-start;gap:12px;flex-direction:column}}
+
+
+.funding-history { margin-top: 22px; padding-top: 20px; border-top: 1px solid rgba(148,163,184,.16); }
+.funding-history-heading { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:12px; }
+.funding-history-heading h3 { margin:5px 0 0; font-size:16px; letter-spacing:-.02em; }
+.funding-history-list { display:grid; gap:8px; }
+.funding-history-item { display:flex; align-items:center; gap:12px; min-width:0; padding:12px 14px; border:1px solid rgba(148,163,184,.14); border-radius:13px; background:rgba(15,23,42,.24); }
+.funding-history-mark { display:grid; place-items:center; flex:0 0 34px; height:34px; border-radius:10px; color:#b9a5ff; background:rgba(139,92,246,.12); }
+.funding-history-copy { display:grid; gap:4px; min-width:0; flex:1; }
+.funding-history-copy b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.funding-history-copy small { color:var(--muted,#94a3b8); font-size:11px; text-transform:capitalize; }
+.funding-history-status { display:grid; gap:4px; text-align:right; font-size:11px; font-weight:700; text-transform:capitalize; color:#fbbf24; }
+.funding-history-status small { color:var(--muted,#94a3b8); font-size:10px; font-weight:500; }
+.funding-history-status.status-credited { color:#34d399; }
+.funding-history-status.status-failed,.funding-history-status.status-cancelled,.funding-history-status.status-expired { color:#fb7185; }
+.funding-history-empty { margin:0; padding:14px; border:1px dashed rgba(148,163,184,.2); border-radius:12px; color:var(--muted,#94a3b8); font-size:12px; }
+@media (max-width: 640px) {
+  .funding-history-item { align-items:flex-start; flex-wrap:wrap; }
+  .funding-history-status { margin-left:46px; text-align:left; }
+  .funding-history-heading { align-items:flex-start; }
+}
