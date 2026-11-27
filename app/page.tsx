@@ -9,7 +9,7 @@ import {
 
 const products = [
   { n: "01", tag: "FUND", icon: Wallet, title: "Fund your account", copy: "A single starting point for supported bank, card, mobile-money and crypto funding methods." },
-  { n: "02", tag: "RECEIVE", icon: CircleDollarSign, title: "Your MYRAVEN identity", copy: "A personal MYRAVEN ID, account number and Solana receiving address — designed to make receiving value easier." },
+  { n: "02", tag: "RECEIVE", icon: CircleDollarSign, title: "Your MYRAVEN identity", copy: "A personal MYRAVEN ID and verified profile that connect your wallet, funding options and payment activity." },
   { n: "03", tag: "SEND", icon: Globe2, title: "Send across destinations", copy: "Prepare transfers to MYRAVEN users, Solana addresses and supported local bank or mobile-money payout routes." }
 ];
 
