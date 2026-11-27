@@ -75,6 +75,10 @@ export default function Home() {
   const [externalBalanceError, setExternalBalanceError] = useState("");
   const [fundingCountry, setFundingCountry] = useState("NG");
   const [fundingMethod, setFundingMethod] = useState("bank");
+  const [fundingAmount, setFundingAmount] = useState("100");
+  const [fundingTargetAsset, setFundingTargetAsset] = useState("USDC");
+  const [fundingCheckoutLoading, setFundingCheckoutLoading] = useState(false);
+  const [fundingMessage, setFundingMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -123,6 +127,45 @@ export default function Home() {
   const [ussdResult, setUssdResult] = useState("");
 
   const bestQuote = useMemo(() => quotes.find((quote) => quote.id === selectedRoute) ?? quotes[0], [quotes, selectedRoute]);
+
+  async function startFundingCheckout() {
+    const country = fundingCountriesData.countries.find((item) => item.code === fundingCountry);
+    const currency = country?.currency?.[0];
+    const amountValue = Number(fundingAmount);
+    if (!country || !currency || !Number.isFinite(amountValue) || amountValue <= 0) {
+      setFundingMessage("Choose a country and enter a valid funding amount.");
+      return;
+    }
+    if (fundingMethod === "solana") {
+      setFundingMessage("On-chain Solana deposits are a separate route and are not enabled yet.");
+      return;
+    }
+    const method = fundingMethod === "bank" ? "bank_transfer"
+      : fundingMethod === "card" ? "card" : "local_payment";
+    setFundingCheckoutLoading(true);
+    setFundingMessage("Creating a secure hosted checkout…");
+    try {
+      const response = await fetch("/api/funding/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: amountValue,
+          countryCode: fundingCountry,
+          currency,
+          method,
+          targetAsset: fundingTargetAsset,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Funding checkout could not be started.");
+      setFundingMessage("Opening Flutterwave secure checkout…");
+      window.location.assign(data.checkoutUrl);
+    } catch (error) {
+      setFundingMessage(error instanceof Error ? error.message : "Funding checkout is unavailable.");
+    } finally {
+      setFundingCheckoutLoading(false);
+    }
+  }
 
   async function calculateRoutes(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -499,11 +542,29 @@ export default function Home() {
               <div>
                 <span className="panel-kicker">SELECTED METHOD</span>
                 <b>{({ bank: "Bank transfer", local: "Local payment", mobile: "Mobile money", card: "Debit or credit card", solana: "Solana funding" } as Record<string, string>)[fundingMethod]}</b>
-                <p>No payment details, virtual account number or deposit address will be fabricated. Once an approved provider is connected, this area will show its real instructions and eligibility requirements.</p>
+                <p>Fiat checkout is routed through Flutterwave. The exact methods shown at checkout depend on your country, currency and merchant account configuration.</p>
               </div>
-              <span className="read-only-tag"><LockKeyhole size={11} /> NOT ENABLED</span>
+              <span className="read-only-tag"><LockKeyhole size={11} /> TEST SETUP</span>
             </div>
-            <p className="funding-disclaimer"><ShieldCheck size={13} /> Preview only. No bank, mobile-money, card or Solana deposit is currently enabled. Selecting a country does not create a bank account or move funds.</p>
+            <div className="funding-checkout-controls">
+              <label className="funding-country-field">
+                <span className="field-label">AMOUNT TO ADD</span>
+                <input type="number" min="1" max="1000000" step="0.01" value={fundingAmount} onChange={(event) => setFundingAmount(event.target.value)} />
+              </label>
+              <label className="funding-country-field">
+                <span className="field-label">WALLET ASSET</span>
+                <select value={fundingTargetAsset} onChange={(event) => setFundingTargetAsset(event.target.value)}>
+                  <option value="USDC">USDC · Solana</option>
+                  <option value="SOL">SOL · Solana</option>
+                </select>
+              </label>
+              <button type="button" className="primary-action funding-checkout-button" onClick={startFundingCheckout} disabled={fundingCheckoutLoading || fundingMethod === "solana"}>
+                {fundingCheckoutLoading ? <RefreshCw size={16} className="spin" /> : <ArrowUpRight size={16} />}
+                Continue to secure checkout
+              </button>
+            </div>
+            {fundingMessage ? <p className="funding-disclaimer" role="status">{fundingMessage}</p> : null}
+            <p className="funding-disclaimer"><ShieldCheck size={13} /> Test integration only. A successful fiat payment is verified server-side and held for conversion; MYRAVEN will not show SOL or USDC as available until the conversion and settlement provider is connected.</p>
           </section>
           <section className="panel wallet-panel" id="wallets">
             <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect a Solana wallet to verify its public address. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
