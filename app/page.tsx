@@ -13,7 +13,8 @@ type Quote = {
   estimatedFee: number; estimatedMinutes: number; reliability: number;
   recipientAmount: number; score: number; reasons: string[]; simulated: true;
 };
-type WalletConnection = { network: "Solana" | "Stellar"; address: string; name: string };\ntype DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string };
+type WalletConnection = { network: "Solana" | "Stellar"; address: string; name: string };
+type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string };
 
 declare global {
   interface Window {
@@ -104,7 +105,7 @@ export default function Home() {
   }
 
   function simulateUssd() {
-    if (!/^\\+?[0-9]{7,15}$/.test(ussdPhone.replace(/[\\s-]/g, ""))) {
+    if (!/^\+?[0-9]{7,15}$/.test(ussdPhone.replace(/[\s-]/g, ""))) {
       setUssdResult("Enter a valid demo phone number (7–15 digits).");
       return;
     }
