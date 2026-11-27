@@ -7,7 +7,9 @@ MYRAVEN is an intelligent global payment-orchestration platform built around **S
 ## Product architecture
 
 - **Global funding:** compatible bank transfers, cards, local payment methods and supported crypto assets.
-- **Funding conversion:** fiat deposits are converted by an approved on-ramp into a supported Solana asset selected by the user.
+- **Funding conversion:** fiat and supported crypto deposits are intended to convert through an approved on-ramp into a supported Solana asset selected by the user.
+- **Provider abstraction:** typed on-ramp contracts keep provider quotes, checkout sessions and signed webhook verification behind a provider adapter; no provider is registered yet.
+- **Funding readiness API:** `GET /api/funding/readiness` reports Solana assets and funding methods while keeping deposits disabled until a provider adapter is approved and configured.
 - **Solana deposit engine:** verifies supported on-chain deposits and confirmation status before crediting an account.
 - **Unified ledger:** records deposits, conversions, transfers, fees, holds and payout states with idempotency and audit events.
 - **Global currency engine:** produces timestamped, expiring executable quotes when connected to liquidity providers.
