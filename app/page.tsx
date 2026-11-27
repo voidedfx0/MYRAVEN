@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 type Quote = {
-  id: string; rail: "solana" | "" | "bank"; label: string;
+  id: string; rail: "solana" | "bank"; label: string;
   estimatedFee: number; estimatedMinutes: number; reliability: number;
   recipientAmount: number; score: number; reasons: string[]; simulated: true;
 };
@@ -19,10 +19,6 @@ type DemoActivity = { id: string; title: string; detail: string; amount: string;
 declare global {
   interface Window {
     solana?: { isPhantom?: boolean; connect: () => Promise<{ publicKey: { toString: () => string } }>; disconnect?: () => Promise<void> };
-    freighterApi?: {
-      isConnected: () => Promise<{ isConnected: boolean }>;
-      requestAccess: () => Promise<{ address: string; error?: { message: string } }>;
-    };
   }
 }
 
@@ -86,15 +82,18 @@ export default function Home() {
   }
 
   async function connectSolana() {
-    const address = "7xKX...demoSOL...9vP2";
-    setWallets((current) => [...current.filter((wallet) => wallet.network !== "Solana"), { network: "Solana", address, name: "Solana demo wallet" }]);
-    setWalletMessage("Demo Solana wallet connected. Sample assets only; no real wallet was contacted.");
-  }
-
-  async function connect() {
-    const address = "GDEMO...STELLAR...4RAV";
-    setWallets((current) => [...current.filter((wallet) => wallet.network !== "Stellar"), { network: "Stellar", address, name: "Stellar demo wallet" }]);
-    setWalletMessage("Demo Stellar wallet connected. Sample assets only; no real wallet was contacted.");
+    try {
+      if (!window.solana?.isPhantom) {
+        setWalletMessage("Phantom wallet was not detected. You can still explore MYRAVEN; provider-based deposits are not connected yet.");
+        return;
+      }
+      const response = await window.solana.connect();
+      const address = response.publicKey.toString();
+      setWallets([{ network: "Solana", address, name: "Connected Solana wallet" }]);
+      setWalletMessage("Solana wallet connected for public-address verification only. No transaction was signed or submitted.");
+    } catch {
+      setWalletMessage("Wallet connection was cancelled or unavailable.");
+    }
   }
 
   function confirmDemoPayment() {
@@ -207,7 +206,7 @@ export default function Home() {
 
             <section className="panel route-panel">
               <div className="panel-heading"><div><span className="panel-kicker">INTELLIGENCE OUTPUT</span><h2>Route recommendations</h2><p>Ranked by your selected priorities.</p></div><span className="live-indicator"><i /> PREVIEW</span></div>
-              {quotes.length === 0 ? <div className="empty-routes"><div className="empty-orbit"><ArrowLeftRight size={23} /></div><b>Your route options will appear here</b><p>Enter a payment amount and select “Find best route” to see a comparison.</p></div> : <div className="route-list">{quotes.map((quote, index) => <button className={`route-option ${selectedRoute === quote.id ? "route-selected" : ""}`} onClick={() => setSelectedRoute(quote.id)} key={quote.id}><span className={`route-icon ${quote.rail}`}>{quote.rail === "solana" ? "S" : quote.rail === "stellar" ? "✦" : "↗"}</span><span className="route-info"><b>{quote.label}{index === 0 ? <em>BEST MATCH</em> : null}</b><small>{quote.estimatedMinutes} min · {quote.reliability}% illustrative reliability</small></span><span className="route-output"><b>{money(quote.recipientAmount, destinationCurrency)}</b><small>Fee {money(quote.estimatedFee, sourceCurrency)}</small></span><span className="route-score">{quote.score}</span></button>)}</div>}
+              {quotes.length === 0 ? <div className="empty-routes"><div className="empty-orbit"><ArrowLeftRight size={23} /></div><b>Your route options will appear here</b><p>Enter a payment amount and select “Find best route” to see a comparison.</p></div> : <div className="route-list">{quotes.map((quote, index) => <button className={`route-option ${selectedRoute === quote.id ? "route-selected" : ""}`} onClick={() => setSelectedRoute(quote.id)} key={quote.id}><span className={`route-icon ${quote.rail}`}>{quote.rail === "solana" ? "S" : "↗"}</span><span className="route-info"><b>{quote.label}{index === 0 ? <em>BEST MATCH</em> : null}</b><small>{quote.estimatedMinutes} min · {quote.reliability}% illustrative reliability</small></span><span className="route-output"><b>{money(quote.recipientAmount, destinationCurrency)}</b><small>Fee {money(quote.estimatedFee, sourceCurrency)}</small></span><span className="route-score">{quote.score}</span></button>)}</div>}
               {quotes.length > 0 ? <div className="route-explanation"><Sparkles size={15} /><span><b>Why this route?</b> {bestQuote?.reasons.join(" · ")}</span></div> : <div className="route-footnote"><span><span className="legend-dot purple" /> Cost</span><span><span className="legend-dot cyan" /> Speed</span><span><span className="legend-dot green" /> Reliability</span></div>}
               {quotes.length > 0 ? <button className="secondary-action" onClick={() => setApprovalOpen(true)}>Review payment details <ArrowUpRight size={15} /></button> : null}
               <p className="simulation-note">{notice}</p>
@@ -217,15 +216,15 @@ export default function Home() {
           <section className="panel wallet-panel" id="wallets">
             <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect a Solana wallet to verify its public address. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
             <div className="wallet-connect-grid">
-              <article className="wallet-connect-card"><div className="wallet-network-logo solana-logo">S</div><div className="wallet-copy"><b>Solana</b><small>Simulated wallet · Sample SOL and SPL assets</small></div><button onClick={connectSolana} className="connect-button">Add demo <Plus size={14} /></button></article>
-              <article className="wallet-connect-card"><div className="wallet-network-logo stellar-logo">✦</div><div className="wallet-copy"><b>Stellar</b><small>Simulated wallet · Sample  and Stellar assets</small></div><button onClick={connectStellar} className="connect-button">Connect <Plus size={14} /></button></article>
+              <article className="wallet-connect-card"><div className="wallet-network-logo solana-logo">S</div><div className="wallet-copy"><b>Solana</b><small>Phantom-compatible · Public address only</small></div><button onClick={connectSolana} className="connect-button">Connect wallet <Plus size={14} /></button></article>
+              
             </div>
             {walletMessage ? <p className="wallet-message">{walletMessage}</p> : null}
             {wallets.length > 0 ? <div className="connected-list">{wallets.map((wallet) => <div className="connected-wallet" key={wallet.address}><span className={`mini-network ${wallet.network.toLowerCase()}`}>{wallet.network === "Solana" ? "S" : "✦"}</span><span><b>{wallet.name}</b><small>{shortAddress(wallet.address)}</small></span><span className="connected-label"><i /> Connected</span><button onClick={() => disconnectWallet(wallet.address)} className="disconnect-button">Disconnect</button></div>)}</div> : <div className="wallet-empty"><WalletCards size={18} /><span>No wallets connected yet</span></div>}
             <div className="demo-assets-grid">
               <article className="demo-asset"><span className="asset-symbol solana-logo">◎</span><span><b>SOL</b><small>Solana · Sample balance</small></span><strong>12.4500</strong><em>≈ $1,867.50</em></article>
               
-              <article className="demo-asset"><span className="asset-symbol usdc-symbol">$</span><span><b>USDC</b><small>Solana · Demo balance</small></span><strong>2,450.00</strong><em>≈ $2,450.00</em></article>
+              <article className="demo-asset"><span className="asset-symbol usdc-symbol">$</span><span><b>USDC</b><small>Solana · Sample balance</small></span><strong>2,450.00</strong><em>≈ $2,450.00</em></article>
               
             </div>
             <div className="wallet-security"><ShieldCheck size={15} /><span>Wallet connection verifies only your public address. No transaction is signed, and MYRAVEN never requests your seed phrase or private key.</span></div>
