@@ -248,23 +248,23 @@ export default function Home() {
     <main className="app-frame">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
         <a className="brand" href="#" aria-label="MYRAVEN home">
-          <span className="brand-symbol" aria-hidden="true">
-            <svg viewBox="0 0 48 48" role="img" focusable="false">
+          <span className="brand-orbit-lockup">
+            <svg className="brand-orbit-art" viewBox="0 0 240 72" aria-hidden="true" focusable="false">
               <defs>
-                <linearGradient id="quantum-metal" x1="5" y1="5" x2="43" y2="43" gradientUnits="userSpaceOnUse"><stop stopColor="#F3F0FF"/><stop offset=".28" stopColor="#A78BFA"/><stop offset=".62" stopColor="#55D9F2"/><stop offset="1" stopColor="#D9E2EF"/></linearGradient>
-                <linearGradient id="quantum-violet" x1="7" y1="8" x2="39" y2="40" gradientUnits="userSpaceOnUse"><stop stopColor="#C4B5FD"/><stop offset="1" stopColor="#7C3AED"/></linearGradient>
-                <linearGradient id="quantum-cyan" x1="8" y1="38" x2="40" y2="10" gradientUnits="userSpaceOnUse"><stop stopColor="#67E8F9"/><stop offset="1" stopColor="#A5F3FC"/></linearGradient>
+                <linearGradient id="word-orbit-metal" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#F4F1FF"/><stop offset=".38" stopColor="#A78BFA"/><stop offset=".7" stopColor="#67E8F9"/><stop offset="1" stopColor="#E7EAF4"/></linearGradient>
+                <linearGradient id="word-orbit-violet" x1="0" y1="1" x2="1" y2="0"><stop stopColor="#7C3AED"/><stop offset=".52" stopColor="#C4B5FD"/><stop offset="1" stopColor="#E9D5FF"/></linearGradient>
+                <linearGradient id="word-orbit-cyan" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#67E8F9"/><stop offset="1" stopColor="#A5F3FC"/></linearGradient>
               </defs>
-              <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-                <ellipse className="quantum-ring quantum-ring-one" cx="24" cy="24" rx="17.2" ry="8.1" transform="rotate(-38 24 24)" stroke="url(#quantum-metal)" strokeWidth="3.2"/>
-                <ellipse className="quantum-ring quantum-ring-two" cx="24" cy="24" rx="17.2" ry="8.1" transform="rotate(38 24 24)" stroke="url(#quantum-violet)" strokeWidth="3.2"/>
-                <path className="quantum-ring quantum-ring-three" d="M8.8 28.1c3.4 7.1 11.5 10.5 18.5 7.7 7-2.8 10.7-10.6 8.2-17.5" stroke="url(#quantum-cyan)" strokeWidth="2.4" opacity=".95"/>
+              <g fill="none" strokeLinecap="round">
+                <ellipse className="word-orbit-ring word-orbit-a" cx="120" cy="36" rx="105" ry="19" stroke="url(#word-orbit-metal)" strokeWidth="1.7"/>
+                <ellipse className="word-orbit-ring word-orbit-b" cx="120" cy="36" rx="103" ry="17" stroke="url(#word-orbit-violet)" strokeWidth="1.5" transform="rotate(-12 120 36)"/>
+                <ellipse className="word-orbit-ring word-orbit-c" cx="120" cy="36" rx="108" ry="15" stroke="url(#word-orbit-cyan)" strokeWidth="1.25" transform="rotate(12 120 36)" opacity=".9"/>
               </g>
-              <circle cx="39.1" cy="13.2" r="2.25" fill="#67E8F9"/>
-              <circle cx="8.8" cy="28.1" r="1.65" fill="#C4B5FD"/>
+              <circle cx="18" cy="29" r="2.3" fill="#C4B5FD"/>
+              <circle cx="222" cy="42" r="2.1" fill="#67E8F9"/>
             </svg>
+            <span className="brand-wordmark">MYRAVEN</span>
           </span>
-          <span className="brand-wordmark">MYRAVEN</span>
         </a>
         <div className="workspace-label">WORKSPACE <ChevronDown size={13} /></div>
         <div className="workspace-card"><span className="workspace-avatar">M</span><span><b>Personal workspace</b><small>MYRAVEN account</small></span><span className="online-dot" /></div>
