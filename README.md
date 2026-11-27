@@ -28,6 +28,7 @@ The current dashboard is a product preview. Phantom connection, when available, 
 The connected Supabase project contains user profiles, business memberships, receiving preferences, tokenized payment-method references, payment intents and attempts, notifications, plus the Solana funding and ledger foundation:
 
 - `funding_deposits` tracks fiat/crypto source, selected Solana asset, provider references, on-chain signature, idempotency key and lifecycle status.
+- `payment_corridors` stores provider-, country-, currency-, method- and asset-specific funding/payout availability with expiry timestamps; the platform must check current corridor eligibility before offering a route.
 - `ledger_accounts`, `ledger_transactions` and `ledger_entries` provide a double-entry ledger data model.
 - Row-level security is enabled. Users can read only their own funding and ledger records; clients cannot write to these tables.
 - `post_ledger_transaction` is an invoker-rights database function granted only to `service_role`. It validates balanced entries per asset and uses idempotency to prevent duplicate postings.
