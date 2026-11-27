@@ -1,8 +1,8 @@
 import Link from "next/link";
 import {
-  ArrowDown, ArrowUpRight, Wallet, Globe2, Zap, ShieldCheck, Sparkles,
-  Layers3, ArrowLeftRight, Building2, CircleDollarSign, CreditCard,
-  Smartphone, QrCode, Link2, RefreshCw, Bell, ReceiptText, Fingerprint,
+  ArrowDown, ArrowUpRight, Wallet, Globe2, ShieldCheck, Sparkles,
+  ArrowLeftRight, Building2, CircleDollarSign, CreditCard,
+  Smartphone, QrCode, RefreshCw, Bell, ReceiptText, Fingerprint,
   BadgeCheck, Route, Landmark, Activity, LockKeyhole, ScanLine
 } from "lucide-react";
 
