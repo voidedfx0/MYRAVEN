@@ -6,6 +6,9 @@ import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Building2, LoaderCircle, ShieldCheck, UserRound } from "lucide-react";
 
 type AccountType = "personal" | "business";
+const countries = [
+  ["US","United States"],["GB","United Kingdom"],["NG","Nigeria"],["GH","Ghana"],["KE","Kenya"],["ZA","South Africa"],["UG","Uganda"],["TZ","Tanzania"],["RW","Rwanda"],["ET","Ethiopia"],["EG","Egypt"],["MA","Morocco"],["CI","Côte d’Ivoire"],["SN","Senegal"],["CM","Cameroon"],["IN","India"],["PK","Pakistan"],["BD","Bangladesh"],["PH","Philippines"],["ID","Indonesia"],["MY","Malaysia"],["SG","Singapore"],["AE","United Arab Emirates"],["SA","Saudi Arabia"],["TR","Türkiye"],["CH","Switzerland"],["DE","Germany"],["FR","France"],["IT","Italy"],["ES","Spain"],["NL","Netherlands"],["BE","Belgium"],["SE","Sweden"],["NO","Norway"],["DK","Denmark"],["FI","Finland"],["IE","Ireland"],["PT","Portugal"],["PL","Poland"],["UA","Ukraine"],["CA","Canada"],["MX","Mexico"],["BR","Brazil"],["AR","Argentina"],["CL","Chile"],["AU","Australia"],["NZ","New Zealand"],["JP","Japan"],["KR","South Korea"],["CN","China"],["TH","Thailand"],["VN","Vietnam"]
+] as const;
 type AccountSummary = {
   profile: { myraven_id: string; display_name: string | null; country_code: string | null; account_type?: AccountType } | null;
   email: string | null;
@@ -19,9 +22,14 @@ export default function AccountPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [legalFullName, setLegalFullName] = useState("");
+  const [walletAddress, setWalletAddress] = useState("");
+  const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
   const [businessName, setBusinessName] = useState("");
   const [countryCode, setCountryCode] = useState("");
+  const countryName = countries.find(([code]) => code === countryCode)?.[1] ?? "";
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -42,7 +50,7 @@ export default function AccountPage() {
   const provisionWorkspace = useCallback(async (type: AccountType) => {
     const response = await fetch("/api/account/setup", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accountType: type }),
+      body: JSON.stringify({ accountType: type, firstName, lastName, legalFullName, countryCode, countryName, walletAddress }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "Could not set up your workspace.");
@@ -86,7 +94,7 @@ export default function AccountPage() {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(), password,
           options: {
-            data: { display_name: displayName.trim(), account_type: accountType, business_name: businessName.trim(), country_code: countryCode.trim().toUpperCase() },
+            data: { first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName, legal_full_name: legalFullName.trim(), account_type: accountType, business_name: businessName.trim(), country_code: countryCode, country_name: countryName, solana_wallet_address: walletAddress || null },
             emailRedirectTo: window.location.origin + "/auth/callback?next=/account?type=" + accountType + "%26complete=1",
           },
         });
@@ -119,7 +127,7 @@ export default function AccountPage() {
     try {
       if (!otpSent) {
         const { error } = await supabase.auth.signInWithOtp({
-          phone: phone.trim(), options: { shouldCreateUser: mode === "signup", data: { display_name: displayName.trim(), account_type: accountType, business_name: businessName.trim(), country_code: countryCode.trim().toUpperCase() } },
+          phone: phone.trim(), options: { shouldCreateUser: mode === "signup", data: { first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName, legal_full_name: legalFullName.trim(), account_type: accountType, business_name: businessName.trim(), country_code: countryCode, country_name: countryName, solana_wallet_address: walletAddress || null } },
         });
         if (error) throw error;
         setOtpSent(true); setMessage("A one-time code was requested. Enter it to continue.");
@@ -132,6 +140,19 @@ export default function AccountPage() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Phone verification is unavailable. Check the SMS provider configuration.");
     } finally { setLoading(false); }
+  }
+
+  async function connectSolanaWallet() {
+    setMessage("");
+    try {
+      const provider = (window as Window & { solana?: { isPhantom?: boolean; connect: () => Promise<{ publicKey: { toString(): string } }> } }).solana;
+      if (!provider?.isPhantom) throw new Error("Install or unlock the Phantom wallet to connect a Solana address.");
+      const result = await provider.connect();
+      setWalletAddress(result.publicKey.toString());
+      setMessage("Solana wallet connected for account setup. Ownership has not yet been cryptographically verified.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not connect the Solana wallet.");
+    }
   }
 
   async function signInWithGoogle() {
@@ -165,21 +186,38 @@ export default function AccountPage() {
         <button type="button" className={authMethod === "phone" ? "selected" : ""} onClick={() => { setAuthMethod("phone"); setOtpSent(false); }}>Phone</button>
       </div>
       {authMethod === "phone" ? <form className="account-form" onSubmit={submitPhone}>
-        {mode === "signup" && <><label>YOUR NAME<input value={displayName} onChange={e => setDisplayName(e.target.value)} required maxLength={60}/></label>{accountType === "business" && <label>BUSINESS NAME<input value={businessName} onChange={e => setBusinessName(e.target.value)} required maxLength={120}/></label>}</>}
+        {mode === "signup" && <>
+          <div className="business-onboard-two">
+            <label>FIRST NAME<input value={firstName} onChange={e => setFirstName(e.target.value)} required maxLength={60} autoComplete="given-name"/></label>
+            <label>LAST NAME<input value={lastName} onChange={e => setLastName(e.target.value)} required maxLength={60} autoComplete="family-name"/></label>
+          </div>
+          <label>FULL LEGAL NAME <span className="field-optional">MUST MATCH FUTURE KYC DOCUMENTS</span><input value={legalFullName} onChange={e => setLegalFullName(e.target.value)} required maxLength={160} autoComplete="name" placeholder="Enter your full name as shown on your identity document"/></label>
+          <label>COUNTRY / REGION<select value={countryCode} onChange={e => setCountryCode(e.target.value)} required><option value="">Select your country</option>{countries.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
+          {accountType === "business" && <label>BUSINESS / ORGANISATION NAME<input value={businessName} onChange={e => setBusinessName(e.target.value)} required maxLength={120} placeholder="Registered or trading name"/></label>}
+          <button type="button" className="account-google" onClick={() => void connectSolanaWallet()}>{walletAddress ? "Solana wallet connected · " + walletAddress.slice(0, 5) + "…" + walletAddress.slice(-5) : "Connect Solana wallet (optional)"} <ArrowUpRight size={15}/></button>
+        </>}
         <label>PHONE NUMBER<input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="+ country code" autoComplete="tel"/></label>
         {otpSent && <label>ONE-TIME CODE<input inputMode="numeric" value={otp} onChange={e => setOtp(e.target.value)} required maxLength={8}/></label>}
         <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16}/> : null}{otpSent ? "Verify phone" : "Continue with phone"}<ArrowUpRight size={16}/></button>
       </form> : <form className="account-form" onSubmit={submit}>
-        {mode === "signup" && <label>{accountType === "business" ? "YOUR NAME" : "DISPLAY NAME"}<input value={displayName} onChange={e => setDisplayName(e.target.value)} required maxLength={60} autoComplete="name"/></label>}
+        {mode === "signup" && <>
+          <div className="business-onboard-two">
+            <label>FIRST NAME<input value={firstName} onChange={e => setFirstName(e.target.value)} required maxLength={60} autoComplete="given-name"/></label>
+            <label>LAST NAME<input value={lastName} onChange={e => setLastName(e.target.value)} required maxLength={60} autoComplete="family-name"/></label>
+          </div>
+          <label>FULL LEGAL NAME <span className="field-optional">MUST MATCH FUTURE KYC DOCUMENTS</span><input value={legalFullName} onChange={e => setLegalFullName(e.target.value)} required maxLength={160} autoComplete="name" placeholder="Enter your full name as shown on your identity document"/></label>
+          <label>COUNTRY / REGION<select value={countryCode} onChange={e => setCountryCode(e.target.value)} required><option value="">Select your country</option>{countries.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
+          <button type="button" className="account-google" onClick={() => void connectSolanaWallet()}>{walletAddress ? "Solana wallet connected · " + walletAddress.slice(0, 5) + "…" + walletAddress.slice(-5) : "Connect Solana wallet (optional)"} <ArrowUpRight size={15}/></button>
+        </>}
         {mode === "signup" && accountType === "business" && <label>BUSINESS / ORGANISATION NAME<input value={businessName} onChange={e => setBusinessName(e.target.value)} required maxLength={120} placeholder="Registered or trading name"/></label>}
-        {mode === "signup" && <label>COUNTRY CODE<input value={countryCode} onChange={e => setCountryCode(e.target.value.toUpperCase())} maxLength={2} placeholder="e.g. NG"/></label>}
+        
         <label>EMAIL ADDRESS<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"/></label>
         <label>PASSWORD<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"}/></label>
         <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16}/> : null}{mode === "signup" ? "Create " + (accountType === "business" ? "business" : "personal") + " account" : "Sign in"}<ArrowUpRight size={16}/></button>
       </form>}
       {authMethod === "email" && <><div className="account-or"><span/> OR <span/></div><button className="account-google" onClick={signInWithGoogle} disabled={loading}>Continue with Google <ArrowUpRight size={15}/></button></>}
       {message && <p className="account-message" role="status">{message}</p>}
-      <p className="account-legal">Your workspace type controls product access, not financial eligibility. Regulated services remain subject to age, country, provider and verification requirements. Payment execution is not enabled in this preview.</p>
+      <p className="account-legal">Your legal name should match your future KYC document exactly. Wallet connection currently attaches an address for setup only; wallet-only authentication and ownership verification are not enabled yet. Regulated services remain subject to applicable eligibility and verification requirements.</p>
     </section>
     <footer className="account-footer">MONEY MOVES. INTELLIGENCE CONNECTS.</footer>
   </main>;
