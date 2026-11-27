@@ -277,6 +277,16 @@ export default function Home() {
               </g>
             </svg>
             <span className="brand-wordmark">MYRAVEN</span>
+            <svg className="brand-orbit-front" viewBox="0 0 240 72" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="orbit-word-crossing" x1="0" y1="0" x2="1" y2="0"><stop stopColor="#8B5CF6" stopOpacity="0"/><stop offset=".48" stopColor="#D8CCFF"/><stop offset=".72" stopColor="#67E8F9"/><stop offset="1" stopColor="#67E8F9" stopOpacity="0"/></linearGradient>
+                <radialGradient id="orbit-word-planet"><stop stopColor="#FFFFFF"/><stop offset=".4" stopColor="#C4B5FD"/><stop offset="1" stopColor="#7C3AED"/></radialGradient>
+              </defs>
+              <ellipse cx="120" cy="36" rx="91" ry="9" fill="none" stroke="url(#orbit-word-crossing)" strokeWidth="1.05" opacity=".9"/>
+              <circle r="3.2" fill="url(#orbit-word-planet)" stroke="#E9D5FF" strokeWidth=".55" filter="url(#orbit-word-glow)">
+                <animateMotion dur="7.5s" repeatCount="indefinite" path="M29 36 A91 9 0 1 1 211 36 A91 9 0 1 1 29 36"/>
+              </circle>
+            </svg>
           </span>
         </a>
         <div className="workspace-label">WORKSPACE <ChevronDown size={13} /></div>
