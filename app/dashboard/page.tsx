@@ -76,6 +76,7 @@ export default function Home() {
   const [receiveWallet, setReceiveWallet] = useState<ReceiveWallet | null>(null);
   const [receiveWalletLoading, setReceiveWalletLoading] = useState(true);
   const [receiveWalletError, setReceiveWalletError] = useState("");
+  const [receiveCountry, setReceiveCountry] = useState("NG");
 
   useEffect(() => {
     let active = true;
@@ -346,6 +347,7 @@ export default function Home() {
         </nav>
         <div className="nav-caption tools-caption">TOOLS</div>
         <nav className="side-nav">
+          <a href="#global-receive"><ArrowDownLeft size={17} />Receive money</a>
           <a href="#funding"><WalletCards size={17} />Add funds</a>
           <a href="#payment"><Globe2 size={17} />SmartRoute</a>
           <a href="#safety"><ShieldCheck size={17} />Payment safety</a>
@@ -452,6 +454,51 @@ export default function Home() {
             </section>
           </div>
 
+          <section className="panel wallet-panel global-receive-panel" id="global-receive">
+            <div className="panel-heading wallet-heading">
+              <div>
+                <span className="panel-kicker">GLOBAL RECEIVE · COUNTRY ROUTER</span>
+                <h2>Receive money locally or internationally</h2>
+                <p>Choose where you want your receiving account to be based. MYRAVEN will show only rails supported by approved partners.</p>
+              </div>
+              <span className="read-only-tag"><Globe2 size={12} /> PREVIEW</span>
+            </div>
+            <div className="global-receive-layout">
+              <div className="global-receive-controls">
+                <label className="field-label" htmlFor="receive-country">COUNTRY WHERE YOU WANT TO RECEIVE</label>
+                <select id="receive-country" value={receiveCountry} onChange={(event) => setReceiveCountry(event.target.value)}>
+                  <option value="NG">Nigeria · NGN</option>
+                  <option value="GH">Ghana · GHS</option>
+                  <option value="KE">Kenya · KES</option>
+                  <option value="ZA">South Africa · ZAR</option>
+                  <option value="GB">United Kingdom · GBP</option>
+                  <option value="US">United States · USD</option>
+                  <option value="CH">Switzerland · CHF</option>
+                  <option value="EU">Euro area · EUR</option>
+                </select>
+                <div className="global-receive-route">
+                  <span className="global-receive-route-icon"><ArrowDownLeft size={17} /></span>
+                  <div>
+                    <small>RECEIVING ROUTE</small>
+                    <b>{receiveCountry === "NG" ? "Nigerian bank transfer / supported local collection" : receiveCountry === "GH" ? "Ghana local payment rails" : receiveCountry === "KE" ? "Kenya local payment rails" : receiveCountry === "ZA" ? "South African bank transfer" : receiveCountry === "GB" ? "UK domestic bank transfer" : receiveCountry === "US" ? "US domestic bank transfer" : receiveCountry === "CH" ? "Swiss domestic bank transfer" : "Euro-area bank transfer"}</b>
+                    <small>{receiveCountry === "NG" ? "NGN · PalmPay partner route under evaluation" : receiveCountry === "GH" ? "GHS · Provider connection required" : receiveCountry === "KE" ? "KES · Provider connection required" : receiveCountry === "ZA" ? "ZAR · Provider connection required" : receiveCountry === "GB" ? "GBP · Virtual account partner required" : receiveCountry === "US" ? "USD · Virtual account partner required" : receiveCountry === "CH" ? "CHF · Virtual account partner required" : "EUR · Virtual IBAN partner required"}</small>
+                  </div>
+                </div>
+              </div>
+              <div className="global-receive-preview">
+                <div className="global-receive-preview-top"><span>ACCOUNT DETAILS</span><span className="read-only-tag"><LockKeyhole size={11} /> NOT ISSUED</span></div>
+                <div className="global-receive-empty"><WalletCards size={22} /><b>No receiving account has been issued</b><p>{receiveCountry === "NG" ? "MYRAVEN is evaluating Nigerian collection partners, including PalmPay. Account issuance depends on provider approval and customer eligibility." : "A local receiving account can only be issued after MYRAVEN connects an approved provider for this country and confirms your eligibility."}</p></div>
+                <div className="global-receive-meta"><span><b>Country</b>{receiveCountry}</span><span><b>Settlement asset</b>SOL · planned</span><span><b>Availability</b>Coming soon</span></div>
+              </div>
+            </div>
+            <div className="global-receive-flow">
+              <span><i>01</i> Choose country</span><ArrowUpRight size={13} />
+              <span><i>02</i> Partner issues details</span><ArrowUpRight size={13} />
+              <span><i>03</i> Deposit is verified</span><ArrowUpRight size={13} />
+              <span><i>04</i> Convert and credit</span>
+            </div>
+            <p className="global-receive-disclaimer"><ShieldCheck size={13} /> Country selection is a preview, not a bank account application. Account availability, identity checks, currencies and transfer rails depend on approved partners. No deposits or SOL conversions are enabled here.</p>
+          </section>
           <section className="panel wallet-panel coming-soon-panel" id="funding">
             <div className="panel-heading wallet-heading">
               <div>
