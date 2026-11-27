@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import {
   Activity, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Bell, Check,
   ChevronDown, CircleHelp, Globe2, LayoutDashboard, LockKeyhole,
-  Menu, Plus, RefreshCw,
+  Menu, Plus, RefreshCw, CreditCard, Landmark, Coins,
   Settings2, ShieldCheck, Sparkles, Wallet, WalletCards, X,
 } from "lucide-react";
 
@@ -48,6 +48,11 @@ export default function Home() {
     { id: "MRV-DEMO-001", title: "Demo wallet funded", detail: "Solana · USDC", amount: "+250.00 USDC", status: "Completed · Demo", time: "Today · 09:42" },
     { id: "MRV-DEMO-002", title: "Demo conversion", detail: "Solana · SOL → USDC", amount: "125.00 USDC", status: "Completed · Demo", time: "Today · 08:16" },
   ]);
+  const [fundingMethod, setFundingMethod] = useState("card");
+  const [fundingCurrency, setFundingCurrency] = useState("USD");
+  const [fundingAmount, setFundingAmount] = useState("100");
+  const [fundingAsset, setFundingAsset] = useState("USDC");
+  const [fundingNotice, setFundingNotice] = useState("");
   const [ussdPhone, setUssdPhone] = useState("");
   const [ussdAmount, setUssdAmount] = useState("25");
   const [ussdResult, setUssdResult] = useState("");
@@ -110,6 +115,15 @@ export default function Home() {
     setApproved(true);
   }
 
+  function prepareDeposit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const value = Number(fundingAmount);
+    if (!Number.isFinite(value) || value <= 0) {
+      setFundingNotice("Enter a valid deposit amount.");
+      return;
+    }
+    setFundingNotice("Deposit setup is ready for provider integration. No card, bank transfer or crypto deposit has been initiated, and no funds have moved.");
+  }
   function simulateUssd() {
     if (!/^\+?[0-9]{7,15}$/.test(ussdPhone.replace(/[\s-]/g, ""))) {
       setUssdResult("Enter a valid demo phone number (7–15 digits).");
@@ -156,6 +170,7 @@ export default function Home() {
         </nav>
         <div className="nav-caption tools-caption">TOOLS</div>
         <nav className="side-nav">
+          <a href="#funding"><WalletCards size={17} />Add funds</a>
           <a href="#payment"><Globe2 size={17} />SmartRoute</a>
           <a href="#safety"><ShieldCheck size={17} />Payment safety</a>
           <a href="#ussd"><Globe2 size={17} />USSD simulator</a>
@@ -213,6 +228,21 @@ export default function Home() {
             </section>
           </div>
 
+          <section className="panel wallet-panel" id="funding">
+            <div className="panel-heading wallet-heading"><div><span className="panel-kicker">UNIFIED FUNDING ENGINE</span><h2>Add money to MYRAVEN</h2><p>Pay with a supported local currency or crypto. MYRAVEN is designed to settle supported deposits into Solana assets.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> PROVIDER SETUP</span></div>
+            <form onSubmit={prepareDeposit}>
+              <div className="recipient-fields">
+                <select value={fundingMethod} onChange={(event) => setFundingMethod(event.target.value)} aria-label="Funding method"><option value="card">Debit / credit card</option><option value="bank_transfer">Bank transfer</option><option value="crypto_wallet">Crypto wallet</option><option value="local_payment">Local payment method</option></select>
+                <div className="amount-field"><input value={fundingAmount} onChange={(event) => setFundingAmount(event.target.value)} type="number" min="0.01" step="0.01" required aria-label="Deposit amount" /><select value={fundingCurrency} onChange={(event) => setFundingCurrency(event.target.value)} aria-label="Funding currency"><option>USD</option><option>EUR</option><option>GBP</option><option>NGN</option><option>KES</option><option>GHS</option><option>CHF</option><option>CAD</option><option>AUD</option><option>BTC</option><option>ETH</option><option>USDC</option><option>SOL</option></select></div>
+              </div>
+              <div className="recipient-fields" style={{ marginTop: 12 }}>
+                <div><label className="field-label">SETTLEMENT NETWORK</label><div className="amount-field"><span style={{ color: "#b9a4ff", fontSize: 12, fontWeight: 700 }}>SOLANA</span></div></div>
+                <div><label className="field-label">MYRAVEN ASSET</label><select value={fundingAsset} onChange={(event) => setFundingAsset(event.target.value)} aria-label="Solana settlement asset"><option value="USDC">USDC on Solana</option><option value="SOL">SOL</option></select></div>
+              </div>
+              <button className="primary-action" type="submit"><WalletCards size={16} /> Prepare deposit <ArrowUpRight size={16} /></button>
+              {fundingNotice ? <p className="ussd-result">{fundingNotice}</p> : <div className="notice-line"><ShieldCheck size={14} /> Provider checkout is not connected yet. This form does not charge or transfer funds.</div>}
+            </form>
+          </section>
           <section className="panel wallet-panel" id="wallets">
             <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect a Solana wallet to verify its public address. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
             <div className="wallet-connect-grid">
