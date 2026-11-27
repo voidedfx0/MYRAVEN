@@ -12,7 +12,8 @@ const allowedAssets = ["SOL", "USDC"] as const;
 const methods = ["card", "bank_transfer", "local_payment"] as const;
 const countries = countriesData.countries as Array<{ code: string; currency: string[] }>;
 
-export async function POST(request: Request) {\n  if (!TEST_MODE) return NextResponse.json({ error: "MYRAVEN funding is disabled unless test mode is explicitly enabled." }, { status: 503 });
+export async function POST(request: Request) {
+  if (!TEST_MODE) return NextResponse.json({ error: "MYRAVEN funding is disabled unless test mode is explicitly enabled." }, { status: 503 });
   const auth = await createClient();
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in before funding your wallet." }, { status: 401 });
