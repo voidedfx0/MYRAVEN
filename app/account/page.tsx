@@ -30,16 +30,10 @@ export default function AccountPage() {
   const [businessName, setBusinessName] = useState("");
   const [countryCode, setCountryCode] = useState("");
   const countryName = countries.find(([code]) => code === countryCode)?.[1] ?? "";
-  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [summary, setSummary] = useState<AccountSummary | null>(null);
   const [checking, setChecking] = useState(true);
-  const [oauthPending, setOauthPending] = useState(false);
-  const oauthSignupHandled = useRef(false);
   const supabase = createClient();
 
   const destination = accountType === "business" ? "/business" : "/dashboard";
@@ -62,26 +56,12 @@ export default function AccountPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const requestedType = params.get("type") === "business" ? "business" : "personal";
-    const oauthSignup = params.get("oauth") === "1";
     setAccountType(requestedType);
     if (params.get("mode") === "signin") setMode("signin");
-    if (oauthSignup) setOauthPending(true);
     let active = true;
     supabase.auth.getUser().then(async ({ data }) => {
       if (!active) return;
       if (data.user) {
-        if (oauthSignup) {
-          if (oauthSignupHandled.current) { setChecking(false); return; }
-          oauthSignupHandled.current = true;
-          const metadata = data.user.user_metadata ?? {};
-          const fullName = String(metadata.full_name ?? metadata.name ?? "").trim();
-          const parts = fullName.split(/\s+/).filter(Boolean);
-          setFirstName(String(metadata.given_name ?? parts[0] ?? ""));
-          setLastName(String(metadata.family_name ?? parts.slice(1).join(" ") ?? ""));
-          setLegalFullName(fullName);
-          setChecking(false);
-          return;
-        }
         try {
           const contextResponse = await fetch("/api/account/context", { cache: "no-store" });
           const context = contextResponse.ok ? await contextResponse.json() : null;
@@ -106,11 +86,6 @@ export default function AccountPage() {
     event.preventDefault();
     setLoading(true); setMessage("");
     try {
-      if (mode === "signup" && oauthPending) {
-        await provisionWorkspace(accountType);
-        window.location.assign(destination);
-        return;
-      }
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(), password,
@@ -143,26 +118,6 @@ export default function AccountPage() {
     } finally { setLoading(false); }
   }
 
-  async function submitPhone(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setLoading(true); setMessage("");
-    try {
-      if (!otpSent) {
-        const { error } = await supabase.auth.signInWithOtp({
-          phone: phone.trim(), options: { shouldCreateUser: mode === "signup", data: { first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName, legal_full_name: legalFullName.trim(), account_type: accountType, business_name: businessName.trim(), country_code: countryCode, country_name: countryName, solana_wallet_address: walletAddress || null } },
-        });
-        if (error) throw error;
-        setOtpSent(true); setMessage("A one-time code was requested. Enter it to continue.");
-      } else {
-        const { error } = await supabase.auth.verifyOtp({ phone: phone.trim(), token: otp.trim(), type: "sms" });
-        if (error) throw error;
-        await provisionWorkspace(accountType);
-        window.location.assign(destination);
-      }
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Phone verification is unavailable. Check the SMS provider configuration.");
-    } finally { setLoading(false); }
-  }
-
   async function connectSolanaWallet() {
     setMessage("");
     try {
@@ -174,23 +129,6 @@ export default function AccountPage() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not connect the Solana wallet.");
     }
-  }
-
-  async function signInWithGoogle() {
-    setLoading(true); setMessage("");
-    const appOrigin = window.location.hostname === "localhost"
-      ? window.location.origin
-      : "https://myraven.vercel.app";
-    const next = mode === "signup"
-      ? "/account?type=" + accountType + "&oauth=1"
-      : "/account?type=" + accountType + "&mode=signin";
-    const callbackUrl = new URL("/auth/callback", appOrigin);
-    callbackUrl.searchParams.set("next", next);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: callbackUrl.toString(), queryParams: { prompt: "select_account" } },
-    });
-    if (error) { setMessage(error.message); setLoading(false); }
   }
 
   if (checking) return <main className="account-shell"><div className="account-card"><LoaderCircle className="spin" /> Preparing your MYRAVEN workspace…</div></main>;
@@ -210,25 +148,7 @@ export default function AccountPage() {
         <button type="button" className={mode === "signup" ? "selected" : ""} onClick={() => { setMode("signup"); setOtpSent(false); }}>Create account</button>
         <button type="button" className={mode === "signin" ? "selected" : ""} onClick={() => { setMode("signin"); setOtpSent(false); }}>Sign in</button>
       </div>
-      <div className="account-mode account-method">
-        <button type="button" className={authMethod === "email" ? "selected" : ""} onClick={() => { setAuthMethod("email"); setOtpSent(false); }}>Email</button>
-        <button type="button" className={authMethod === "phone" ? "selected" : ""} onClick={() => { setAuthMethod("phone"); setOtpSent(false); }}>Phone</button>
-      </div>
-      {authMethod === "phone" ? <form className="account-form" onSubmit={submitPhone}>
-        {mode === "signup" && <>
-          <div className="business-onboard-two">
-            <label>FIRST NAME<input value={firstName} onChange={e => setFirstName(e.target.value)} required maxLength={60} autoComplete="given-name"/></label>
-            <label>LAST NAME<input value={lastName} onChange={e => setLastName(e.target.value)} required maxLength={60} autoComplete="family-name"/></label>
-          </div>
-          <label>FULL LEGAL NAME <span className="field-optional">MUST MATCH FUTURE KYC DOCUMENTS</span><input value={legalFullName} onChange={e => setLegalFullName(e.target.value)} required maxLength={160} autoComplete="name" placeholder="Enter your full name as shown on your identity document"/></label>
-          <label>COUNTRY / REGION<select value={countryCode} onChange={e => setCountryCode(e.target.value)} required><option value="">Select your country</option>{countries.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
-          {accountType === "business" && <label>BUSINESS / ORGANISATION NAME<input value={businessName} onChange={e => setBusinessName(e.target.value)} required maxLength={120} placeholder="Registered or trading name"/></label>}
-          <button type="button" className="account-google" onClick={() => void connectSolanaWallet()}>{walletAddress ? "Solana wallet connected · " + walletAddress.slice(0, 5) + "…" + walletAddress.slice(-5) : "Connect Solana wallet (optional)"} <ArrowUpRight size={15}/></button>
-        </>}
-        <label>PHONE NUMBER<input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="+ country code" autoComplete="tel"/></label>
-        {otpSent && <label>ONE-TIME CODE<input inputMode="numeric" value={otp} onChange={e => setOtp(e.target.value)} required maxLength={8}/></label>}
-        <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16}/> : null}{otpSent ? "Verify phone" : "Continue with phone"}<ArrowUpRight size={16}/></button>
-      </form> : <form className="account-form" onSubmit={submit}>
+      <form className="account-form" onSubmit={submit}>
         {mode === "signup" && <>
           <div className="business-onboard-two">
             <label>FIRST NAME<input value={firstName} onChange={e => setFirstName(e.target.value)} required maxLength={60} autoComplete="given-name"/></label>
@@ -242,9 +162,8 @@ export default function AccountPage() {
         
         <label>EMAIL ADDRESS<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"/></label>
         <label>PASSWORD<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"}/></label>
-        <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16}/> : null}{oauthPending ? "Complete " + (accountType === "business" ? "business" : "personal") + " setup" : mode === "signup" ? "Create " + (accountType === "business" ? "business" : "personal") + " account" : "Sign in"}<ArrowUpRight size={16}/></button>
-      </form>}
-      {authMethod === "email" && <><div className="account-or"><span/> OR <span/></div><button className="account-google" onClick={signInWithGoogle} disabled={loading}>{mode === "signup" ? "Sign up with Google" : "Sign in with Google"} <ArrowUpRight size={15}/></button></>}
+        <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16}/> : null}{mode === "signup" ? "Create " + (accountType === "business" ? "business" : "personal") + " account" : "Sign in"}<ArrowUpRight size={16}/></button>
+      </form>
       {message && <p className="account-message" role="status">{message}</p>}
       <p className="account-legal">Your legal name should match your future KYC document exactly. Wallet connection currently attaches an address for setup only; wallet-only authentication and ownership verification are not enabled yet. Regulated services remain subject to applicable eligibility and verification requirements.</p>
     </section>
