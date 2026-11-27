@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Activity, ArrowLeftRight, ArrowUpRight, Building2, ClipboardList, FileText, LoaderCircle, LogOut, QrCode, RefreshCw, ShieldCheck, Users, Wallet } from "lucide-react";
 
-type Context = { accountType: "personal" | "business"; profile: { display_name: string | null; myraven_id: string } | null; business: { id: string; business_name: string; verification_status: string; country_code: string | null } | null };
+type Context = { accountType: "personal" | "business"; profile: { display_name: string | null; myraven_id: string } | null; business: { id: string; business_name: string; verification_status: string; country_code: string | null; onboarding_status?: string } | null };
 
 export default function BusinessWorkspace() {
   const [context, setContext] = useState<Context | null>(null);
@@ -21,6 +21,7 @@ export default function BusinessWorkspace() {
     }).then(data => {
       if (!active || !data) return;
       if (data.accountType !== "business") { window.location.replace("/dashboard"); return; }
+      if (data.business?.onboarding_status !== "profile_completed") { window.location.replace("/business/onboarding"); return; }
       setContext(data); setLoading(false);
     }).catch(() => { if (active) { setMessage("Could not load your business workspace."); setLoading(false); } });
     return () => { active = false; };
