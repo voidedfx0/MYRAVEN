@@ -130,8 +130,8 @@ export default function AccountPage() {
         <button type="button" className={accountType === "business" ? "selected" : ""} onClick={() => { setAccountType("business"); setMessage(""); }}><Building2/><span><b>Business</b><small>For organisations, teams and payment operations</small></span></button>
       </div>
       <div className="account-mode">
-        <button type="button" className={mode === "signup" ? "selected" : ""} onClick={() => { setMode("signup"); setOtpSent(false); }}>Create account</button>
-        <button type="button" className={mode === "signin" ? "selected" : ""} onClick={() => { setMode("signin"); setOtpSent(false); }}>Sign in</button>
+        <button type="button" className={mode === "signup" ? "selected" : ""} onClick={() => { setMode("signup"); }}>Create account</button>
+        <button type="button" className={mode === "signin" ? "selected" : ""} onClick={() => { setMode("signin"); }}>Sign in</button>
       </div>
       <form className="account-form" onSubmit={submit}>
         {mode === "signup" && <>
