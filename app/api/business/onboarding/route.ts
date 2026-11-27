@@ -46,12 +46,12 @@ export async function PATCH(request: Request) {
   const operatingCountries = Array.isArray(body.operatingCountries)
     ? [...new Set(body.operatingCountries.filter((v: unknown): v is string => typeof v === "string" && /^[A-Za-z]{2}$/.test(v)).map((v: string) => v.toUpperCase()))].slice(0, 20)
     : [];
+  const completed = body.submit === true;
 
   if (!businessName || (completed && (businessName.length < 2 || legalName.length < 2 || !/^[A-Z]{2}$/.test(countryCode) || !businessTypes.has(businessType) || industry.length < 2))) {
     return NextResponse.json({ error: "Complete the business name, legal name, country, business type and industry." }, { status: 400 });
   }
   if (website && !/^https:\/\//i.test(website)) return NextResponse.json({ error: "Website must begin with https://." }, { status: 400 });
-  const completed = body.submit === true;
   const { error } = await result.supabase.from("business_profiles").update({
     business_name: businessName, legal_name: legalName, country_code: countryCode,
     business_type: businessType, registration_number: registrationNumber || null,
