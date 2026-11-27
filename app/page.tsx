@@ -13,7 +13,7 @@ type Quote = {
   estimatedFee: number; estimatedMinutes: number; reliability: number;
   recipientAmount: number; score: number; reasons: string[]; simulated: true;
 };
-type WalletConnection = { network: "Solana" | "Stellar"; address: string; name: string };
+type WalletConnection = { network: "Solana" | "Stellar"; address: string; name: string };\ntype DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string };
 
 declare global {
   interface Window {
@@ -46,7 +46,7 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState("");
   const [approvalOpen, setApprovalOpen] = useState(false);
-  const [approved, setApproved] = useState(false);
+  const [approved, setApproved] = useState(false);\n  const [activities, setActivities] = useState<DemoActivity[]>([\n    { id: "MRV-DEMO-001", title: "Demo wallet funded", detail: "Solana · USDC", amount: "+250.00 USDC", status: "Completed · Demo", time: "Today · 09:42" },\n    { id: "MRV-DEMO-002", title: "Demo conversion", detail: "Stellar · XLM → USDC", amount: "125.00 USDC", status: "Completed · Demo", time: "Today · 08:16" },\n  ]);\n  const [ussdPhone, setUssdPhone] = useState("");\n  const [ussdAmount, setUssdAmount] = useState("25");\n  const [ussdResult, setUssdResult] = useState("");
 
   const bestQuote = useMemo(() => quotes.find((quote) => quote.id === selectedRoute) ?? quotes[0], [quotes, selectedRoute]);
 
@@ -78,40 +78,50 @@ export default function Home() {
   }
 
   async function connectSolana() {
-    setWalletMessage("");
-    try {
-      if (!window.solana?.connect) {
-        setWalletMessage("No compatible Solana browser wallet was detected. Install a wallet that supports the Solana Wallet Standard and try again.");
-        return;
-      }
-      const result = await window.solana.connect();
-      const address = result.publicKey.toString();
-      setWallets((current) => [...current.filter((wallet) => wallet.address !== address), { network: "Solana", address, name: window.solana?.isPhantom ? "Phantom" : "Solana wallet" }]);
-      setWalletMessage("Solana wallet connected in read-only mode.");
-    } catch {
-      setWalletMessage("Wallet connection was cancelled or could not be completed.");
-    }
+    const address = "7xKX...demoSOL...9vP2";
+    setWallets((current) => [...current.filter((wallet) => wallet.network !== "Solana"), { network: "Solana", address, name: "Solana demo wallet" }]);
+    setWalletMessage("Demo Solana wallet connected. Sample assets only; no real wallet was contacted.");
   }
 
   async function connectStellar() {
-    setWalletMessage("");
-    try {
-      if (!window.freighterApi) {
-        setWalletMessage("Freighter / Varial was not detected. Install the Stellar wallet extension and try again.");
-        return;
-      }
-      const connection = await window.freighterApi.isConnected();
-      if (!connection.isConnected) {
-        setWalletMessage("Stellar wallet extension is not connected to this browser.");
-        return;
-      }
-      const result = await window.freighterApi.requestAccess();
-      if (result.error) throw new Error(result.error.message);
-      setWallets((current) => [...current.filter((wallet) => wallet.address !== result.address), { network: "Stellar", address: result.address, name: "Stellar wallet" }]);
-      setWalletMessage("Stellar wallet connected in read-only mode.");
-    } catch {
-      setWalletMessage("Stellar wallet connection was cancelled or could not be completed.");
+    const address = "GDEMO...STELLAR...4RAV";
+    setWallets((current) => [...current.filter((wallet) => wallet.network !== "Stellar"), { network: "Stellar", address, name: "Stellar demo wallet" }]);
+    setWalletMessage("Demo Stellar wallet connected. Sample assets only; no real wallet was contacted.");
+  }
+
+  function confirmDemoPayment() {
+    if (!bestQuote) return;
+    const id = "MRV-" + String(activities.length + 3).padStart(6, "0");
+    setActivities((current) => [{
+      id,
+      title: "Demo payment sent",
+      detail: bestQuote.label + " · " + destinationCurrency,
+      amount: "-" + money(Number(amount), sourceCurrency),
+      status: "Completed · Demo",
+      time: "Just now",
+    }, ...current]);
+    setApproved(true);
+  }
+
+  function simulateUssd() {
+    if (!/^\\+?[0-9]{7,15}$/.test(ussdPhone.replace(/[\\s-]/g, ""))) {
+      setUssdResult("Enter a valid demo phone number (7–15 digits).");
+      return;
     }
+    const parsedAmount = Number(ussdAmount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setUssdResult("Enter a valid amount.");
+      return;
+    }
+    setUssdResult("Demo USSD request created for " + ussdPhone + ". No telecom, bank or wallet was contacted.");
+    setActivities((current) => [{
+      id: "MRV-USSD-" + String(current.length + 1).padStart(4, "0"),
+      title: "USSD send simulation",
+      detail: "Recipient " + shortAddress(ussdPhone),
+      amount: "-" + money(parsedAmount, "USD"),
+      status: "Simulated · Awaiting demo confirmation",
+      time: "Just now",
+    }, ...current]);
   }
 
   function disconnectWallet(address: string) {
@@ -145,7 +155,7 @@ export default function Home() {
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><span className="help-icon"><CircleHelp size={16} /></span><b>Need a hand?</b><p>Explore how MYRAVEN connects payment methods.</p><a href="#how">Explore platform <ArrowUpRight size={13} /></a></div>
-          <div className="profile-row"><span className="profile-avatar">G</span><span><b>Guest workspace</b><small>Preview environment</small></span><ChevronDown size={15} /></div>
+          <div className="profile-row"><span className="profile-avatar">D</span><span><b>Demo workspace</b><small>Sample data environment</small></span><ChevronDown size={15} /></div>
         </div>
       </aside>
 
@@ -153,7 +163,7 @@ export default function Home() {
         <header className="top-header">
           <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu"><Menu size={19} /></button>
           <div className="breadcrumb">Workspace <span>/</span> <b>Overview</b></div>
-          <div className="header-actions"><span className="environment-pill"><i /> SIMULATION</span><button className="icon-button" aria-label="Notifications"><Bell size={17} /></button><span className="header-avatar">G</span></div>
+          <div className="header-actions"><span className="environment-pill"><i /> DEMO MODE</span><button className="icon-button" aria-label="Notifications"><Bell size={17} /></button><span className="header-avatar">D</span></div>
         </header>
 
         <div className="content-wrap">
@@ -195,27 +205,44 @@ export default function Home() {
           </div>
 
           <section className="panel wallet-panel" id="wallets">
-            <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect your Solana or Stellar wallet. Addresses are shown only in this browser session.</p></div><span className="read-only-tag"><LockKeyhole size={12} /> READ ONLY</span></div>
+            <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Explore sample Solana and Stellar wallets, balances and assets. Nothing connects to a real wallet.</p></div><span className="read-only-tag"><Sparkles size={12} /> DEMO DATA</span></div>
             <div className="wallet-connect-grid">
-              <article className="wallet-connect-card"><div className="wallet-network-logo solana-logo">S</div><div className="wallet-copy"><b>Solana</b><small>Phantom and compatible injected wallets</small></div><button onClick={connectSolana} className="connect-button">Connect <Plus size={14} /></button></article>
-              <article className="wallet-connect-card"><div className="wallet-network-logo stellar-logo">✦</div><div className="wallet-copy"><b>Stellar</b><small>Freighter / Varial browser wallet</small></div><button onClick={connectStellar} className="connect-button">Connect <Plus size={14} /></button></article>
+              <article className="wallet-connect-card"><div className="wallet-network-logo solana-logo">S</div><div className="wallet-copy"><b>Solana</b><small>Simulated wallet · Sample SOL and SPL assets</small></div><button onClick={connectSolana} className="connect-button">Add demo <Plus size={14} /></button></article>
+              <article className="wallet-connect-card"><div className="wallet-network-logo stellar-logo">✦</div><div className="wallet-copy"><b>Stellar</b><small>Simulated wallet · Sample XLM and Stellar assets</small></div><button onClick={connectStellar} className="connect-button">Connect <Plus size={14} /></button></article>
             </div>
             {walletMessage ? <p className="wallet-message">{walletMessage}</p> : null}
             {wallets.length > 0 ? <div className="connected-list">{wallets.map((wallet) => <div className="connected-wallet" key={wallet.address}><span className={`mini-network ${wallet.network.toLowerCase()}`}>{wallet.network === "Solana" ? "S" : "✦"}</span><span><b>{wallet.name}</b><small>{shortAddress(wallet.address)}</small></span><span className="connected-label"><i /> Connected</span><button onClick={() => disconnectWallet(wallet.address)} className="disconnect-button">Disconnect</button></div>)}</div> : <div className="wallet-empty"><WalletCards size={18} /><span>No wallets connected yet</span></div>}
-            <div className="wallet-security"><ShieldCheck size={15} /><span>MYRAVEN never asks for seed phrases or private keys. This preview only requests public wallet addresses; it does not sign or submit transactions.</span></div>
+            <div className="demo-assets-grid">
+              <article className="demo-asset"><span className="asset-symbol solana-logo">◎</span><span><b>SOL</b><small>Solana · Demo balance</small></span><strong>12.4500</strong><em>≈ $1,867.50</em></article>
+              <article className="demo-asset"><span className="asset-symbol stellar-logo">✦</span><span><b>XLM</b><small>Stellar · Demo balance</small></span><strong>4,820.00</strong><em>≈ $578.40</em></article>
+              <article className="demo-asset"><span className="asset-symbol usdc-symbol">$</span><span><b>USDC</b><small>Solana · Demo balance</small></span><strong>2,450.00</strong><em>≈ $2,450.00</em></article>
+              <article className="demo-asset"><span className="asset-symbol usdc-symbol">$</span><span><b>USDC</b><small>Stellar · Demo balance</small></span><strong>680.00</strong><em>≈ $680.00</em></article>
+            </div>
+            <div className="wallet-security"><ShieldCheck size={15} /><span>All balances, wallet addresses and asset valuations above are fictional demo data. No real wallets are contacted and no seed phrases or private keys are requested.</span></div>
+          </section>
+
+          <section className="panel ussd-panel" id="ussd">
+            <div className="panel-heading"><div><span className="panel-kicker">INCLUSIVE PAYMENTS · DEMO</span><h2>USSD payment simulator</h2><p>Preview how a basic-phone user could start a payment without a smartphone app.</p></div><span className="step-badge">*384#</span></div>
+            <div className="ussd-layout"><div className="ussd-phone"><div className="ussd-phone-top">MYRAVEN MOBILE</div><div className="ussd-screen"><b>MYRAVEN</b><span>1. Send money</span><span>2. Check balance</span><span>3. Receive money</span><span>4. Help</span><small>Demo USSD menu · No carrier connection</small></div><div className="ussd-keypad">1　 2　 3<br/>4　 5　 6<br/>7　 8　 9<br/>*　 0　 #</div></div>
+              <div className="ussd-form"><label className="field-label">RECIPIENT PHONE</label><input value={ussdPhone} onChange={(event) => setUssdPhone(event.target.value)} placeholder="+234 800 000 0000" />
+                <label className="field-label">AMOUNT (USD DEMO)</label><input type="number" min="0.01" value={ussdAmount} onChange={(event) => setUssdAmount(event.target.value)} />
+                <button className="primary-action" onClick={simulateUssd}>Simulate USSD request <ArrowUpRight size={15} /></button>
+                {ussdResult ? <p className="ussd-result">{ussdResult}</p> : null}
+              </div>
+            </div>
           </section>
 
           <section className="bottom-grid" id="safety">
             <article className="panel safety-panel"><div className="mini-panel-heading"><span className="safety-icon"><ShieldCheck size={17} /></span><span className="panel-kicker">PAYMENT SAFETY</span></div><h3>You stay in control.</h3><p>Every payment requires a clear review and explicit approval. A quote alone never authorizes a transaction.</p><div className="safety-points"><span><Check size={13} /> Fees shown before approval</span><span><Check size={13} /> No automatic fund movement</span><span><Check size={13} /> No blind payment retries</span></div></article>
-            <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="#activity">View all <ArrowUpRight size={13} /></a></div><div className="activity-empty"><Clock3 size={18} /><span><b>No payment activity yet</b><small>Payment events will appear here when integrations are enabled.</small></span></div></article>
+            <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="#activity">View all <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{activities.map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small></span></div>)}</div></article>
           </section>
 
-          <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>Solana · Stellar</span></footer>
+          <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>Demo only · Solana · Stellar</span></footer>
         </div>
       </section>
 
       {menuOpen ? <button className="mobile-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" /> : null}
-      {approvalOpen && bestQuote ? <div className="modal-backdrop" role="presentation" onClick={() => setApprovalOpen(false)}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setApprovalOpen(false)} aria-label="Close"><X size={18} /></button><span className="panel-kicker">PAYMENT REVIEW · SIMULATION</span><h2 id="approval-title">Review before you approve</h2><p>This is a preview only. No provider has been contacted and no funds can move.</p><div className="review-rows"><span>You send <b>{money(Number(amount), sourceCurrency)}</b></span><span>Route <b>{bestQuote.label}</b></span><span>Estimated fee <b>{money(bestQuote.estimatedFee, sourceCurrency)}</b></span><span>Recipient receives <b>{money(bestQuote.recipientAmount, destinationCurrency)}</b></span></div>{approved ? <div className="approval-result"><Check size={16} /> Demo approval recorded locally. No transaction was submitted.</div> : <button className="primary-action" onClick={() => setApproved(true)}>Confirm demo approval <Check size={16} /></button>}<button className="cancel-review" onClick={() => setApprovalOpen(false)}>Go back</button></section></div> : null}
+      {approvalOpen && bestQuote ? <div className="modal-backdrop" role="presentation" onClick={() => setApprovalOpen(false)}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setApprovalOpen(false)} aria-label="Close"><X size={18} /></button><span className="panel-kicker">PAYMENT REVIEW · SIMULATION</span><h2 id="approval-title">Review before you approve</h2><p>This is a preview only. No provider has been contacted and no funds can move.</p><div className="review-rows"><span>You send <b>{money(Number(amount), sourceCurrency)}</b></span><span>Route <b>{bestQuote.label}</b></span><span>Estimated fee <b>{money(bestQuote.estimatedFee, sourceCurrency)}</b></span><span>Recipient receives <b>{money(bestQuote.recipientAmount, destinationCurrency)}</b></span></div>{approved ? <div className="approval-result"><Check size={16} /> Demo approval recorded locally. No transaction was submitted.</div> : <button className="primary-action" onClick={confirmDemoPayment}>Confirm demo approval <Check size={16} /></button>}<button className="cancel-review" onClick={() => setApprovalOpen(false)}>Go back</button></section></div> : null}
     </main>
   );
 }
