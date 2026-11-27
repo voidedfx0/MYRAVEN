@@ -256,9 +256,9 @@ export default function Home() {
                 <linearGradient id="quantum-cyan" x1="8" y1="38" x2="40" y2="10" gradientUnits="userSpaceOnUse"><stop stopColor="#67E8F9"/><stop offset="1" stopColor="#A5F3FC"/></linearGradient>
               </defs>
               <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-                <ellipse cx="24" cy="24" rx="17.2" ry="8.1" transform="rotate(-38 24 24)" stroke="url(#quantum-metal)" strokeWidth="3.2"/>
-                <ellipse cx="24" cy="24" rx="17.2" ry="8.1" transform="rotate(38 24 24)" stroke="url(#quantum-violet)" strokeWidth="3.2"/>
-                <path d="M8.8 28.1c3.4 7.1 11.5 10.5 18.5 7.7 7-2.8 10.7-10.6 8.2-17.5" stroke="url(#quantum-cyan)" strokeWidth="2.4" opacity=".95"/>
+                <ellipse className="quantum-ring quantum-ring-one" cx="24" cy="24" rx="17.2" ry="8.1" transform="rotate(-38 24 24)" stroke="url(#quantum-metal)" strokeWidth="3.2"/>
+                <ellipse className="quantum-ring quantum-ring-two" cx="24" cy="24" rx="17.2" ry="8.1" transform="rotate(38 24 24)" stroke="url(#quantum-violet)" strokeWidth="3.2"/>
+                <path className="quantum-ring quantum-ring-three" d="M8.8 28.1c3.4 7.1 11.5 10.5 18.5 7.7 7-2.8 10.7-10.6 8.2-17.5" stroke="url(#quantum-cyan)" strokeWidth="2.4" opacity=".95"/>
               </g>
               <circle cx="39.1" cy="13.2" r="2.25" fill="#67E8F9"/>
               <circle cx="8.8" cy="28.1" r="1.65" fill="#C4B5FD"/>
