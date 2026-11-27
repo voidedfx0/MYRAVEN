@@ -135,10 +135,6 @@ export default function Home() {
   const [recipientLookupStatus, setRecipientLookupStatus] = useState("");
   const [recipientLookupLoading, setRecipientLookupLoading] = useState(false);
   const [activities, setActivities] = useState<DemoActivity[]>([]);
-  const [fundingCurrency, setFundingCurrency] = useState("USD");
-  const [fundingAmount, setFundingAmount] = useState("100");
-  const [fundingNotice, setFundingNotice] = useState("");
-  const [fundingLoading, setFundingLoading] = useState(false);
   const [ussdPhone, setUssdPhone] = useState("");
   const [ussdAmount, setUssdAmount] = useState("25");
   const [ussdResult, setUssdResult] = useState("");
@@ -261,38 +257,6 @@ export default function Home() {
     setApproved(true);
   }
 
-  async function prepareDeposit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const value = Number(fundingAmount);
-    const destinationWallet = wallets[0]?.address;
-    if (!Number.isFinite(value) || value < 10 || value > 500) {
-      setFundingNotice("For sandbox testing, enter an amount between 10 and 500.");
-      return;
-    }
-    if (!destinationWallet) {
-      setFundingNotice("Connect your Solana wallet below first. The provider will deliver the test purchase to that address.");
-      return;
-    }
-    setFundingLoading(true);
-    setFundingNotice("Preparing a secure sandbox checkout…");
-    try {
-      const response = await fetch("/api/funding/card/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: value, currency: fundingCurrency, walletAddress: destinationWallet }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Card checkout could not be prepared.");
-      const checkoutUrl = new URL(data.widgetUrl);
-      if (checkoutUrl.protocol !== "https:" || checkoutUrl.hostname !== "global-stg.transak.com") {
-        throw new Error("The provider returned an unexpected checkout address.");
-      }
-      window.location.assign(checkoutUrl.toString());
-    } catch (error) {
-      setFundingNotice(error instanceof Error ? error.message : "Card checkout is not available yet.");
-      setFundingLoading(false);
-    }
-  }
   function simulateUssd() {
     if (!/^\+?[0-9]{7,15}$/.test(ussdPhone.replace(/[\s-]/g, ""))) {
       setUssdResult("Enter a valid demo phone number (7–15 digits).");
@@ -488,45 +452,22 @@ export default function Home() {
             </section>
           </div>
 
-          <section className="panel wallet-panel" id="funding">
+          <section className="panel wallet-panel coming-soon-panel" id="funding">
             <div className="panel-heading wallet-heading">
               <div>
-                <span className="panel-kicker">CARD FUNDING · SANDBOX</span>
-                <h2>Buy SOL with your card</h2>
-                <p>Use a provider-hosted checkout to test card-to-SOL funding. Your card details stay with the payment provider, never MYRAVEN.</p>
+                <span className="panel-kicker">ACCOUNT FUNDING</span>
+                <h2>Fund My Account</h2>
+                <p>Card purchases will let you add funds using supported debit and credit cards through an approved payment partner.</p>
               </div>
-              <span className="read-only-tag"><ShieldCheck size={12} /> TEST MODE ONLY</span>
+              <span className="read-only-tag"><LockKeyhole size={12} /> COMING SOON</span>
             </div>
-            <form onSubmit={prepareDeposit}>
-              <div className="recipient-fields">
-                <div className="amount-field">
-                  <input value={fundingAmount} onChange={(event) => setFundingAmount(event.target.value)} type="number" min="10" max="500" step="0.01" required aria-label="Card purchase amount" />
-                  <select value={fundingCurrency} onChange={(event) => setFundingCurrency(event.target.value)} aria-label="Card payment currency">
-                    <option>USD</option><option>EUR</option><option>GBP</option><option>CHF</option><option>CAD</option><option>AUD</option><option>NGN</option><option>KES</option><option>GHS</option>
-                  </select>
-                </div>
-                <div className="amount-field">
-                  <span style={{ color: "#b9a4ff", fontSize: 12, fontWeight: 700 }}>YOU RECEIVE</span>
-                  <span style={{ color: "#f7f5ff", fontWeight: 700 }}>SOL · Solana</span>
-                </div>
+            <div className="receive-address-pending">
+              <span className="receive-address-orbit"><WalletCards size={20} /></span>
+              <div>
+                <b>Card funding is coming soon</b>
+                <p>We’re finalizing provider support, regional availability and secure account settlement. No card details or payments can be submitted yet.</p>
               </div>
-              <div className="receive-address-value" style={{ marginTop: 12 }}>
-                <div>
-                  <span className="panel-kicker">DELIVERY WALLET</span>
-                  <code>{wallets[0] ? shortAddress(wallets[0].address) : "Connect a Solana wallet below"}</code>
-                </div>
-                <span className="read-only-tag">{wallets[0] ? "CONNECTED" : "NOT CONNECTED"}</span>
-              </div>
-              <button className="primary-action" type="submit" disabled={fundingLoading || !wallets[0]}>
-                {fundingLoading ? <RefreshCw size={16} className="spin" /> : <WalletCards size={16} />}
-                {fundingLoading ? "Preparing checkout…" : "Continue to secure card checkout"}
-                <ArrowUpRight size={16} />
-              </button>
-              {fundingNotice ? <p className="ussd-result" role="status">{fundingNotice}</p> : <div className="notice-line"><ShieldCheck size={14} /> Sandbox only. No live card charge or MYRAVEN ledger credit is enabled.</div>}
-              <p className="wallet-security" style={{ marginTop: 12 }}>
-                This test flow sends any provider-issued test asset to the connected external wallet. It does not add funds to your internal MYRAVEN balance. Live availability, identity checks and payment methods depend on provider approval and the user&apos;s country.
-              </p>
-            </form>
+            </div>
           </section>
           <section className="panel wallet-panel" id="wallets">
             <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect a Solana wallet to verify its public address. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
@@ -540,14 +481,17 @@ export default function Home() {
             <article className="receive-address-panel">
               <div className="receive-address-heading">
                 <div><span className="panel-kicker">YOUR PERSONAL RECEIVING ADDRESS</span><h3>MYRAVEN Solana address</h3></div>
-                <span className="read-only-tag"><ShieldCheck size={12} /> {receiveWallet?.status === "provisioned" ? "ASSIGNED" : "NOT YET ASSIGNED"}</span>
+                <span className="read-only-tag"><LockKeyhole size={12} /> COMING SOON</span>
               </div>
-              {receiveWalletLoading ? <p className="receive-address-status">Loading your individual wallet record…</p>
-                : receiveWalletError ? <p className="receive-address-status">{receiveWalletError}</p>
-                : receiveWallet?.wallet_address ? <div className="receive-address-value"><code>{receiveWallet.wallet_address}</code><button className="connect-button" onClick={() => { void navigator.clipboard.writeText(receiveWallet.wallet_address as string); setWalletMessage("Your MYRAVEN receiving address was copied."); }}>Copy address</button></div>
-                : <div className="receive-address-pending"><span className="receive-address-orbit"><Wallet size={20} /></span><div><b>Your address has not been generated yet</b><p>MYRAVEN has created your individual wallet record. A unique Solana address will appear here after secure custody provisioning is connected and approved.</p></div></div>}
-              <div className="receive-address-meta"><span><b>Network</b> Solana Mainnet</span><span><b>Asset</b> SOL</span><span><b>Wallet status</b> {receiveWallet?.status === "provisioned" ? "Address assigned" : "Awaiting custody provider"}</span></div>
-              <p className="receive-address-warning"><ShieldCheck size={14} /> Deposits are disabled until address provisioning, blockchain monitoring and deposit verification are operational. Do not send funds to an unassigned address.</p>
+              <div className="receive-address-pending">
+                <span className="receive-address-orbit"><Wallet size={20} /></span>
+                <div>
+                  <b>Personal wallet generation is coming soon</b>
+                  <p>Your unique Solana receiving address will be created when MYRAVEN’s secure wallet infrastructure is ready. No address is being generated or assigned yet.</p>
+                </div>
+              </div>
+              <div className="receive-address-meta"><span><b>Network</b> Solana</span><span><b>Asset</b> SOL</span><span><b>Status</b> Not available yet</span></div>
+              <p className="receive-address-warning"><ShieldCheck size={14} /> Deposits remain disabled. Do not send funds to an address until MYRAVEN displays your verified personal receiving address.</p>
             </article>
             <div className="wallet-balance-grid">
               <article className="wallet-balance-card myraven-wallet-card">
