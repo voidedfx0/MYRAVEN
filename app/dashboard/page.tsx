@@ -99,23 +99,7 @@ export default function Home() {
     void loadWalletBalance();
     return () => { active = false; };
   }, []);
-  useEffect(() => {
-    let active = true;
-    async function loadReceiveWallet() {
-      try {
-        const response = await fetch("/api/wallets/solana/receive", { cache: "no-store" });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? "Receiving wallet unavailable.");
-        if (active) setReceiveWallet(data.wallet ?? null);
-      } catch (error) {
-        if (active) setReceiveWalletError(error instanceof Error ? error.message : "Could not load wallet profile.");
-      } finally {
-        if (active) setReceiveWalletLoading(false);
-      }
-    }
-    void loadReceiveWallet();
-    return () => { active = false; };
-  }, []);
+
 
   const [walletMessage, setWalletMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -530,21 +514,6 @@ export default function Home() {
             {walletMessage ? <p className="wallet-message">{walletMessage}</p> : null}
             {wallets.length > 0 ? <div className="connected-list">{wallets.map((wallet) => <div className="connected-wallet" key={wallet.address}><span className={`mini-network ${wallet.network.toLowerCase()}`}>S</span><span><b>{wallet.name}</b><small>{shortAddress(wallet.address)}</small></span><span className="connected-label"><i /> Connected · Read only</span><button onClick={() => { void navigator.clipboard.writeText(wallet.address); setWalletMessage("Connected wallet address copied."); }} className="disconnect-button">Copy</button><button onClick={() => disconnectWallet(wallet.address)} className="disconnect-button">Disconnect</button></div>)}</div> : <div className="wallet-empty"><WalletCards size={18} /><span>No wallets connected yet</span></div>}
             {wallets[0] ? <div className="receive-address-value external-receive-address"><div><span className="panel-kicker">EXTERNAL SOLANA ADDRESS · READ ONLY</span><code>{wallets[0].address}</code></div><button className="connect-button" onClick={() => { void navigator.clipboard.writeText(wallets[0].address); setWalletMessage("External Solana address copied."); }}>Copy address</button></div> : null}
-            <article className="receive-address-panel">
-              <div className="receive-address-heading">
-                <div><span className="panel-kicker">YOUR PERSONAL RECEIVING ADDRESS</span><h3>MYRAVEN Solana address</h3></div>
-                <span className="read-only-tag"><LockKeyhole size={12} /> COMING SOON</span>
-              </div>
-              <div className="receive-address-pending">
-                <span className="receive-address-orbit"><Wallet size={20} /></span>
-                <div>
-                  <b>Personal wallet generation is coming soon</b>
-                  <p>Your unique Solana receiving address will be created when MYRAVEN’s secure wallet infrastructure is ready. No address is being generated or assigned yet.</p>
-                </div>
-              </div>
-              <div className="receive-address-meta"><span><b>Network</b> Solana</span><span><b>Asset</b> SOL</span><span><b>Status</b> Not available yet</span></div>
-              <p className="receive-address-warning"><ShieldCheck size={14} /> Deposits remain disabled. Do not send funds to an address until MYRAVEN displays your verified personal receiving address.</p>
-            </article>
             <div className="wallet-balance-grid">
               <article className="wallet-balance-card myraven-wallet-card">
                 <div className="wallet-balance-card-top"><span><Wallet size={15} /> MYRAVEN WALLET</span><small>INTERNAL LEDGER</small></div>
@@ -564,7 +533,7 @@ export default function Home() {
 
           <section className="panel ussd-panel" id="ussd">
             <div className="panel-heading"><div><span className="panel-kicker">INCLUSIVE PAYMENTS · DEMO</span><h2>USSD payment simulator</h2><p>Preview how a basic-phone user could start a payment without a smartphone app.</p></div><span className="step-badge">*384#</span></div>
-            <div className="ussd-layout"><div className="ussd-phone"><div className="ussd-phone-top">MYRAVEN MOBILE</div><div className="ussd-screen"><b>MYRAVEN</b><span>1. Send money</span><span>2. Check balance</span><span>3. Receive money</span><span>4. Help</span><small>Demo USSD menu · No carrier connection</small></div><div className="ussd-keypad">1　 2　 3<br/>4　 5　 6<br/>7　 8　 9<br/>*　 0　 #</div></div>
+            <div className="ussd-layout"><div className="ussd-phone"><div className="ussd-phone-top">MYRAVEN MOBILE</div><div className="ussd-screen"><b>MYRAVEN</b><span>1. Send money</span><span>2. Check balance</span><span>3. Add funds</span><span>4. Help</span><small>Demo USSD menu · No carrier connection</small></div><div className="ussd-keypad">1　 2　 3<br/>4　 5　 6<br/>7　 8　 9<br/>*　 0　 #</div></div>
               <div className="ussd-form"><label className="field-label">RECIPIENT PHONE</label><input value={ussdPhone} onChange={(event) => setUssdPhone(event.target.value)} placeholder="+234 800 000 0000" />
                 <label className="field-label">AMOUNT (USD DEMO)</label><input type="number" min="0.01" value={ussdAmount} onChange={(event) => setUssdAmount(event.target.value)} />
                 <button className="primary-action" onClick={simulateUssd}>Simulate USSD request <ArrowUpRight size={15} /></button>
