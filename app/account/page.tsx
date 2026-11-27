@@ -98,7 +98,7 @@ export default function AccountPage() {
     setMessage("");
     try {
       if (!otpSent) {
-        const { error } = await supabase.auth.signInWithOtp({ phone: phone.trim() });
+        const { error } = await supabase.auth.signInWithOtp({ phone: phone.trim(), options: { shouldCreateUser: true } });
         if (error) throw error;
         setOtpSent(true);
         setMessage("A one-time code was requested. Enter it here to finish signing in.");
@@ -182,22 +182,22 @@ export default function AccountPage() {
               <button className={mode === "signup" ? "selected" : ""} onClick={() => { setMode("signup"); setAuthMethod("email"); setOtpSent(false); }}>Create account</button>
               <button className={mode === "signin" ? "selected" : ""} onClick={() => { setMode("signin"); setOtpSent(false); }}>Sign in</button>
             </div>
-            {mode === "signin" && <div className="account-mode account-method">
+            <div className="account-mode account-method">
               <button className={authMethod === "email" ? "selected" : ""} onClick={() => { setAuthMethod("email"); setOtpSent(false); }}>Email</button>
               <button className={authMethod === "phone" ? "selected" : ""} onClick={() => { setAuthMethod("phone"); setOtpSent(false); }}>Phone</button>
-            </div>}
-            {mode === "signin" && authMethod === "phone" ? <form className="account-form" onSubmit={submitPhone}>
+            </div>
+            {authMethod === "phone" ? <form className="account-form" onSubmit={submitPhone}>
               <label>PHONE NUMBER<input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} required placeholder="+ country code" autoComplete="tel" /></label>
               {otpSent && <label>ONE-TIME CODE<input inputMode="numeric" value={otp} onChange={(event) => setOtp(event.target.value)} required maxLength={8} autoComplete="one-time-code" /></label>}
               <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16} /> : null}{otpSent ? "Verify phone" : "Send verification code"}<ArrowUpRight size={16} /></button>
-              <p className="account-legal">Phone sign-in requires an SMS provider to be configured in Supabase.</p>
+              <p className="account-legal">Phone account access requires an SMS provider to be configured in Supabase. New phone numbers can create an account if phone sign-up is enabled.</p>
             </form> : <form className="account-form" onSubmit={submit}>
               {mode === "signup" && <label>DISPLAY NAME<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} required maxLength={60} autoComplete="name" /></label>}
               <label>EMAIL ADDRESS<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" /></label>
               <label>PASSWORD<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} /></label>
               <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16} /> : null}{mode === "signup" ? "Create MYRAVEN account" : "Sign in"}<ArrowUpRight size={16} /></button>
             </form>}
-            {mode === "signin" && authMethod === "email" && <><div className="account-or"><span /> OR <span /></div>
+            {authMethod === "email" && <><div className="account-or"><span /> OR <span /></div>
             <button className="account-google" onClick={signInWithGoogle} disabled={loading}>Continue with Google <ArrowUpRight size={15} /></button></>}
             {message && <p className="account-message" role="status">{message}</p>}
             <p className="account-legal">Early-access account only. Payment, conversion and withdrawal functions remain disabled in this preview. Any future financial services will require applicable eligibility, provider and compliance checks.</p>
