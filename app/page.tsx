@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import {
   Activity, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Bell, Check,
   ChevronDown, CircleHelp, Globe2, LayoutDashboard, LockKeyhole,
-  Menu, Plus, RefreshCw, CreditCard, Landmark, Coins,
+  Menu, Plus, RefreshCw,
   Settings2, ShieldCheck, Sparkles, Wallet, WalletCards, X,
 } from "lucide-react";
 
@@ -122,7 +122,7 @@ export default function Home() {
       setFundingNotice("Enter a valid deposit amount.");
       return;
     }
-    setFundingNotice("Deposit setup is ready for provider integration. No card, bank transfer or crypto deposit has been initiated, and no funds have moved.");
+    setFundingNotice(`${value.toLocaleString()} ${fundingCurrency} via ${fundingMethod.replaceAll("_", " ")} selected for ${fundingAsset} on Solana. Provider checkout is not connected, so no payment has been initiated and no funds have moved.`);
   }
   function simulateUssd() {
     if (!/^\+?[0-9]{7,15}$/.test(ussdPhone.replace(/[\s-]/g, ""))) {
@@ -250,7 +250,7 @@ export default function Home() {
               
             </div>
             {walletMessage ? <p className="wallet-message">{walletMessage}</p> : null}
-            {wallets.length > 0 ? <div className="connected-list">{wallets.map((wallet) => <div className="connected-wallet" key={wallet.address}><span className={`mini-network ${wallet.network.toLowerCase()}`}>{wallet.network === "Solana" ? "S" : "✦"}</span><span><b>{wallet.name}</b><small>{shortAddress(wallet.address)}</small></span><span className="connected-label"><i /> Connected</span><button onClick={() => disconnectWallet(wallet.address)} className="disconnect-button">Disconnect</button></div>)}</div> : <div className="wallet-empty"><WalletCards size={18} /><span>No wallets connected yet</span></div>}
+            {wallets.length > 0 ? <div className="connected-list">{wallets.map((wallet) => <div className="connected-wallet" key={wallet.address}><span className={`mini-network ${wallet.network.toLowerCase()}`}>S</span><span><b>{wallet.name}</b><small>{shortAddress(wallet.address)}</small></span><span className="connected-label"><i /> Connected</span><button onClick={() => disconnectWallet(wallet.address)} className="disconnect-button">Disconnect</button></div>)}</div> : <div className="wallet-empty"><WalletCards size={18} /><span>No wallets connected yet</span></div>}
             <div className="demo-assets-grid">
               <article className="demo-asset"><span className="asset-symbol solana-logo">◎</span><span><b>SOL</b><small>Solana · Sample balance</small></span><strong>12.4500</strong><em>≈ $1,867.50</em></article>
               
@@ -276,7 +276,7 @@ export default function Home() {
             <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="#activity">View all <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{activities.map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small></span></div>)}</div></article>
           </section>
 
-          <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>Demo only · Solana</span></footer>
+          <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>Preview · Solana only</span></footer>
         </div>
       </section>
 
