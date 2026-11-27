@@ -235,3 +235,34 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 @media(max-width:900px){.business-shell{grid-template-columns:205px 1fr}.business-sidebar{padding-inline:12px}.business-metrics{grid-template-columns:repeat(2,1fr)}.business-tools{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.account-type-choice{grid-template-columns:1fr}.business-shell{grid-template-columns:1fr}.business-sidebar{position:relative;height:auto;padding:18px}.business-sidebar nav{grid-template-columns:repeat(2,1fr)}.business-sidebar-bottom{display:flex;gap:10px}.business-main{padding-inline:5%}.business-welcome{align-items:flex-start;flex-direction:column}.business-tools{grid-template-columns:1fr}.business-metrics{grid-template-columns:repeat(2,1fr)}}
 @media(prefers-reduced-motion:reduce){.account-type-choice button{transition:none}}
+
+
+/* Business onboarding — concise, staged and owner-scoped */
+.business-onboard-shell{min-height:100vh;padding:24px 18px 60px;background:radial-gradient(ellipse at 50% 8%,#7655b51c,transparent 44%),#090b11;color:#f5f3ff;font-family:Inter,Arial,sans-serif}
+.business-onboard-top{max-width:1050px;margin:0 auto 28px;display:flex;justify-content:space-between;align-items:center;color:#969daf;font-size:9px;letter-spacing:.12em}
+.business-onboard-top a{display:flex;align-items:center;gap:8px;color:#cfc5ef;text-decoration:none;font-size:11px;letter-spacing:0}
+.business-onboard-card{max-width:650px;margin:0 auto;padding:30px;border:1px solid #ffffff18;border-radius:14px;background:linear-gradient(145deg,#151824f2,#0d1018f5);box-shadow:0 28px 90px #0008}
+.business-onboard-card h1{font:600 clamp(27px,4vw,38px)/1.12 'Space Grotesk';letter-spacing:-.045em;margin:20px 0 9px}
+.business-onboard-progress{display:flex;align-items:center;gap:10px;margin:27px 0;padding:13px 14px;border:1px solid #ffffff13;border-radius:9px;background:#ffffff04}
+.business-onboard-progress span{display:flex;align-items:center;gap:8px;color:#8e95a5;font-size:9px;white-space:nowrap}
+.business-onboard-progress span.active{color:#e8e0ff}.business-onboard-progress span.complete{color:#a9e5cf}
+.business-onboard-progress i{width:23px;height:23px;border-radius:50%;display:grid;place-items:center;border:1px solid #ffffff25;font-style:normal;font-size:8px}
+.business-onboard-progress .active i{border-color:#b8a3ff;background:#a78bfa22;color:#d8caff}
+.business-onboard-progress .complete i{border-color:#6ed4a8;color:#6ed4a8}
+.business-onboard-progress>b{height:1px;flex:1;background:#ffffff1c}
+.business-onboard-form{margin-top:20px}
+.business-onboard-form label{position:relative}
+.business-onboard-form input,.business-onboard-form select,.business-onboard-form textarea{width:100%;margin-top:8px;padding:12px 13px;border:1px solid #ffffff20;border-radius:7px;background:#080a10;color:#f4f1ff;font:inherit;font-size:12px;outline:none}
+.business-onboard-form input:focus,.business-onboard-form select:focus,.business-onboard-form textarea:focus{border-color:#a78bfa;box-shadow:0 0 0 3px #a78bfa18}
+.business-onboard-form select option{background:#111521}
+.business-onboard-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-optional{float:right;color:#8d94a4;font-size:7px;letter-spacing:.1em}
+.business-onboard-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:10px}
+.business-onboard-actions .account-primary,.business-onboard-actions .account-google{min-height:42px}
+.business-onboard-actions .account-primary{display:flex;align-items:center;gap:8px}
+.business-onboard-security,.business-onboard-success{display:flex;align-items:flex-start;gap:10px;padding:13px;margin-top:19px;border:1px solid #ffffff14;border-radius:8px;color:#a4abba;font-size:9px;line-height:1.7}
+.business-onboard-security svg,.business-onboard-success svg{flex:none;color:#bdaaff}
+.business-onboard-success{border-color:#64c99b42;background:#64c99b0b;color:#c6d8d0}
+.business-onboard-success b,.business-onboard-success small{display:block}.business-onboard-success small{margin-top:4px;color:#a4b3ad}
+.business-onboard-dashboard{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:19px;color:#c9bbf4;text-decoration:none;font-size:10px}
+@media(max-width:560px){.business-onboard-shell{padding:15px 12px 40px}.business-onboard-card{padding:21px 16px}.business-onboard-top>span{font-size:7px}.business-onboard-two{grid-template-columns:1fr}.business-onboard-actions{display:grid;grid-template-columns:1fr 1fr}.business-onboard-actions .account-primary{grid-column:1/-1;justify-content:center}.business-onboard-progress{gap:7px}.business-onboard-progress span{font-size:8px}}
