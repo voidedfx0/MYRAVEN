@@ -17,6 +17,10 @@ MYRAVEN is an intelligent global payment-orchestration platform built around **S
 - **Global receiving:** supported bank accounts, mobile-money methods, MYRAVEN IDs and Solana addresses.
 - **Payment safety:** explicit user authorization, quote expiry, stage-aware recovery and duplicate-execution protection.
 
+## Global bank receiving catalogue
+
+The researched country, currency, and local-payment-rail reference plus the provider-backed account-issuance rules are documented in [Global bank receiving](docs/global-bank-receiving.md). This is a discovery catalogue, not a claim that every listed country can currently receive a generated MYRAVEN bank account. Live account creation remains disabled until an approved provider is configured.
+
 ## Current repository state
 
 The current dashboard is a product preview. Phantom connection, when available, verifies a public Solana address only. The Add Money panel captures a funding-method and settlement-asset selection but does not start a payment. The quote engine still produces illustrative simulation data. No live card processor, bank, fiat on-ramp, crypto exchange, payout provider, custody service, or Solana transaction execution is configured by this repository.
