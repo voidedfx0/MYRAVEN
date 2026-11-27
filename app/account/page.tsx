@@ -38,6 +38,7 @@ export default function AccountPage() {
   const [message, setMessage] = useState("");
   const [summary, setSummary] = useState<AccountSummary | null>(null);
   const [checking, setChecking] = useState(true);
+  const [oauthPending, setOauthPending] = useState(false);
   const supabase = createClient();
 
   const destination = accountType === "business" ? "/business" : "/dashboard";
@@ -60,12 +61,24 @@ export default function AccountPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const requestedType = params.get("type") === "business" ? "business" : "personal";
+    const oauthSignup = params.get("oauth") === "1";
     setAccountType(requestedType);
     if (params.get("mode") === "signin") setMode("signin");
+    if (oauthSignup) setOauthPending(true);
     let active = true;
     supabase.auth.getUser().then(async ({ data }) => {
       if (!active) return;
       if (data.user) {
+        if (oauthSignup) {
+          const metadata = data.user.user_metadata ?? {};
+          const fullName = String(metadata.full_name ?? metadata.name ?? "").trim();
+          const parts = fullName.split(/\\s+/).filter(Boolean);
+          setFirstName(String(metadata.given_name ?? parts[0] ?? ""));
+          setLastName(String(metadata.family_name ?? parts.slice(1).join(" ") ?? ""));
+          setLegalFullName(fullName);
+          setChecking(false);
+          return;
+        }
         try {
           const contextResponse = await fetch("/api/account/context", { cache: "no-store" });
           const context = contextResponse.ok ? await contextResponse.json() : null;
@@ -90,6 +103,11 @@ export default function AccountPage() {
     event.preventDefault();
     setLoading(true); setMessage("");
     try {
+      if (mode === "signup" && oauthPending) {
+        await provisionWorkspace(accountType);
+        window.location.assign(destination);
+        return;
+      }
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(), password,
@@ -157,9 +175,17 @@ export default function AccountPage() {
 
   async function signInWithGoogle() {
     setLoading(true); setMessage("");
+    const appOrigin = window.location.hostname === "localhost"
+      ? window.location.origin
+      : "https://myraven.vercel.app";
+    const next = mode === "signup"
+      ? "/account?type=" + accountType + "&oauth=1"
+      : "/account?type=" + accountType + "&mode=signin";
+    const callbackUrl = new URL("/auth/callback", appOrigin);
+    callbackUrl.searchParams.set("next", next);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + "/auth/callback?next=/account?type=" + accountType + "%26complete=1" },
+      options: { redirectTo: callbackUrl.toString(), queryParams: { prompt: "select_account" } },
     });
     if (error) { setMessage(error.message); setLoading(false); }
   }
@@ -213,9 +239,9 @@ export default function AccountPage() {
         
         <label>EMAIL ADDRESS<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"/></label>
         <label>PASSWORD<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"}/></label>
-        <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16}/> : null}{mode === "signup" ? "Create " + (accountType === "business" ? "business" : "personal") + " account" : "Sign in"}<ArrowUpRight size={16}/></button>
+        <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16}/> : null}{mode === "signup" ? "oauthPending ? "Complete " + (accountType === "business" ? "business" : "personal") + " setup" : mode === "signup" ? "Create " + (accountType === "business" ? "business" : "personal") + " account" : "Sign in"}<ArrowUpRight size={16}/></button>
       </form>}
-      {authMethod === "email" && <><div className="account-or"><span/> OR <span/></div><button className="account-google" onClick={signInWithGoogle} disabled={loading}>Continue with Google <ArrowUpRight size={15}/></button></>}
+      {authMethod === "email" && <><div className="account-or"><span/> OR <span/></div><button className="account-google" onClick={signInWithGoogle} disabled={loading}>{mode === "signup" ? "Sign up with Google" : "Sign in with Google"} <ArrowUpRight size={15}/></button></>}
       {message && <p className="account-message" role="status">{message}</p>}
       <p className="account-legal">Your legal name should match your future KYC document exactly. Wallet connection currently attaches an address for setup only; wallet-only authentication and ownership verification are not enabled yet. Regulated services remain subject to applicable eligibility and verification requirements.</p>
     </section>
