@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, ArrowUpRight, Bell, Building2, Check, ChevronRight, CircleHelp,
-  Download, Globe2, KeyRound, LockKeyhole, LogOut, Mail, MonitorSmartphone,
+  Download, Globe2, KeyRound, LockKeyhole, LogOut, MonitorSmartphone,
   ShieldCheck, SlidersHorizontal, UserRound, Wallet, X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -192,7 +192,7 @@ export default function SettingsPage() {
           <div className="settings-danger-row"><span><b>Close MYRAVEN account</b><small>Account closure must first check balances, pending payments, disputes and legal retention duties.</small></span><button type="button" disabled>Contact support</button></div>
         </section>
 
-        {accountType === "business" && <section className="settings-card"><div className="settings-card-title"><span className="settings-icon violet"><Building2 size={18}/></span><div><h3>Business workspace</h3><p>Business profile, team access and permissions.</p></div></div><Link className="settings-link-row" href="/business"><span><b>Open business profile and onboarding</b><small>Manage your organisation's submitted business details.</small></span><ArrowUpRight size={16}/></Link><div className="settings-feature-row"><UserRound size={17}/><span><b>Team members and role permissions</b><small>Invite owners, administrators, finance and read-only team members when team access is enabled.</small></span><span className="settings-status pending">PLANNED</span></div></section>}
+        {accountType === "business" && <section className="settings-card"><div className="settings-card-title"><span className="settings-icon violet"><Building2 size={18}/></span><div><h3>Business workspace</h3><p>Business profile, team access and permissions.</p></div></div><Link className="settings-link-row" href="/business"><span><b>Open business profile and onboarding</b><small>Manage your organisation&apos;s submitted business details.</small></span><ArrowUpRight size={16}/></Link><div className="settings-feature-row"><UserRound size={17}/><span><b>Team members and role permissions</b><small>Invite owners, administrators, finance and read-only team members when team access is enabled.</small></span><span className="settings-status pending">PLANNED</span></div></section>}
 
         <section className="settings-card" id="help">
           <div className="settings-card-title"><span className="settings-icon"><CircleHelp size={18}/></span><div><h3>Help & legal</h3><p>Get assistance and review MYRAVEN policies.</p></div></div>
