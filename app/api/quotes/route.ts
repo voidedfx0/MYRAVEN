@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { buildDemoQuotes, type QuoteRequest } from "@/lib/payments/smart-route";
 
 const currencies = ["USD", "EUR", "GBP", "NGN", "KES", "GHS"];
-const destinations = ["solana", "stellar", "bank"];
+const destinations = ["solana", "bank"];
 const preferences = ["balanced", "lowest-cost", "fastest", "most-reliable"];
 
 export async function POST(request: Request) {
