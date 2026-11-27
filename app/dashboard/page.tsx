@@ -153,6 +153,28 @@ export default function Home() {
 
   useEffect(() => {
     void loadFundingHistory();
+
+    // Flutterwave returns status, tx_ref and transaction_id after checkout.
+    // Never trust the browser status: reconcile the reference server-side.
+    const params = new URLSearchParams(window.location.search);
+    const returnedStatus = params.get("status");
+    const txRef = params.get("tx_ref");
+    if (returnedStatus === "successful" && txRef) {
+      void fetch("/api/funding/reconcile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tx_ref: txRef }),
+      }).then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error ?? "Payment verification is still processing.");
+        await loadFundingHistory();
+        if (result.paymentStatus === "successful") {
+          setFundingMessage("Payment successful. Your " + (result.conversionStatus ?? "crypto conversion") + " is awaiting settlement.");
+        }
+      }).catch(() => {
+        setFundingMessage("Payment return received. Verification is still processing; refresh your funding activity shortly.");
+      });
+    }
   }, []);
 
   async function startFundingCheckout() {
@@ -613,8 +635,13 @@ export default function Home() {
                     <small>{deposit.funding_method.replaceAll("_", " ")} · {new Date(deposit.created_at).toLocaleString()}</small>
                   </span>
                   <span className={`funding-history-status status-${deposit.status}`}>
-                    {deposit.status.replaceAll("_", " ")}
-                    {deposit.credited_output_amount ? <small>{deposit.credited_output_amount} {deposit.target_asset} credited</small> : null}
+                    {deposit.status === "credited" ? "Wallet funded"
+                      : deposit.status === "converting" ? "Payment successful · conversion pending"
+                      : deposit.status === "submitted_onchain" || deposit.status === "confirming" ? "Crypto settlement pending"
+                      : deposit.status === "awaiting_payment" ? "Awaiting payment confirmation"
+                      : deposit.status.replaceAll("_", " ")}
+                    {deposit.credited_output_amount ? <small>{deposit.credited_output_amount} {deposit.target_asset} credited</small>
+                      : deposit.status === "converting" ? <small>Fiat received · no crypto credited yet</small> : null}
                   </span>
                 </div>)}
               </div> : <p className="funding-history-empty">{fundingHistoryLoading ? "Loading funding activity…" : "Your verified funding requests will appear here."}</p>}
