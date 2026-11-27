@@ -233,13 +233,13 @@ export default function Home() {
       setExternalSolBalance(null);
       setExternalBalanceError("");
       setExternalBalanceLoading(true);
-      setWalletMessage("Solana wallet connected in read-only mode. Checking its public SOL balance…");
+      setWalletMessage("Solana wallet connected in read-only mode. Checking its Devnet SOL balance. Make sure Phantom is set to Devnet…");
       try {
         const balanceResponse = await fetch("/api/wallets/solana/balance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address }) });
         const balanceData = await balanceResponse.json();
         if (!balanceResponse.ok) throw new Error(balanceData.error ?? "Balance unavailable.");
         setExternalSolBalance(Number(balanceData.sol));
-        setWalletMessage("Public SOL balance loaded. MYRAVEN has not requested transaction permissions.");
+        setWalletMessage("Public Devnet SOL balance loaded. MYRAVEN has not requested transaction permissions.");
       } catch (error) {
         setExternalBalanceError(error instanceof Error ? error.message : "Could not load public balance.");
         setWalletMessage("Wallet connected, but its public balance could not be loaded.");
@@ -512,7 +512,7 @@ export default function Home() {
                 <h2>Add money to your MYRAVEN wallet</h2>
                 <p>Choose your country to see the funding routes that can serve it. Your local currency is identified from your selection.</p>
               </div>
-              <span className="read-only-tag"><LockKeyhole size={12} /> PREVIEW</span>
+              <span className="read-only-tag"><LockKeyhole size={12} /> TEST MODE · DEVNET</span>
             </div>
 
             <div className="funding-country-row">
@@ -622,26 +622,26 @@ export default function Home() {
             <p className="funding-disclaimer"><ShieldCheck size={13} /> Test integration only. A successful fiat payment is verified server-side and held for conversion; MYRAVEN will not show SOL or USDC as available until the conversion and settlement provider is connected.</p>
           </section>
           <section className="panel wallet-panel" id="wallets">
-            <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect a Solana wallet to verify its public address. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
+            <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect Phantom on Solana Devnet to verify a public address and view test SOL. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
             <div className="wallet-connect-grid">
-              <article className="wallet-connect-card"><div className="wallet-network-logo solana-logo">S</div><div className="wallet-copy"><b>Solana</b><small>Phantom-compatible · Public address only</small></div><button onClick={connectSolana} className="connect-button">Connect wallet <Plus size={14} /></button></article>
+              <article className="wallet-connect-card"><div className="wallet-network-logo solana-logo">S</div><div className="wallet-copy"><b>Solana</b><small>Phantom · Devnet · Public address only</small></div><button onClick={connectSolana} className="connect-button">Connect wallet <Plus size={14} /></button></article>
               
             </div>
             {walletMessage ? <p className="wallet-message">{walletMessage}</p> : null}
             {wallets.length > 0 ? <div className="connected-list">{wallets.map((wallet) => <div className="connected-wallet" key={wallet.address}><span className={`mini-network ${wallet.network.toLowerCase()}`}>S</span><span><b>{wallet.name}</b><small>{shortAddress(wallet.address)}</small></span><span className="connected-label"><i /> Connected · Read only</span><button onClick={() => { void navigator.clipboard.writeText(wallet.address); setWalletMessage("Connected wallet address copied."); }} className="disconnect-button">Copy</button><button onClick={() => disconnectWallet(wallet.address)} className="disconnect-button">Disconnect</button></div>)}</div> : <div className="wallet-empty"><WalletCards size={18} /><span>No wallets connected yet</span></div>}
-            {wallets[0] ? <div className="receive-address-value external-receive-address"><div><span className="panel-kicker">EXTERNAL SOLANA ADDRESS · READ ONLY</span><code>{wallets[0].address}</code></div><button className="connect-button" onClick={() => { void navigator.clipboard.writeText(wallets[0].address); setWalletMessage("External Solana address copied."); }}>Copy address</button></div> : null}
+            {wallets[0] ? <div className="receive-address-value external-receive-address"><div><span className="panel-kicker">EXTERNAL SOLANA DEVNET ADDRESS · READ ONLY</span><code>{wallets[0].address}</code></div><button className="connect-button" onClick={() => { void navigator.clipboard.writeText(wallets[0].address); setWalletMessage("External Solana address copied."); }}>Copy address</button></div> : null}
             <div className="wallet-balance-grid">
               <article className="wallet-balance-card myraven-wallet-card">
                 <div className="wallet-balance-card-top"><span><Wallet size={15} /> MYRAVEN WALLET</span><small>INTERNAL LEDGER</small></div>
                 <strong>{balanceLoading ? "Loading…" : availableSol === null ? "— SOL" : `${availableSol.toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL`}</strong>
                 <p>Available to send from your MYRAVEN account. Pending funds are excluded.</p>
-                <small className="wallet-card-foot">{balanceError ? "Balance could not be loaded" : "Ledger-backed balance · Solana"}</small>
+                <small className="wallet-card-foot">{balanceError ? "Balance could not be loaded" : "Ledger-backed balance · Solana Devnet · Test only"}</small>
               </article>
               <article className="wallet-balance-card external-wallet-card">
                 <div className="wallet-balance-card-top"><span><WalletCards size={15} /> CONNECTED WALLET</span><small>READ ONLY</small></div>
                 <strong>{externalBalanceLoading ? "Checking…" : externalSolBalance === null ? "— SOL" : `${externalSolBalance.toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL`}</strong>
                 <p>{wallets.length ? shortAddress(wallets[0].address) : "Connect Phantom to view a public SOL balance."}</p>
-                <small className="wallet-card-foot">{externalBalanceError || (wallets.length ? "External wallet · Not MYRAVEN funds" : "No external wallet connected")}</small>
+                <small className="wallet-card-foot">{externalBalanceError || (wallets.length ? "External wallet · Devnet · Not MYRAVEN funds" : "No external wallet connected")}</small>
               </article>
             </div>
             <div className="wallet-security"><ShieldCheck size={15} /><span>External wallet balances are informational only. MYRAVEN does not receive signing permission, move funds, or access your seed phrase or private key.</span></div>
@@ -663,7 +663,7 @@ export default function Home() {
             <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="#activity">View all <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{activities.length ? activities.map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small></span></div>) : <div className="activity-empty"><Activity size={17} /><span><b>No activity yet</b><small>Verified deposits and real transaction events will appear here. Preview approvals stay clearly labelled.</small></span></div>}</div></article>
           </section>
 
-          <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>Preview · Solana only</span></footer>
+          <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>TEST MODE · SOLANA DEVNET ONLY</span></footer>
         </div>
       </section>
 
