@@ -4,6 +4,22 @@ export const dynamic = "force-dynamic";
 
 const BASE58_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
+export async function GET() {
+  const rpcUrl = process.env.SOLANA_RPC_URL;
+  if (!rpcUrl) {
+    return NextResponse.json({ configured: false, network: "solana-mainnet" }, { status: 503 });
+  }
+  let provider = "Configured Solana RPC";
+  try {
+    if (new URL(rpcUrl).hostname.includes("helius")) provider = "Helius";
+  } catch {
+    return NextResponse.json({ configured: false, error: "Invalid RPC URL." }, { status: 503 });
+  }
+  return NextResponse.json({ configured: true, provider, network: "solana-mainnet", readOnly: true }, {
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -20,7 +36,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Enter a valid Solana public address." }, { status: 400 });
   }
 
-  const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+  const rpcUrl = process.env.SOLANA_RPC_URL;
+  if (!rpcUrl) {
+    return NextResponse.json({ error: "Solana RPC is not configured." }, { status: 503 });
+  }
 
   try {
     const rpcResponse = await fetch(rpcUrl, {
@@ -53,6 +72,7 @@ export async function POST(request: Request) {
       network: "solana-mainnet",
       commitment: "confirmed",
       readOnly: true,
+      provider: new URL(rpcUrl).hostname.includes("helius") ? "Helius" : "Configured Solana RPC",
     }, {
       headers: { "Cache-Control": "no-store" },
     });
