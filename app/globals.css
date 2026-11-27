@@ -45,3 +45,5 @@
 .account-empty{padding:13px;border:1px dashed rgba(255,255,255,.1);border-radius:8px;color:#80899a;font-size:10px;line-height:1.5}
 .account-footer{color:#687184;font-size:8px;letter-spacing:.2em;margin-top:20px}
 @media(max-width:560px){.account-shell{padding:18px 13px}.account-card{padding:23px 19px}.account-card h1{font-size:24px}.account-top{font-size:8px}.account-link{display:none}}
+
+.account-email{margin:-15px 0 14px;color:#8d96a8;font-size:10px}.account-pending{display:block;text-align:right;color:#9c91c5;font-size:8px;margin-top:4px}
