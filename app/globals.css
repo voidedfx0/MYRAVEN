@@ -149,3 +149,27 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 @media(max-width:760px){.marketing-nav{height:68px;padding:0 5%}.marketing-nav nav,.marketing-actions{display:none}.mobile-nav-cta{display:grid;place-items:center;width:38px;height:38px;border:1px solid #a78bfa66;border-radius:6px;color:#d7caff}.marketing-hero{min-height:unset;padding:72px 6% 85px;grid-template-columns:1fr;gap:28px}.marketing-hero h1{font-size:clamp(49px,12vw,68px)}.hero-copy>p{font-size:12px}.hero-visual{min-height:340px}.hero-media-card{height:315px}.float-a{right:-3px;top:8px}.float-b{left:-3px;bottom:7px}.scroll-cue{left:6%;bottom:20px}.value-strip{padding:15px 5%;gap:12px;flex-wrap:wrap;font-size:8px}.value-strip>span{width:100%;text-align:center}.marketing-section,.intelligence-section{padding:78px 6%}.section-heading{display:block;margin-bottom:30px}.section-heading>p{margin-top:18px}.product-grid,.audience-grid{grid-template-columns:1fr}.product-card{min-height:290px}.product-card p{min-height:unset}.journey-section{padding:78px 6%;grid-template-columns:1fr;gap:35px}.intelligence-section{grid-template-columns:1fr;gap:35px}.intelligence-art{height:320px;order:2}.intelligence-section>div:last-child{order:1}.journal-section{margin:0 6% 70px;padding:28px 22px;grid-template-columns:1fr;gap:0}.journal-art{height:145px;order:2}.journal-section h2{font-size:37px}.marketing-footer{padding:38px 6% 18px}.marketing-footer nav{gap:14px}.footer-bottom{display:grid;gap:8px}}
 @media(max-width:420px){.hero-ctas{flex-direction:column}.hero-ctas a{width:100%}.hero-media-card{height:280px}.hero-visual{min-height:310px}.float-card{padding:8px}.float-card b{font-size:8px}.float-card small{font-size:7px}.marketing-section h2,.journey-section h2,.intelligence-section h2{font-size:41px}.journal-section h2{font-size:34px}}
 @media(prefers-reduced-motion:reduce){.marketing-site *,.marketing-site *:before,.marketing-site *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+
+/* Expanded MYRAVEN ecosystem sections */
+.capabilities-section{max-width:1240px;margin:auto;padding:105px 6.5% 115px;background:radial-gradient(ellipse at 50% 80%,#60449a12,transparent 58%)}
+.capability-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.capability-card{min-height:178px;padding:22px;border:1px solid #ffffff15;border-radius:9px;background:linear-gradient(145deg,#ffffff0a,#ffffff02);transition:transform .25s,border-color .25s}
+.capability-card:hover{transform:translateY(-4px);border-color:#a78bfa66}
+.capability-card>span{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:#a78bfa1b;color:#c9baff}
+.capability-card h3{font:600 15px 'Space Grotesk';margin:17px 0 7px}
+.capability-card p{margin:0;color:#999fad;font-size:10px;line-height:1.8}
+.trust-section{padding:100px 8%;display:grid;grid-template-columns:.9fr 1.1fr;gap:9%;align-items:center;background:linear-gradient(115deg,#11141e,#0a0c13 72%);border-block:1px solid #ffffff10}
+.trust-copy>label{font-size:9px;letter-spacing:.17em;color:#b6a5f0;font-weight:700}
+.trust-copy h2{font:600 clamp(37px,4.6vw,57px)/1.05 'Space Grotesk';letter-spacing:-.055em;margin:20px 0}
+.trust-copy h2 em{font-style:normal;background:linear-gradient(100deg,#d8caff,#a18aff 55%,#67ddeb);background-clip:text;color:transparent}
+.trust-copy p{max-width:470px;color:#9da3b2;font-size:11px;line-height:1.9}
+.trust-points{display:grid;gap:0}
+.trust-points>div{display:grid;grid-template-columns:34px 1fr;gap:13px;padding:17px 0;border-bottom:1px solid #ffffff14;align-items:start}
+.trust-points>div>svg{color:#bbaaff}
+.trust-points b{display:block;font-size:11px}
+.trust-points small{display:block;margin-top:5px;color:#969dac;font-size:9px;line-height:1.7}
+.platform-disclaimer{padding:17px 7%;border-top:1px solid #ffffff10;background:#07080c;color:#777f90;font-size:9px;line-height:1.8}
+.platform-disclaimer span{display:inline-block;margin-right:12px;color:#c5b4ff;font-size:8px;font-weight:700;letter-spacing:.14em}
+@media(max-width:900px){.capability-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.trust-section{padding-inline:6%;gap:5%}}
+@media(max-width:760px){.capabilities-section{padding:78px 6%}.capability-grid{grid-template-columns:1fr}.capability-card{min-height:unset}.trust-section{padding:78px 6%;grid-template-columns:1fr;gap:30px}}
