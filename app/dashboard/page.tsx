@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AuthActions from "@/components/auth-actions";
+import PrivyWalletReadOnly from "@/components/privy-wallet-readonly";
 import {
   Activity, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Bell, Check,
   ChevronDown, CircleHelp, Globe2, LayoutDashboard, LockKeyhole,
@@ -490,6 +491,7 @@ export default function Home() {
           </section>
           <section className="panel wallet-panel" id="wallets">
             <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect a Solana wallet to verify its public address. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
+            <PrivyWalletReadOnly />
             <div className="wallet-connect-grid">
               <article className="wallet-connect-card"><div className="wallet-network-logo solana-logo">S</div><div className="wallet-copy"><b>Solana</b><small>Phantom-compatible · Public address only</small></div><button onClick={connectSolana} className="connect-button">Connect wallet <Plus size={14} /></button></article>
               
