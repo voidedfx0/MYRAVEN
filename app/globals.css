@@ -301,3 +301,21 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 .external-wallet-card{background:linear-gradient(145deg,rgba(73,191,210,.07),rgba(255,255,255,.02))}
 .external-wallet-card .wallet-balance-card-top{color:#8ddce9}
 @media(max-width:640px){.wallet-balance-grid{grid-template-columns:1fr}.wallet-balance-card{padding:15px}}
+
+
+.receive-address-panel{margin:15px 0;padding:18px;border:1px solid rgba(164,139,255,.24);border-radius:12px;background:radial-gradient(ellipse at 0 0,rgba(145,112,255,.11),transparent 55%),rgba(255,255,255,.018)}
+.receive-address-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.receive-address-heading h3{margin:6px 0 0;color:#f3f0ff;font:600 17px/1.25 'Space Grotesk',sans-serif}
+.receive-address-status{margin:16px 0 8px;color:#a6adbd;font-size:11px}
+.receive-address-pending{display:flex;align-items:center;gap:14px;margin:17px 0 12px;padding:14px;border:1px dashed rgba(169,151,220,.25);border-radius:9px;background:rgba(9,10,17,.3)}
+.receive-address-orbit{display:grid;place-items:center;flex:0 0 42px;height:42px;border:1px solid rgba(175,146,255,.3);border-radius:50%;color:#c3adff;background:rgba(155,123,255,.1)}
+.receive-address-pending b{display:block;color:#e6e2f4;font-size:11px}
+.receive-address-pending p{margin:5px 0 0;color:#929bad;font-size:9px;line-height:1.65}
+.receive-address-value{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 0;padding:12px;border-radius:8px;background:rgba(4,6,12,.45)}
+.receive-address-value code{min-width:0;color:#d7d0ed;font-size:10px;overflow-wrap:anywhere}
+.receive-address-meta{display:flex;flex-wrap:wrap;gap:18px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}
+.receive-address-meta span{display:flex;gap:5px;color:#a2a9b8;font-size:9px}
+.receive-address-meta b{color:#e2deed;font-weight:700}
+.receive-address-warning{display:flex;align-items:flex-start;gap:8px;margin:13px 0 0;color:#c9b98c;font-size:9px;line-height:1.6}
+.receive-address-warning svg{flex:0 0 auto;margin-top:1px}
+@media(max-width:640px){.receive-address-heading{align-items:flex-start;flex-direction:column}.receive-address-value{align-items:flex-start;flex-direction:column}.receive-address-meta{gap:9px 15px}}
