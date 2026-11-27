@@ -10,14 +10,12 @@ function shortAddress(address: string) {
 }
 
 export default function PrivyWalletReadOnly() {
+  const [message, setMessage] = useState("");
   const { ready: authReady, authenticated, user, logout } = usePrivy();
   const { login } = useLogin({ onError: (error) => setMessage(String(error)) });
   const { ready: walletsReady, wallets } = useWallets();
-  const [message, setMessage] = useState("");
 
-  const solanaWallets = wallets.filter((wallet) =>
-    wallet.accounts.some((account) => account.address === wallet.address)
-  );
+  const solanaWallets = wallets;
 
   async function copyAddress(address: string) {
     try {
