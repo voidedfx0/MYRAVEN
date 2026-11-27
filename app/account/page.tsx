@@ -75,7 +75,7 @@ export default function AccountPage() {
           oauthSignupHandled.current = true;
           const metadata = data.user.user_metadata ?? {};
           const fullName = String(metadata.full_name ?? metadata.name ?? "").trim();
-          const parts = fullName.split(/\\s+/).filter(Boolean);
+          const parts = fullName.split(/\s+/).filter(Boolean);
           setFirstName(String(metadata.given_name ?? parts[0] ?? ""));
           setLastName(String(metadata.family_name ?? parts.slice(1).join(" ") ?? ""));
           setLegalFullName(fullName);
@@ -242,7 +242,7 @@ export default function AccountPage() {
         
         <label>EMAIL ADDRESS<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"/></label>
         <label>PASSWORD<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"}/></label>
-        <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16}/> : null}{mode === "signup" ? "oauthPending ? "Complete " + (accountType === "business" ? "business" : "personal") + " setup" : mode === "signup" ? "Create " + (accountType === "business" ? "business" : "personal") + " account" : "Sign in"}<ArrowUpRight size={16}/></button>
+        <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16}/> : null}{oauthPending ? "Complete " + (accountType === "business" ? "business" : "personal") + " setup" : mode === "signup" ? "Create " + (accountType === "business" ? "business" : "personal") + " account" : "Sign in"}<ArrowUpRight size={16}/></button>
       </form>}
       {authMethod === "email" && <><div className="account-or"><span/> OR <span/></div><button className="account-google" onClick={signInWithGoogle} disabled={loading}>{mode === "signup" ? "Sign up with Google" : "Sign in with Google"} <ArrowUpRight size={15}/></button></>}
       {message && <p className="account-message" role="status">{message}</p>}
