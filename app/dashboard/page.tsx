@@ -302,7 +302,7 @@ export default function Home() {
           <a href="#safety"><ShieldCheck size={17} />Payment safety</a>
           <a href="#ussd"><Globe2 size={17} />USSD simulator</a>
           <a href="#activity"><Bell size={17} />Notifications</a>
-          <a href="#settings"><Settings2 size={17} />Settings</a>
+          <a href="/settings"><Settings2 size={17} />Settings</a>
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><span className="help-icon"><CircleHelp size={16} /></span><b>Need a hand?</b><p>Explore how MYRAVEN connects payment methods.</p><a href="#how">Explore platform <ArrowUpRight size={13} /></a></div>
