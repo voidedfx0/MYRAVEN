@@ -124,8 +124,18 @@ async function requestTreasuryLiquidity(address: string, requiredLamports: numbe
   if (balance >= requiredLamports + RESERVE_LAMPORTS) return balance;
 
   // This is a one-time-style test treasury refill, never a customer-wallet faucet.
-  const signature = await rpc("requestAirdrop", [address, 1_000_000_000, { commitment: "confirmed" }]);
-  if (typeof signature !== "string" || signature.length < 40) throw new Error("Devnet could not seed the MYRAVEN test treasury.");
+  const faucetResponse = await fetch("https://api.devnet.solana.com", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: "myraven-treasury-seed", method: "requestAirdrop", params: [address, 1_000_000_000, { commitment: "confirmed" }] }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  const faucetPayload = await faucetResponse.json().catch(() => null);
+  const signature = faucetPayload?.result;
+  if (!faucetResponse.ok || faucetPayload?.error || typeof signature !== "string" || signature.length < 40) {
+    throw new Error("The public Solana Devnet faucet could not seed the MYRAVEN test treasury.");
+  }
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const statuses = await rpc("getSignatureStatuses", [[signature], { searchTransactionHistory: true }]);
     const status = statuses?.value?.[0];
