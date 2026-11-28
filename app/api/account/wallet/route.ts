@@ -103,7 +103,7 @@ export async function POST() {
     if (lookup.ok) {
       providerWallet = getWallet(await lookup.json());
     } else if (lookup.status !== 404) {
-      return NextResponse.json({ error: "MYRAVEN could not verify the existing Privy wallet. Please retry shortly." }, { status: 502 });
+      return NextResponse.json({ error: `Privy wallet lookup failed (HTTP ${lookup.status}). Check the Privy app credentials and wallet API permissions.` }, { status: 502 });
     }
 
     if (!providerWallet) {
