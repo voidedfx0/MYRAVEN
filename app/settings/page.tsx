@@ -121,6 +121,31 @@ export default function SettingsPage() {
     router.replace("/account?mode=signin");
   }
 
+  async function connectExternalWallet() {
+    setExternalWalletBusy(true);
+    setExternalWalletError("");
+    try {
+      const w = window as Window & { solana?: InjectedSolanaProvider; okxwallet?: { solana?: InjectedSolanaProvider } };
+      const provider = w.solana ?? w.okxwallet?.solana;
+      if (!provider) throw new Error("No Solana wallet extension found. Install Phantom or OKX Wallet, then try again.");
+      const result = await provider.connect();
+      const address = result.publicKey?.toString() ?? provider.publicKey?.toString();
+      if (!address) throw new Error("The wallet did not return a public address.");
+      setExternalWallet(address);
+    } catch (issue) {
+      setExternalWalletError(issue instanceof Error ? issue.message : "Could not connect external wallet.");
+    } finally {
+      setExternalWalletBusy(false);
+    }
+  }
+
+  async function disconnectExternalWallet() {
+    const w = window as Window & { solana?: InjectedSolanaProvider; okxwallet?: { solana?: InjectedSolanaProvider } };
+    const provider = w.solana ?? w.okxwallet?.solana;
+    try { await provider?.disconnect?.(); }
+    finally { setExternalWallet(""); setExternalWalletError(""); }
+  }
+
   if (loading) return <main className="settings-shell"><div className="settings-loading">Loading your secure settings…</div></main>;
 
   return <main className="settings-shell">
@@ -200,7 +225,20 @@ export default function SettingsPage() {
           </div>
           <div className="settings-feature-row"><Wallet size={17}/><span><b>Connect an external Solana wallet</b><small>Connect a wallet you already own, such as Phantom or OKX Wallet. This is optional and separate from your automatic MYRAVEN embedded wallet.</small></span><span className="settings-status">OPTIONAL</span></div>
           <div className="settings-wallet-panel">
-            {externalWallet ? <div className="settings-wallet-details"><div className="settings-wallet-address"><span>CONNECTED EXTERNAL WALLET</span><code>{externalWallet}</code><small>Browser wallet connection · separate from your MYRAVEN wallet</small><button type="button" className="settings-secondary" onClick={async()=>{const w=window as Window & {solana?:InjectedSolanaProvider;okxwallet?:{solana?:InjectedSolanaProvider}};const provider=w.solana??w.okxwallet?.solana;try{await provider?.disconnect?.();}finally{setExternalWallet("");}}>Disconnect external wallet</button></div></div> : <button type="button" className="settings-secondary" disabled={externalWalletBusy} onClick={async()=>{setExternalWalletBusy(true);setExternalWalletError("");try{const w=window as Window & {solana?:InjectedSolanaProvider;okxwallet?:{solana?:InjectedSolanaProvider}};const provider=w.solana??w.okxwallet?.solana;if(!provider)throw new Error("No Solana wallet extension found. Install Phantom or OKX Wallet, then try again.");const result=await provider.connect();const address=result.publicKey?.toString()??provider.publicKey?.toString();if(!address)throw new Error("The wallet did not return a public address.");setExternalWallet(address);}catch(e){setExternalWalletError(e instanceof Error?e.message:"Could not connect external wallet.");}finally{setExternalWalletBusy(false);}}}>{externalWalletBusy?"Connecting…":"Connect external wallet"} <ArrowUpRight size={14}/></button>}
+            {externalWallet ? (
+              <div className="settings-wallet-details">
+                <div className="settings-wallet-address">
+                  <span>CONNECTED EXTERNAL WALLET</span>
+                  <code>{externalWallet}</code>
+                  <small>Browser wallet connection · separate from your MYRAVEN wallet</small>
+                  <button type="button" className="settings-secondary" onClick={() => void disconnectExternalWallet()}>Disconnect external wallet</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="settings-secondary" disabled={externalWalletBusy} onClick={() => void connectExternalWallet()}>
+                {externalWalletBusy ? "Connecting…" : "Connect external wallet"} <ArrowUpRight size={14}/>
+              </button>
+            )}
             {externalWalletError && <p className="settings-footnote" role="status">{externalWalletError}</p>}
           </div>
           <div className="settings-feature-row"><Building2 size={17}/><span><b>Connected financial providers</b><small>Cards, banks and payout providers will appear here after secure integration.</small></span><span className="settings-status pending">NOT CONNECTED</span></div>
