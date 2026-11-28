@@ -90,8 +90,7 @@ export default function Home() {
   const [fundingTargetAsset, setFundingTargetAsset] = useState("SOL");
   const [fundingCheckoutLoading, setFundingCheckoutLoading] = useState(false);
   const [fundingMessage, setFundingMessage] = useState("");
-  const [fundingHistory, setFundingHistory] = useState<Array<{
-  }>>([]);
+  const [fundingHistory, setFundingHistory] = useState<FundingDeposit[]>([]);
   const [fundingHistoryLoading, setFundingHistoryLoading] = useState(false);
   const [fundingHistoryMessage, setFundingHistoryMessage] = useState("");
 
@@ -173,7 +172,8 @@ export default function Home() {
       const latest = refreshed.ok && Array.isArray(refreshedData.deposits) ? refreshedData.deposits : deposits;
 
       // Test-mode presentation only: never credits the spendable ledger or moves real SOL.
-      const latestDeposits: FundingDeposit[] = latest;\n      const readyForDemo = latestDeposits.filter((deposit) =>
+      const latestDeposits: FundingDeposit[] = latest;
+      const readyForDemo = latestDeposits.filter((deposit) =>
         deposit.status === "converting"
         && deposit.metadata?.payment_state === "successful"
         && deposit.metadata?.environment === "test"
