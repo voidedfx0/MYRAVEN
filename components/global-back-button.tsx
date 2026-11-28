@@ -1,10 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 export default function GlobalBackButton() {
   const router = useRouter();
+  const pathname = usePathname();
+
+  // The dashboard already has its own Back arrow beside the Workspace breadcrumb.
+  // Avoid showing a second, floating arrow there.
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return null;
 
   function goBack() {
     if (typeof window !== "undefined" && window.history.length > 1) {
