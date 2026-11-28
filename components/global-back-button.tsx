@@ -7,7 +7,7 @@ export default function GlobalBackButton() {
   const pathname = usePathname();
   const router = useRouter();
 
-  if (pathname === "/dashboard") return null;
+  if (pathname === "/dashboard" || pathname === "/dashboard/activity") return null;
 
   function goBack() {
     if (window.history.length > 1) router.back();
