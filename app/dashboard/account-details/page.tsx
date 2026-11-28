@@ -87,8 +87,8 @@ export default function AccountDetailsPage() {
   }
 
   return (
-    <main className="app-frame" style={{ minHeight: "100vh", padding: "34px 20px 60px" }}>
-      <div style={{ maxWidth: 980, margin: "0 auto" }}>
+    <main className="app-frame account-details-page" style={{ minHeight: "100vh", padding: "34px 20px 60px" }}>
+      <div className="account-details-shell" style={{ maxWidth: 980, margin: "0 auto" }}>
         <a href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 9, color: "#a9afbf", fontSize: 13, marginBottom: 30 }}>
           <ArrowLeft size={16} /> Back to dashboard
         </a>
@@ -101,9 +101,9 @@ export default function AccountDetailsPage() {
         {loading ? <div className="panel" style={{ padding: 28 }}>Loading your account details…</div> : !profile ? (
           <div className="panel" style={{ padding: 28 }}>Your profile could not be found. Please sign in again.</div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.35fr) minmax(260px,.8fr)", gap: 18, alignItems: "start" }}>
-            <section className="panel" style={{ padding: "clamp(20px,4vw,32px)" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 25 }}>
+          <div className="account-details-layout" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.35fr) minmax(260px,.8fr)", gap: 18, alignItems: "start" }}>
+            <section className="panel account-details-main-card" style={{ padding: "clamp(20px,4vw,32px)" }}>
+              <div className="account-details-card-heading" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 25 }}>
                 <div>
                   <span className="panel-kicker">PERSONAL ACCOUNT</span>
                   <h2 style={{ margin: "7px 0 0", fontSize: 22 }}>{profile.display_name || [profile.first_name, profile.last_name].filter(Boolean).join(" ") || "MYRAVEN member"}</h2>
@@ -111,8 +111,8 @@ export default function AccountDetailsPage() {
                 <span className="read-only-tag"><ShieldCheck size={13} /> UNIQUE TO YOU</span>
               </div>
 
-              <div style={{ display: "grid", gap: 13 }}>
-                <div style={{ padding: 18, borderRadius: 15, border: "1px solid rgba(155,123,255,.28)", background: "linear-gradient(120deg,rgba(124,58,237,.13),rgba(84,217,239,.04))" }}>
+              <div className="account-details-items" style={{ display: "grid", gap: 13 }}>
+                <div className="account-detail-item" style={{ padding: 18, borderRadius: 15, border: "1px solid rgba(155,123,255,.28)", background: "linear-gradient(120deg,rgba(124,58,237,.13),rgba(84,217,239,.04))" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                     <span className="panel-kicker">MYRAVEN ID</span>
                     <button className="connect-button" onClick={() => void copy(profile.myraven_id, "MYRAVEN ID")}><Copy size={13} /> Copy</button>
@@ -121,7 +121,7 @@ export default function AccountDetailsPage() {
                   <small style={{ color: "#9ca3b4" }}>Your name-based ID with a unique 4-digit ending</small>
                 </div>
 
-                <div style={{ padding: 18, borderRadius: 15, border: "1px solid var(--line)", background: "rgba(255,255,255,.025)" }}>
+                <div className="account-detail-item" style={{ padding: 18, borderRadius: 15, border: "1px solid var(--line)", background: "rgba(255,255,255,.025)" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                     <span className="panel-kicker">ACCOUNT NUMBER</span>
                     <button className="connect-button" onClick={() => void copy(profile.account_number, "Account number")}><Copy size={13} /> Copy</button>
@@ -151,7 +151,7 @@ export default function AccountDetailsPage() {
               </div>
             </section>
 
-            <aside className="panel" style={{ padding: 22, textAlign: "center" }}>
+            <aside className="panel account-details-qr-card" style={{ padding: 22, textAlign: "center" }}>
               <span className="panel-kicker">SCAN TO PAY</span>
               <div style={{ display: "grid", placeItems: "center", padding: 13, background: "#fff", borderRadius: 16, margin: "16px auto", width: "min(100%,260px)", aspectRatio: "1" }}>
                 {qrImage ? <img src={qrImage} alt="MYRAVEN account QR code" width="230" height="230" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <QrCode size={60} color="#111" />}
