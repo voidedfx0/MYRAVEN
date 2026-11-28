@@ -104,6 +104,8 @@ export default function Home() {
   const [fundingHistory, setFundingHistory] = useState<FundingDeposit[]>([]);
   const [fundingHistoryLoading, setFundingHistoryLoading] = useState(false);
   const [fundingHistoryMessage, setFundingHistoryMessage] = useState("");
+  const [treasurySetupLoading, setTreasurySetupLoading] = useState(false);
+  const [treasurySetupMessage, setTreasurySetupMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -893,6 +895,25 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
               </article>
             </div>
             <div className="wallet-security"><ShieldCheck size={15} /><span>External wallet balances are informational only. MYRAVEN does not receive signing permission, move funds, or access your seed phrase or private key.</span></div>
+            <div className="wallet-security">
+              <ShieldCheck size={15} />
+              <span>MYRAVEN test treasury · one-time Devnet wallet used to settle verified test deposits. It is separate from customer wallets.</span>
+              <button className="connect-button" type="button" disabled={treasurySetupLoading} onClick={async () => {
+                setTreasurySetupLoading(true);
+                setTreasurySetupMessage("");
+                try {
+                  const response = await fetch("/api/admin/treasury", { method: "POST", cache: "no-store" });
+                  const data = await response.json();
+                  if (!response.ok) throw new Error(data.error ?? "Treasury setup failed.");
+                  setTreasurySetupMessage("Treasury ready · " + data.address);
+                } catch (error) {
+                  setTreasurySetupMessage(error instanceof Error ? error.message : "Treasury setup failed.");
+                } finally {
+                  setTreasurySetupLoading(false);
+                }
+              }}>{treasurySetupLoading ? "Creating…" : "Create treasury"}</button>
+            </div>
+            {treasurySetupMessage ? <p className="wallet-message" role="status">{treasurySetupMessage}</p> : null}
           </section>
 
           <section className="panel ussd-panel" id="ussd">
