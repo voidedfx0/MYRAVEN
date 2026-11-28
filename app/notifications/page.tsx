@@ -13,6 +13,11 @@ export default async function NotificationsPage() {
     .order("created_at", { ascending: false })
     .limit(100);
 
+  if (!error && notifications?.length) {
+    await supabase.from("notifications").update({ read_at: new Date().toISOString() })
+      .eq("user_id", user.id).is("read_at", null);
+  }
+
   return (
     <main className="app-frame">
       <section className="main-area">
@@ -21,7 +26,7 @@ export default async function NotificationsPage() {
           <Link className="connect-button" href="/dashboard">Back to overview</Link>
         </header>
         <div className="content-wrap">
-          <section className="welcome-row"><div><div className="eyebrow">MYRAVEN · INBOX</div><h1>Notifications</h1><p>Payment updates and account alerts.</p></div></section>
+          <section className="welcome-row"><div><div className="eyebrow">MYRAVEN · INBOX</div><h1>Notifications</h1><p>Your latest payment confirmations and account alerts, newest first.</p></div></section>
           <section className="panel funding-hub-panel">
             {error ? <p className="funding-disclaimer">Notifications are temporarily unavailable. Refresh to try again.</p>
               : notifications?.length ? <div className="funding-history-list">{notifications.map((item) => (
@@ -30,7 +35,7 @@ export default async function NotificationsPage() {
                   <span className="funding-history-copy"><b>{item.title}</b><small>{item.body}</small><small>{new Date(item.created_at).toLocaleString()}</small></span>
                   <span className="funding-history-status"><b>{item.read_at ? "Read" : "New"}</b><small>{item.category}</small></span>
                 </article>
-              ))}</div> : <p className="funding-history-empty">You’re all caught up. New transfer and funding alerts will appear here.</p>}
+              ))}</div> : <p className="funding-history-empty">No notifications yet. Confirmed sends, incoming SOL and funding updates will appear here.</p>}
           </section>
         </div>
       </section>
