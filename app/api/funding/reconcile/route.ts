@@ -34,8 +34,8 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (error || !deposit) return NextResponse.json({ error: "Funding request not found." }, { status: 404 });
-  if (deposit.status === "converting") {
-    return NextResponse.json({ status: "converting", paymentStatus: "successful", conversionStatus: "pending" });
+  if (deposit.status === "converting" && deposit.metadata?.payment_state === "successful") {
+    return NextResponse.json({ status: "converting", paymentStatus: "successful", conversionStatus: deposit.metadata?.mock_settlement?.transfer_status === "simulated_success" ? "simulated_success" : "pending" });
   }
   if (["credited", "failed", "cancelled", "expired"].includes(deposit.status)) {
     return NextResponse.json({ status: deposit.status });
