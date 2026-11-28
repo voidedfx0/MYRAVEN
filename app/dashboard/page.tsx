@@ -25,7 +25,11 @@ type FundingDeposit = {
   created_at: string; updated_at: string;
   metadata?: {
     payment_state?: string; environment?: string;
-    mock_settlement?: { transfer_status?: string; sol_amount?: number | string };
+    mock_settlement?: {
+      transfer_status?: string; sol_amount?: number | string;
+      sol_price_usd?: number; fiat_usd_rate?: number; fiat_amount?: number;
+      fiat_currency?: string; quote_source?: string; completed_at?: string;
+    };
   } | null;
 };
 
@@ -80,6 +84,9 @@ export default function Home() {
   const [availableSol, setAvailableSol] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(true);
   const [balanceError, setBalanceError] = useState(false);
+  const [preferredCurrency, setPreferredCurrency] = useState("NGN");
+  const [solPriceLocal, setSolPriceLocal] = useState<number | null>(null);
+  const [solPriceUpdatedAt, setSolPriceUpdatedAt] = useState<string | null>(null);
   const [externalSolBalance, setExternalSolBalance] = useState<number | null>(null);
   const [externalBalanceLoading, setExternalBalanceLoading] = useState(false);
   const [externalBalanceError, setExternalBalanceError] = useState("");
@@ -101,6 +108,10 @@ export default function Home() {
         const response = await fetch("/api/account/summary", { cache: "no-store" });
         if (!response.ok) throw new Error("Balance unavailable");
         const data = await response.json();
+        const countryCode = String(data.profile?.country_code ?? "").toUpperCase();
+        const profileCountry = fundingCountriesData.countries.find((country) => country.code === countryCode);
+        const profileCurrency = profileCountry?.currency?.[0];
+        if (profileCurrency && /^[A-Z]{3}$/.test(profileCurrency)) setPreferredCurrency(profileCurrency);
         const rows = Array.isArray(data.balances) ? data.balances : [];
         const total = rows.reduce((sum: number, row: { asset_code?: string; network_code?: string; account_type?: string; balance?: string | number }) => {
           const isSol = row.asset_code?.toUpperCase() === "SOL" && row.network_code?.toLowerCase() === "solana";
@@ -118,6 +129,26 @@ export default function Home() {
     return () => { active = false; };
   }, []);
 
+
+  useEffect(() => {
+    let active = true;
+    async function loadSolPrice() {
+      try {
+        const response = await fetch("/api/market/sol-price?currency=" + encodeURIComponent(preferredCurrency), { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok || !Number.isFinite(Number(data.price))) throw new Error("Price unavailable");
+        if (active) {
+          setSolPriceLocal(Number(data.price));
+          setSolPriceUpdatedAt(data.updatedAt ?? null);
+        }
+      } catch {
+        if (active) { setSolPriceLocal(null); setSolPriceUpdatedAt(null); }
+      }
+    }
+    void loadSolPrice();
+    const interval = window.setInterval(loadSolPrice, 60_000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [preferredCurrency]);
 
   const [walletMessage, setWalletMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -188,7 +219,6 @@ export default function Home() {
           body: JSON.stringify({
             deposit_id: deposit.id,
             usdc_amount: sourceAmount,
-            sol_amount: Number((sourceAmount * 0.01).toFixed(8)),
             outcome: "success"
           })
         }).catch(() => null);
@@ -406,6 +436,8 @@ export default function Home() {
     setExternalBalanceError("");
     setWalletMessage("Wallet disconnected from this session.");
   }
+
+const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.metadata?.mock_settlement?.transfer_status === "simulated_success" ? Number(deposit.metadata.mock_settlement.sol_amount ?? 0) : 0), 0);
 
   const nav = [
     { label: "Overview", icon: LayoutDashboard },
@@ -710,7 +742,9 @@ export default function Home() {
                 <div className="wallet-balance-card-top"><span><Wallet size={15} /> MYRAVEN WALLET</span><small>INTERNAL LEDGER</small></div>
                 <strong>{balanceLoading ? "Loading…" : availableSol === null ? "— SOL" : `${availableSol.toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL`}</strong>
                 <p>Available to send from your MYRAVEN account. Pending funds are excluded.</p>
-                <small className="wallet-card-foot">Demo SOL from verified test deposits: {fundingHistory.reduce((sum, deposit) => sum + (deposit.metadata?.mock_settlement?.transfer_status === "simulated_success" ? Number(deposit.metadata.mock_settlement.sol_amount ?? 0) : 0), 0).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL · simulation only, not spendable</small>
+                <small className="wallet-card-foot">Demo SOL from verified deposits: {demoSolBalance.toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL{solPriceLocal !== null ? " ≈ " + money(demoSolBalance * solPriceLocal, preferredCurrency) : ""} · simulated, not spendable</small>
+                <small className="wallet-card-foot">{solPriceLocal !== null ? "1 SOL ≈ " + money(solPriceLocal, preferredCurrency) + (solPriceUpdatedAt ? " · live market estimate" : "") : "Local SOL market estimate unavailable"}</small>
+                <small className="wallet-card-foot">{availableSol !== null && solPriceLocal !== null ? "≈ " + money(availableSol * solPriceLocal, preferredCurrency) + " · " + preferredCurrency : ""}</small>
                 <small className="wallet-card-foot">{balanceError ? "Balance could not be loaded" : "Ledger-backed balance · Solana Devnet · Test only"}</small>
               </article>
               <article className="wallet-balance-card external-wallet-card">
