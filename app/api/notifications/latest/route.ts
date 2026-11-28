@@ -12,12 +12,13 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 async function reconcilePendingTransfers(admin: ReturnType<typeof createSupabaseAdmin>, currentUserId: string) {
+  const adminDb = admin as any;
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
   const appSecret = process.env.PRIVY_APP_SECRET;
   if (!appId || !appSecret) return;
 
   const privy = new PrivyClient({ appId, appSecret });
-  const { data: pendingData } = await admin.from("ledger_transactions")
+  const { data: pendingData } = await adminDb.from("ledger_transactions")
     .select("user_id,source_reference,description")
     .eq("user_id", currentUserId)
     .eq("source_type", "transfer")
@@ -30,7 +31,7 @@ async function reconcilePendingTransfers(admin: ReturnType<typeof createSupabase
     const actionId = String(pending.source_reference ?? "");
     if (!/^[a-zA-Z0-9_-]{8,100}$/.test(actionId)) continue;
 
-    const { data: pairData } = await admin.from("ledger_transactions")
+    const { data: pairData } = await adminDb.from("ledger_transactions")
       .select("user_id,description")
       .eq("source_type", "transfer")
       .eq("source_reference", actionId);
@@ -38,7 +39,7 @@ async function reconcilePendingTransfers(admin: ReturnType<typeof createSupabase
     const senderRow = pairRows.find((row) => String(row.description ?? "").startsWith("Sent "));
     if (!senderRow) continue;
 
-    const { data: senderWalletData } = await admin.from("user_solana_wallets")
+    const { data: senderWalletData } = await adminDb.from("user_solana_wallets")
       .select("provider_wallet_reference,status,network,custody_provider")
       .eq("user_id", senderRow.user_id)
       .maybeSingle();
@@ -57,14 +58,14 @@ async function reconcilePendingTransfers(admin: ReturnType<typeof createSupabase
       const status = String(action.status ?? "pending").toLowerCase();
 
       if (status === "succeeded") {
-        await admin.from("ledger_transactions").update({ status: "posted" })
+        await adminDb.from("ledger_transactions").update({ status: "posted" })
           .eq("source_type", "transfer").eq("source_reference", actionId);
         for (const row of pairRows) {
-          const { data: existing } = await admin.from("notifications").select("id")
+          const { data: existing } = await adminDb.from("notifications").select("id")
             .eq("user_id", row.user_id).contains("data", { action_id: actionId }).limit(1);
           if (existing?.length) continue;
           const isSender = String(row.description ?? "").startsWith("Sent ");
-          const { error: insertError } = await admin.from("notifications").insert({
+          const { error: insertError } = await adminDb.from("notifications").insert({
             user_id: row.user_id,
             category: "payment",
             title: isSender ? "SOL sent successfully" : "You received SOL 🎉",
@@ -76,7 +77,7 @@ async function reconcilePendingTransfers(admin: ReturnType<typeof createSupabase
           if (insertError) console.error("[MYRAVEN notifications] Could not create transfer alert", insertError.message);
         }
       } else if (["failed", "rejected", "cancelled", "reverted"].includes(status)) {
-        await admin.from("ledger_transactions").update({ status: "failed" })
+        await adminDb.from("ledger_transactions").update({ status: "failed" })
           .eq("source_type", "transfer").eq("source_reference", actionId);
       }
     } catch (error) {
