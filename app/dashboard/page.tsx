@@ -109,20 +109,25 @@ export default function Home() {
     let active = true;
     async function loadWalletBalance() {
       try {
-        const response = await fetch("/api/account/summary", { cache: "no-store" });
-        if (!response.ok) throw new Error("Balance unavailable");
-        const data = await response.json();
-        const countryCode = String(data.profile?.country_code ?? "").toUpperCase();
-        const profileCountry = fundingCountriesData.countries.find((country) => country.code === countryCode);
-        const profileCurrency = profileCountry?.currency?.[0];
-        if (profileCurrency && /^[A-Z]{3}$/.test(profileCurrency)) setPreferredCurrency(profileCurrency);
-        const rows = Array.isArray(data.balances) ? data.balances : [];
-        const total = rows.reduce((sum: number, row: { asset_code?: string; network_code?: string; account_type?: string; balance?: string | number }) => {
-          const isSol = row.asset_code?.toUpperCase() === "SOL" && row.network_code?.toLowerCase() === "solana";
-          const isAvailable = ["available", "spendable"].includes((row.account_type ?? "").toLowerCase());
-          return isSol && isAvailable ? sum + Number(row.balance ?? 0) : sum;
-        }, 0);
-        if (active) setAvailableSol(Number.isFinite(total) ? total : 0);
+        const [summaryResponse, balanceResponse] = await Promise.all([
+          fetch("/api/account/summary", { cache: "no-store" }),
+          fetch("/api/account/wallet/balance", { cache: "no-store" }),
+        ]);
+        if (summaryResponse.ok) {
+          const summary = await summaryResponse.json();
+          const countryCode = String(summary.profile?.country_code ?? "").toUpperCase();
+          const profileCountry = fundingCountriesData.countries.find((country) => country.code === countryCode);
+          const profileCurrency = profileCountry?.currency?.[0];
+          if (active && profileCurrency && /^[A-Z]{3}$/.test(profileCurrency)) setPreferredCurrency(profileCurrency);
+        }
+        const balance = await balanceResponse.json();
+        if (!balanceResponse.ok || !Number.isFinite(Number(balance.availableSol))) {
+          throw new Error(balance.error ?? "Live wallet balance unavailable");
+        }
+        if (active) {
+          setAvailableSol(Number(balance.availableSol));
+          setBalanceError(false);
+        }
       } catch {
         if (active) { setAvailableSol(null); setBalanceError(true); }
       } finally {
@@ -130,7 +135,8 @@ export default function Home() {
       }
     }
     void loadWalletBalance();
-    return () => { active = false; };
+    const interval = window.setInterval(loadWalletBalance, 20_000);
+    return () => { active = false; window.clearInterval(interval); };
   }, []);
 
 
@@ -618,10 +624,8 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
                 <div className="transfer-connector"><span><ArrowDownLeft size={15} /></span><i /></div>
                 <label className="field-label">SEND TO</label>
                 <select className="recipient-method-select" value={recipientType} onChange={(event) => { setRecipientType(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); setRecipientReference(""); setRecipientBank(""); setRecipientBankAccount(""); setRecipientLookupStatus(""); setDestination(event.target.value === "local-bank" ? "bank" : "solana"); }} aria-label="Recipient destination">
-                  <option value="solana">Solana address · receive SOL</option>
                   <option value="myraven">MYRAVEN ID · receive SOL</option>
                   <option value="account">MYRAVEN account · receive SOL</option>
-                  <option value="local-bank">Local bank · receive local currency</option>
                 </select>
                 <label className="field-label preference-label">RECIPIENT IDENTIFIER</label>
                 {recipientType === "local-bank" ? <div className="local-bank-fields">
