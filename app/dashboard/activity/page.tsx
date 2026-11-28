@@ -19,6 +19,7 @@ function statusLabel(status: string) {
   if (status === "converting") return "Payment completed · SOL conversion pending";
   if (status === "submitted_onchain" || status === "confirming") return "SOL settlement processing";
   if (status === "awaiting_payment") return "Awaiting payment confirmation";
+  if (status === "recovery_pending") return "Needs review · settlement not confirmed";
   return status.replaceAll("_", " ");
 }
 
@@ -53,7 +54,7 @@ export default async function FundingActivityPage({ searchParams }: { searchPara
   const sentTransactions = transactions.filter((item) => item.source_type === "transfer" && (item.description ?? "").startsWith("Sent "));
   const receivedTransactions = transactions.filter((item) => item.source_type === "transfer" && (item.description ?? "").startsWith("Received "));
   const pendingTransactions = transactions.filter((item) => item.status === "pending");
-  const pendingDeposits = deposits.filter((item) => ["awaiting_payment", "converting", "submitted_onchain", "confirming"].includes(item.status));
+  const pendingDeposits = deposits.filter((item) => ["awaiting_payment", "converting", "submitted_onchain", "confirming", "recovery_pending"].includes(item.status));
   const error = depositResult.error || transactionResult.error;
 
   return (
@@ -68,7 +69,7 @@ export default async function FundingActivityPage({ searchParams }: { searchPara
             <div>
               <div className="eyebrow">MYRAVEN · TRANSACTION RECORDS</div>
               <h1>Activity</h1>
-              <p>Your complete funding history and payment verification details.</p>
+              <p>See every transfer you sent or received, wallet funding record, and payment still processing.</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}><div className="welcome-date"><span>RECORDS</span><b>{deposits.length + transactions.length} transactions</b></div><ReconcileActivity references={referencesToVerify} /></div>
           </section>
