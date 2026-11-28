@@ -54,7 +54,7 @@ export default function Home() {
       <div className="hero-copy">
         <div className="marketing-kicker"><i/> GLOBAL PAYMENTS. CONNECTED INTELLIGENCE.</div>
         <h1>Money moves.<br/><em>Intelligence</em><br/>connects.</h1>
-        <p>One connected payment experience to fund, receive, convert and send value — bringing payment choices, local payout pathways and intelligent assistance into one place.</p>
+        <p>Send your SOL worldwide or pay out to a local bank account. From wallet to bank, across borders and currencies — MYRAVEN has you covered.</p>
         <div className="hero-ctas"><Link className="button-primary" href="/account">Create your account <ArrowUpRight size={16}/></Link><a className="button-secondary" href="#platform">Explore the platform <ArrowDown size={15}/></a></div>
         <div className="hero-note"><i/> Solana-first settlement design <span/> Built for connected payment journeys</div>
       </div>
