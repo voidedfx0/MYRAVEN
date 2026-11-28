@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 type AccountKind = "personal" | "business";
 type Preferences = { displayName: string; currency: string; paymentAlerts: boolean; securityAlerts: boolean; productUpdates: boolean };
 type WalletInfo = { address: string; status: string; network: string } | null;
+type InjectedSolanaProvider = { connect: () => Promise<{ publicKey?: { toString: () => string } }>; disconnect?: () => Promise<void>; publicKey?: { toString: () => string } };
 
 const defaults: Preferences = { displayName: "", currency: "USD", paymentAlerts: true, securityAlerts: true, productUpdates: false };
 
@@ -44,6 +45,9 @@ export default function SettingsPage() {
   const [walletLoading, setWalletLoading] = useState(true);
   const [walletError, setWalletError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [externalWallet, setExternalWallet] = useState("");
+  const [externalWalletBusy, setExternalWalletBusy] = useState(false);
+  const [externalWalletError, setExternalWalletError] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -193,6 +197,11 @@ export default function SettingsPage() {
               </div>
               <p className="settings-footnote">This is your unique MYRAVEN wallet address. Only send Devnet SOL to it while MYRAVEN is in test mode. Mainnet deposits are not enabled.</p>
             </> : <div className="settings-wallet-error" role="status">{walletError || "Your wallet has not been provisioned yet."}<button type="button" className="settings-secondary" onClick={async()=>{setWalletLoading(true);setWalletError("");try{const r=await fetch("/api/account/wallet",{method:"POST",cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error??"Wallet setup failed.");setWallet({address:d.address,status:d.status,network:d.network});}catch(e){setWalletError(e instanceof Error?e.message:"Wallet setup failed.");}finally{setWalletLoading(false);}}}><RefreshCw size={14}/> Generate wallet</button></div>}
+          </div>
+          <div className="settings-feature-row"><Wallet size={17}/><span><b>Connect an external Solana wallet</b><small>Connect a wallet you already own, such as Phantom or OKX Wallet. This is optional and separate from your automatic MYRAVEN embedded wallet.</small></span><span className="settings-status">OPTIONAL</span></div>
+          <div className="settings-wallet-panel">
+            {externalWallet ? <div className="settings-wallet-details"><div className="settings-wallet-address"><span>CONNECTED EXTERNAL WALLET</span><code>{externalWallet}</code><small>Browser wallet connection · separate from your MYRAVEN wallet</small><button type="button" className="settings-secondary" onClick={async()=>{const w=window as Window & {solana?:InjectedSolanaProvider;okxwallet?:{solana?:InjectedSolanaProvider}};const provider=w.solana??w.okxwallet?.solana;try{await provider?.disconnect?.();}finally{setExternalWallet("");}}>Disconnect external wallet</button></div></div> : <button type="button" className="settings-secondary" disabled={externalWalletBusy} onClick={async()=>{setExternalWalletBusy(true);setExternalWalletError("");try{const w=window as Window & {solana?:InjectedSolanaProvider;okxwallet?:{solana?:InjectedSolanaProvider}};const provider=w.solana??w.okxwallet?.solana;if(!provider)throw new Error("No Solana wallet extension found. Install Phantom or OKX Wallet, then try again.");const result=await provider.connect();const address=result.publicKey?.toString()??provider.publicKey?.toString();if(!address)throw new Error("The wallet did not return a public address.");setExternalWallet(address);}catch(e){setExternalWalletError(e instanceof Error?e.message:"Could not connect external wallet.");}finally{setExternalWalletBusy(false);}}}>{externalWalletBusy?"Connecting…":"Connect external wallet"} <ArrowUpRight size={14}/></button>}
+            {externalWalletError && <p className="settings-footnote" role="status">{externalWalletError}</p>}
           </div>
           <div className="settings-feature-row"><Building2 size={17}/><span><b>Connected financial providers</b><small>Cards, banks and payout providers will appear here after secure integration.</small></span><span className="settings-status pending">NOT CONNECTED</span></div>
         </section>
