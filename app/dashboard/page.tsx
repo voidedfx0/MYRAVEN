@@ -89,6 +89,7 @@ export default function Home() {
   const [balanceError, setBalanceError] = useState(false);
   const [preferredCurrency, setPreferredCurrency] = useState("USD");
   const [solPriceLocal, setSolPriceLocal] = useState<number | null>(null);
+  const [solPriceUsd, setSolPriceUsd] = useState<number | null>(null);
   const [solPriceUpdatedAt, setSolPriceUpdatedAt] = useState<string | null>(null);
   const [externalSolBalance, setExternalSolBalance] = useState<number | null>(null);
   const [externalBalanceLoading, setExternalBalanceLoading] = useState(false);
@@ -170,6 +171,23 @@ export default function Home() {
     const interval = window.setInterval(loadSolPrice, 60_000);
     return () => { active = false; window.clearInterval(interval); };
   }, [preferredCurrency]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadUsdSolPrice() {
+      try {
+        const response = await fetch("/api/market/sol-price?currency=USD", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok || !Number.isFinite(Number(data.price)) || Number(data.price) <= 0) throw new Error("USD price unavailable");
+        if (active) setSolPriceUsd(Number(data.price));
+      } catch {
+        if (active) setSolPriceUsd(null);
+      }
+    }
+    void loadUsdSolPrice();
+    const interval = window.setInterval(loadUsdSolPrice, 60_000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, []);
 
   const [walletMessage, setWalletMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -332,7 +350,7 @@ export default function Home() {
     const solAmount = Number(amount);
     if (!Number.isFinite(solAmount) || solAmount <= 0) { setNotice("Enter a valid SOL amount."); return; }
     if (availableSol === null || solAmount > availableSol) { setNotice("Insufficient available SOL balance or balance unavailable."); return; }
-    if (solPriceLocal === null || solPriceLocal <= 0) { setNotice("Live SOL price is unavailable. Try again shortly."); return; }
+    if (solPriceUsd === null || solPriceUsd <= 0) { setNotice("Live SOL price is unavailable. Try again shortly."); return; }
     setLoading(true);
     setNotice("Comparing eligible routes…");
     setApproved(false);
@@ -341,7 +359,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: Number(amount) * Number(solPriceLocal), sourceCurrency: "USD",
+          amount: Number(amount) * Number(solPriceUsd), sourceCurrency: "USD",
           destinationCurrency: recipientType === "local-bank" ? destinationCurrency : "USD",
           destination: recipientType === "local-bank" ? "bank" : "solana", preference,
         }),
@@ -640,7 +658,7 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
 
             <section className="panel route-panel">
               <div className="panel-heading"><div><span className="panel-kicker">INTELLIGENCE OUTPUT</span><h2>Route recommendations</h2><p>Ranked by your selected priorities.</p></div><span className="live-indicator"><i /> PREVIEW</span></div>
-              {quotes.length === 0 ? <div className="empty-routes"><div className="empty-orbit"><ArrowLeftRight size={23} /></div><b>Your route options will appear here</b><p>Enter a payment amount and select “Find best route” to see a comparison.</p></div> : <div className="route-list">{quotes.map((quote, index) => <button className={`route-option ${selectedRoute === quote.id ? "route-selected" : ""}`} onClick={() => setSelectedRoute(quote.id)} key={quote.id}><span className={`route-icon ${quote.rail}`}>{quote.rail === "solana" ? "S" : "↗"}</span><span className="route-info"><b>{quote.label}{index === 0 ? <em>BEST MATCH</em> : null}</b><small>{quote.estimatedMinutes} min · {quote.reliability}% illustrative reliability</small></span><span className="route-output"><b>{recipientType === "local-bank" ? money(quote.recipientAmount, destinationCurrency) : solPriceLocal ? (quote.recipientAmount / solPriceLocal).toFixed(6) + " SOL" : "—"}</b><small>Fee {solPriceLocal ? (quote.estimatedFee / solPriceLocal).toFixed(6) + " SOL" : "—"}</small></span><span className="route-score">{quote.score}</span></button>)}</div>}
+              {quotes.length === 0 ? <div className="empty-routes"><div className="empty-orbit"><ArrowLeftRight size={23} /></div><b>Your route options will appear here</b><p>Enter a payment amount and select “Find best route” to see a comparison.</p></div> : <div className="route-list">{quotes.map((quote, index) => <button className={`route-option ${selectedRoute === quote.id ? "route-selected" : ""}`} onClick={() => setSelectedRoute(quote.id)} key={quote.id}><span className={`route-icon ${quote.rail}`}>{quote.rail === "solana" ? "S" : "↗"}</span><span className="route-info"><b>{quote.label}{index === 0 ? <em>BEST MATCH</em> : null}</b><small>{quote.estimatedMinutes} min · {quote.reliability}% illustrative reliability</small></span><span className="route-output"><b>{recipientType === "local-bank" ? money(quote.recipientAmount, destinationCurrency) : solPriceUsd ? (quote.recipientAmount / solPriceUsd).toFixed(6) + " SOL" : "—"}</b><small>Fee {solPriceUsd ? (quote.estimatedFee / solPriceUsd).toFixed(6) + " SOL" : "—"}</small></span><span className="route-score">{quote.score}</span></button>)}</div>}
               {quotes.length > 0 ? <div className="route-explanation"><Sparkles size={15} /><span><b>Why this route?</b> {bestQuote?.reasons.join(" · ")}</span></div> : <div className="route-footnote"><span><span className="legend-dot purple" /> Cost</span><span><span className="legend-dot cyan" /> Speed</span><span><span className="legend-dot green" /> Reliability</span></div>}
               {quotes.length > 0 ? <button className="secondary-action" onClick={() => setApprovalOpen(true)}>Review payment details <ArrowUpRight size={15} /></button> : null}
               <p className="simulation-note">{notice}</p>
@@ -830,7 +848,7 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
       </section>
 
       {menuOpen ? <button className="mobile-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" /> : null}
-      {approvalOpen && bestQuote ? <div className="modal-backdrop" role="presentation" onClick={() => setApprovalOpen(false)}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setApprovalOpen(false)} aria-label="Close"><X size={18} /></button><span className="panel-kicker">PAYMENT REVIEW · SIMULATION</span><h2 id="approval-title">Review before you approve</h2><p>Review only. SOL is the source balance; the selected destination determines what the recipient receives.</p><div className="review-rows"><span>Recipient <b>{recipientProfile?.displayName ?? (recipientType === "solana" ? "External Solana wallet" : recipientType === "local-bank" ? "Local bank payout" : "Not verified")}</b></span><span>Recipient check <b>{recipientProfile ? "MYRAVEN profile matched" : recipientLookupStatus || "Not checked"}</b></span><span>Identifier <b>{recipientReference || "Not provided"}</b></span><span>You send <b>{Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL</b></span><span>Route <b>{bestQuote.label}</b></span><span>Estimated fee <b>{solPriceLocal ? (bestQuote.estimatedFee / solPriceLocal).toFixed(6) + " SOL" : "—"}</b></span><span>Recipient receives <b>{recipientType === "local-bank" ? money(bestQuote.recipientAmount, destinationCurrency) : (solPriceLocal ? (bestQuote.recipientAmount / solPriceLocal).toFixed(6) + " SOL" : "—")}</b></span></div>{approved ? <div className="approval-result"><Check size={16} /> Demo approval recorded locally. No transaction was submitted.</div> : <div className="approval-result"><LockKeyhole size={16} /> Transfer execution is not connected yet. No SOL has been moved or reserved.</div>}<button className="cancel-review" onClick={() => setApprovalOpen(false)}>Go back</button></section></div> : null}
+      {approvalOpen && bestQuote ? <div className="modal-backdrop" role="presentation" onClick={() => setApprovalOpen(false)}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setApprovalOpen(false)} aria-label="Close"><X size={18} /></button><span className="panel-kicker">PAYMENT REVIEW · SIMULATION</span><h2 id="approval-title">Review before you approve</h2><p>Review only. SOL is the source balance; the selected destination determines what the recipient receives.</p><div className="review-rows"><span>Recipient <b>{recipientProfile?.displayName ?? (recipientType === "solana" ? "External Solana wallet" : recipientType === "local-bank" ? "Local bank payout" : "Not verified")}</b></span><span>Recipient check <b>{recipientProfile ? "MYRAVEN profile matched" : recipientLookupStatus || "Not checked"}</b></span><span>Identifier <b>{recipientReference || "Not provided"}</b></span><span>You send <b>{Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL</b></span><span>Route <b>{bestQuote.label}</b></span><span>Estimated fee <b>{solPriceUsd ? (bestQuote.estimatedFee / solPriceUsd).toFixed(6) + " SOL" : "—"}</b></span><span>Recipient receives <b>{recipientType === "local-bank" ? money(bestQuote.recipientAmount, destinationCurrency) : (solPriceUsd ? (bestQuote.recipientAmount / solPriceUsd).toFixed(6) + " SOL" : "—")}</b></span></div>{approved ? <div className="approval-result"><Check size={16} /> Demo approval recorded locally. No transaction was submitted.</div> : <div className="approval-result"><LockKeyhole size={16} /> Transfer execution is not connected yet. No SOL has been moved or reserved.</div>}<button className="cancel-review" onClick={() => setApprovalOpen(false)}>Go back</button></section></div> : null}
     </main>
   );
 }
