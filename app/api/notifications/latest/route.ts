@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 function record(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
@@ -22,7 +23,7 @@ async function reconcilePendingTransfers(admin: ReturnType<typeof createSupabase
     .eq("source_type", "transfer")
     .eq("status", "pending")
     .order("created_at", { ascending: false })
-    .limit(8);
+    .limit(3);
 
   for (const pending of pendingRows ?? []) {
     const actionId = String(pending.source_reference ?? "");
