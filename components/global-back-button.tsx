@@ -1,8 +1,28 @@
 "use client";
 
-// Navigation is handled by the compact back arrow in each page header.
-// Keep this component mounted for existing layout imports, but render no
-// additional Back/Home controls so the interface stays uncluttered.
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+
 export default function GlobalBackButton() {
-  return null;
+  const router = useRouter();
+
+  function goBack() {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/dashboard");
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={goBack}
+      aria-label="Go back"
+      title="Go back"
+      className="fixed left-4 top-4 z-[100] flex h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-white/95 text-gray-700 shadow-sm backdrop-blur transition hover:bg-gray-100 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/15 dark:bg-neutral-900/95 dark:text-gray-200 dark:hover:bg-neutral-800"
+    >
+      <ArrowLeft size={17} strokeWidth={2} aria-hidden="true" />
+    </button>
+  );
 }
