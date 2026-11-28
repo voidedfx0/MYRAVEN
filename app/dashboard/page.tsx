@@ -81,6 +81,9 @@ export default function Home() {
   const [notice, setNotice] = useState("Choose your payment details to compare routes.");
   const [loading, setLoading] = useState(false);
   const [wallets, setWallets] = useState<WalletConnection[]>([]);
+  const [myravenWallet, setMyravenWallet] = useState<{address:string;status:string;network:string}|null>(null);
+  const [myravenWalletLoading, setMyravenWalletLoading] = useState(true);
+  const [myravenWalletError, setMyravenWalletError] = useState("");
   const [availableSol, setAvailableSol] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(true);
   const [balanceError, setBalanceError] = useState(false);
@@ -129,6 +132,24 @@ export default function Home() {
     return () => { active = false; };
   }, []);
 
+
+  useEffect(() => {
+    let active = true;
+    async function loadMyravenWallet() {
+      try {
+        const response = await fetch("/api/account/wallet", { method: "POST", cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? "Your MYRAVEN wallet is not available yet.");
+        if (active) setMyravenWallet({ address: data.address, status: data.status, network: data.network });
+      } catch (issue) {
+        if (active) setMyravenWalletError(issue instanceof Error ? issue.message : "Could not load your MYRAVEN wallet.");
+      } finally {
+        if (active) setMyravenWalletLoading(false);
+      }
+    }
+    void loadMyravenWallet();
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -743,6 +764,17 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
           </section>
           <section className="panel wallet-panel" id="wallets">
             <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect Phantom on Solana Devnet to verify a public address and view test SOL. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
+            <article className="wallet-connect-card myraven-embedded-wallet-card">
+              <div className="wallet-network-logo solana-logo">M</div>
+              <div className="wallet-copy"><b>MYRAVEN embedded wallet</b><small>Automatically created for your account · Privy · {myravenWallet?.network ?? "Solana Devnet"}</small></div>
+              <span className="connected-label"><i /> {myravenWalletLoading ? "Setting up" : myravenWallet?.address ? "Your wallet" : "Needs attention"}</span>
+            </article>
+            <div className="myraven-wallet-address-panel">
+              {myravenWalletLoading ? <p className="wallet-message">Loading your MYRAVEN wallet…</p> : myravenWallet?.address ? <>
+                <img src={"https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=8&data="+encodeURIComponent(myravenWallet.address)} alt="QR code for your MYRAVEN Solana wallet" width="112" height="112" />
+                <div className="receive-address-value"><div><span className="panel-kicker">YOUR MYRAVEN SOLANA ADDRESS</span><code>{myravenWallet.address}</code><small>Embedded wallet · {myravenWallet.network} · {myravenWallet.status}</small></div><div className="wallet-address-actions"><button className="connect-button" type="button" onClick={() => { void navigator.clipboard.writeText(myravenWallet.address); setWalletMessage("MYRAVEN wallet address copied."); }}>Copy address</button><a className="connect-button" href={"https://explorer.solana.com/address/"+myravenWallet.address+"?cluster=devnet"} target="_blank" rel="noreferrer">Explorer <ArrowUpRight size={13}/></a></div></div>
+              </> : <div className="wallet-message" role="status">{myravenWalletError || "Your MYRAVEN wallet could not be loaded."} <button type="button" className="connect-button" onClick={async()=>{setMyravenWalletLoading(true);setMyravenWalletError("");try{const r=await fetch("/api/account/wallet",{method:"POST",cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error??"Wallet setup failed.");setMyravenWallet({address:d.address,status:d.status,network:d.network});}catch(e){setMyravenWalletError(e instanceof Error?e.message:"Wallet setup failed.");}finally{setMyravenWalletLoading(false);}}}>Retry wallet setup</button></div>}
+            </div>
             <div className="wallet-connect-grid">
               <article className="wallet-connect-card"><div className="wallet-network-logo solana-logo">S</div><div className="wallet-copy"><b>Solana</b><small>Phantom · Devnet · Public address only</small></div><button onClick={connectSolana} className="connect-button">Connect wallet <Plus size={14} /></button></article>
               
