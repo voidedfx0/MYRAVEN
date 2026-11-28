@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ReconcileActivity from "./reconcile-activity";
+import ScheduledTransferActivity from "./scheduled-transfer-activity";
+import { ArrowLeft } from "lucide-react";
 
 function money(amount: number | string, currency: string) {
   const value = Number(amount);
@@ -59,7 +61,7 @@ export default async function FundingActivityPage({ searchParams }: { searchPara
       <section className="main-area">
         <header className="top-header">
           <div className="breadcrumb"><Link href="/dashboard">Workspace</Link> <span>/</span> <b>Activity</b></div>
-          <Link className="connect-button" href="/dashboard">Back to overview</Link>
+          <Link className="activity-back-button" href="/dashboard" aria-label="Back to overview"><ArrowLeft size={16} /><span>Back</span></Link>
         </header>
         <div className="content-wrap">
           <section className="welcome-row">
@@ -98,9 +100,11 @@ export default async function FundingActivityPage({ searchParams }: { searchPara
             <section className="panel funding-hub-panel">
               <div className="panel-heading"><div><span className="panel-kicker">PENDING</span><h2>Awaiting completion</h2><p>Transfers and funding still processing</p></div></div>
               {pendingTransactions.length || pendingDeposits.length ? <div className="funding-history-list">
+                <ScheduledTransferActivity />
+                <ScheduledTransferActivity />
                 {pendingTransactions.map((item)=><article className="funding-history-item" key={item.id}><span className="funding-history-mark">◷</span><span className="funding-history-copy"><b>{item.description}</b><small>{new Date(item.created_at).toLocaleString()}</small></span><span className="funding-history-status status-pending"><b>Pending</b></span></article>)}
                 {pendingDeposits.map((item)=><article className="funding-history-item" key={item.id}><span className="funding-history-mark">◷</span><span className="funding-history-copy"><b>{money(item.input_amount,item.input_currency)} funding · {item.target_asset}</b><small>{new Date(item.created_at).toLocaleString()}</small></span><span className="funding-history-status status-pending"><b>{statusLabel(item.status)}</b></span></article>)}
-              </div> : <p className="funding-history-empty">Nothing pending.</p>}
+              </div>  : <><ScheduledTransferActivity /><p className="funding-history-empty">Nothing pending.</p></>}
             </section>
           )}
           <p className="funding-disclaimer">Transfers appear as successful only after Solana confirms them. Recipients are notified and their available wallet balance refreshes after confirmation.</p>
