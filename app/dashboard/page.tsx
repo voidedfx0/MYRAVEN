@@ -482,7 +482,7 @@ export default function Home() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "SOL transfer could not be submitted.");
-      setTransferMessage("Transfer submitted · " + String(data.status || "pending") + " · Action " + String(data.actionId) + ". Check the Solana Devnet explorer for confirmation.");
+      setTransferMessage("Transfer submitted · waiting for Solana Devnet confirmation…");
       setActivities((current) => [{
         id: String(data.actionId),
         title: "SOL transfer submitted",
@@ -493,6 +493,26 @@ export default function Home() {
       }, ...current]);
       setApproved(true);
       setTransferRequestId("");
+      let finalStatus = String(data.status || "pending").toLowerCase();
+      for (let attempt = 0; attempt < 8 && !["succeeded", "failed", "cancelled", "reverted"].includes(finalStatus); attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2000));
+        const statusResponse = await fetch("/api/transfers/status?actionId=" + encodeURIComponent(String(data.actionId)), { cache: "no-store" });
+        const statusData = await statusResponse.json();
+        if (!statusResponse.ok) continue;
+        finalStatus = String(statusData.status || "pending").toLowerCase();
+      }
+      if (finalStatus === "succeeded") {
+        setTransferMessage("Transfer confirmed on Solana Devnet. Action " + String(data.actionId) + ".");
+        setActivities((current) => current.map((item) => item.id === String(data.actionId) ? { ...item, status: "Confirmed · Devnet" } : item));
+        const balanceResponse = await fetch("/api/account/wallet/balance", { cache: "no-store" });
+        const balanceData = await balanceResponse.json();
+        if (balanceResponse.ok && Number.isFinite(Number(balanceData.availableSol))) setAvailableSol(Number(balanceData.availableSol));
+      } else if (["failed", "cancelled", "reverted"].includes(finalStatus)) {
+        setTransferMessage("Privy reports the transfer " + finalStatus + ". Check the action details before retrying.");
+        setActivities((current) => current.map((item) => item.id === String(data.actionId) ? { ...item, status: "Failed · Devnet" } : item));
+      } else {
+        setTransferMessage("Transfer is still processing on Devnet. Action " + String(data.actionId) + ". Do not submit it again yet.");
+      }
     } catch (error) {
       setTransferMessage(error instanceof Error ? error.message : "Transfer failed. No success was recorded.");
     } finally {
