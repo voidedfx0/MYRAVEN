@@ -206,6 +206,7 @@ export default function Home() {
   const [transferRequestId, setTransferRequestId] = useState("");
   const [sendWindowSeconds, setSendWindowSeconds] = useState(0);
   const [sendWindowActive, setSendWindowActive] = useState(false);
+  const [toast, setToast] = useState<{title:string;message:string;kind:"info"|"success"|"warning"}|null>(null);
   const [payAiOpen, setPayAiOpen] = useState(false);
   const [payAiPrompt, setPayAiPrompt] = useState("");
   const [payAiMessage, setPayAiMessage] = useState("");
@@ -494,6 +495,7 @@ export default function Home() {
     }, ...current]);
     setApprovalOpen(false);
     setTransferMessage("Transfer scheduled. Cancel it from Activity within 60 seconds.");
+    setToast({ title: "Your transfer is on standby", message: "60 seconds to cancel · then sending starts automatically.", kind: "info" });
   }
 
   function cancelScheduledSend() {
@@ -504,7 +506,14 @@ export default function Home() {
     setActivities((current) => current.map((item) => item.id === scheduledId ? { ...item, title: "Transfer cancelled", status: "Cancelled · Not sent" } : item));
     setTransferRequestId("");
     setTransferMessage("Transfer cancelled. No SOL was sent.");
+    setToast({ title: "Transfer cancelled", message: "Nothing was sent. Your SOL remains in your wallet.", kind: "warning" });
   }
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 3800);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     if (!sendWindowActive) return;
@@ -534,6 +543,7 @@ export default function Home() {
     setTransferRequestId(requestId);
     setTransferSending(true);
     setTransferMessage("Submitting your signed Devnet transfer…");
+    setToast({ title: "Transfer initiated", message: "Your SOL transfer has been submitted to Solana Devnet.", kind: "info" });
     try {
       const response = await fetch("/api/transfers/send", {
         method: "POST",
@@ -565,6 +575,7 @@ export default function Home() {
       }
       if (finalStatus === "succeeded") {
         setTransferMessage("Transfer confirmed on Solana Devnet. Action " + String(data.actionId) + ".");
+        setToast({ title: "Transfer successful", message: "Solana Devnet confirmed your payment.", kind: "success" });
         setActivities((current) => current.map((item) => item.id === String(data.actionId) ? { ...item, status: "Sent", category: "Sent" } : item));
         const balanceResponse = await fetch("/api/account/wallet/balance", { cache: "no-store" });
         const balanceData = await balanceResponse.json();
@@ -577,6 +588,7 @@ export default function Home() {
       }
     } catch (error) {
       setTransferMessage(error instanceof Error ? error.message : "Transfer failed. No success was recorded.");
+      setToast({ title: "Transfer needs attention", message: error instanceof Error ? error.message : "No success was recorded.", kind: "warning" });
     } finally {
       setTransferSending(false);
     }
@@ -620,6 +632,7 @@ export default function Home() {
 
   return (
     <main className="app-frame">
+      {toast ? <div className={`mrv-toast mrv-toast-${toast.kind}`} role="status" aria-live="polite"><span className="mrv-toast-icon">{toast.kind === "success" ? <Check size={18} /> : toast.kind === "warning" ? <X size={18} /> : <Sparkles size={18} />}</span><span className="mrv-toast-copy"><b>{toast.title}</b><small>{toast.message}</small></span><button type="button" className="mrv-toast-close" onClick={() => setToast(null)} aria-label="Dismiss notification"><X size={15} /></button><span className="mrv-toast-progress" /></div> : null}
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
         <a className="brand" href="#" aria-label="MYRAVEN home">
           <span className="brand-orbit-lockup">
