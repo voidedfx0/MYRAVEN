@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ReconcileActivity from "./reconcile-activity";
 import ScheduledTransferActivity from "./scheduled-transfer-activity";
-import { ArrowLeft } from "lucide-react";
+import ActivityBackButton from "./activity-back-button";
 
 function money(amount: number | string, currency: string) {
   const value = Number(amount);
@@ -61,7 +61,7 @@ export default async function FundingActivityPage({ searchParams }: { searchPara
       <section className="main-area">
         <header className="top-header">
           <div className="breadcrumb"><Link href="/dashboard">Workspace</Link> <span>/</span> <b>Activity</b></div>
-          <Link className="activity-back-button" href="/dashboard" aria-label="Back to overview"><ArrowLeft size={16} /><span>Back</span></Link>
+          <ActivityBackButton />
         </header>
         <div className="content-wrap">
           <section className="welcome-row">
