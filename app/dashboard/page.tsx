@@ -84,7 +84,7 @@ export default function Home() {
     id: string; funding_method: string; input_kind: string; input_currency: string;
     input_amount: number | string; target_asset: string; credited_output_amount: number | string | null;
     status: string; failure_code: string | null; provider_code: string | null; provider_reference: string | null;
-    created_at: string; updated_at: string;
+    created_at: string; updated_at: string; metadata?: Record<string, any>;
   }>>([]);
   const [fundingHistoryLoading, setFundingHistoryLoading] = useState(false);
   const [fundingHistoryMessage, setFundingHistoryMessage] = useState("");
@@ -146,22 +146,50 @@ export default function Home() {
       if (!response.ok) throw new Error(data.error ?? "Funding history could not be loaded.");
       const deposits = Array.isArray(data.deposits) ? data.deposits : [];
       setFundingHistory(deposits);
-      // Re-check pending references whenever the dashboard loads or is refreshed.
-      const pending = deposits.filter((deposit: { status: string; provider_reference?: string | null }) =>
-        deposit.status === "awaiting_payment" && Boolean(deposit.provider_reference)
+      // Main dashboard handles verification and the clearly labelled test conversion.
+      const needsVerification = deposits.filter((deposit: any) =>
+        ["awaiting_payment", "converting"].includes(deposit.status)
+        && deposit.provider_reference
+        && deposit.metadata?.payment_state !== "successful"
+        && /^MRV-FUND-[0-9a-f-]{36}$/i.test(deposit.provider_reference)
       );
-      if (pending.length) {
-        await Promise.all(pending.map((deposit: { provider_reference: string }) =>
+      if (needsVerification.length) {
+        await Promise.all(needsVerification.map((deposit: any) =>
           fetch("/api/funding/reconcile", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ tx_ref: deposit.provider_reference }),
           }).catch(() => null)
         ));
-        const refreshed = await fetch("/api/funding/deposits", { cache: "no-store" });
-        const refreshedData = await refreshed.json();
-        if (refreshed.ok && Array.isArray(refreshedData.deposits)) setFundingHistory(refreshedData.deposits);
       }
+      const refreshed = await fetch("/api/funding/deposits", { cache: "no-store" });
+      const refreshedData = await refreshed.json();
+      const latest = refreshed.ok && Array.isArray(refreshedData.deposits) ? refreshedData.deposits : deposits;
+
+      // Test-mode presentation only: never credits the spendable ledger or moves real SOL.
+      const readyForDemo = latest.filter((deposit: any) =>
+        deposit.status === "converting"
+        && deposit.metadata?.payment_state === "successful"
+        && deposit.metadata?.environment === "test"
+        && deposit.metadata?.mock_settlement?.transfer_status !== "simulated_success"
+      );
+      await Promise.all(readyForDemo.map((deposit: any) => {
+        const sourceAmount = Number(deposit.input_amount);
+        if (!deposit.id || !Number.isFinite(sourceAmount) || sourceAmount <= 0) return Promise.resolve(null);
+        return fetch("/api/funding/mock-settlement", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deposit_id: deposit.id,
+            usdc_amount: sourceAmount,
+            sol_amount: Number((sourceAmount * 0.01).toFixed(8)),
+            outcome: "success"
+          })
+        }).catch(() => null);
+      }));
+      const finalResponse = await fetch("/api/funding/deposits", { cache: "no-store" });
+      const finalData = await finalResponse.json();
+      if (finalResponse.ok && Array.isArray(finalData.deposits)) setFundingHistory(finalData.deposits);
     } catch (error) {
       setFundingHistoryMessage(error instanceof Error ? error.message : "Funding history is unavailable.");
     } finally {
@@ -647,12 +675,15 @@ export default function Home() {
                   </span>
                   <span className={`funding-history-status status-${deposit.status}`}>
                     {deposit.status === "credited" ? "Wallet funded"
+                      : deposit.metadata?.mock_settlement?.transfer_status === "simulated_success" ? "SOL conversion complete · Demo"
                       : deposit.status === "converting" ? "Payment successful · conversion pending"
                       : deposit.status === "submitted_onchain" || deposit.status === "confirming" ? "Crypto settlement pending"
                       : deposit.status === "awaiting_payment" ? "Awaiting payment confirmation"
                       : deposit.status.replaceAll("_", " ")}
-                    {deposit.credited_output_amount ? <small>{deposit.credited_output_amount} {deposit.target_asset} credited</small>
-                      : deposit.status === "converting" ? <small>Fiat received · no crypto credited yet</small> : null}
+                    {deposit.metadata?.mock_settlement?.transfer_status === "simulated_success"
+                      ? <small>{deposit.metadata.mock_settlement.sol_amount} SOL simulated · not spendable</small>
+                      : deposit.credited_output_amount ? <small>{deposit.credited_output_amount} {deposit.target_asset} credited</small>
+                      : deposit.status === "converting" ? <small>Fiat received · conversion simulation processing</small> : null}
                   </span>
                 </div>)}
               </div> : <p className="funding-history-empty">{fundingHistoryLoading ? "Loading funding activity…" : "Your verified funding requests will appear here."}</p>}
