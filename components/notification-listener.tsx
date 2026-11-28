@@ -46,7 +46,7 @@ export default function NotificationListener() {
         if (!fresh.length) { firstLoad = false; return; }
         const latest = fresh[0];
         setNotice(latest);
-        if (!firstLoad) playChime();
+        playChime();
         firstLoad = false;
       } catch { /* Keep the workspace usable while notifications reconnect. */ }
     }
