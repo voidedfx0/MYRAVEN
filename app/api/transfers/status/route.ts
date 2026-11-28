@@ -61,7 +61,7 @@ export async function GET(request: Request) {
                 user_id: row.user_id,
                 category: "payment",
                 title: isSender ? "SOL sent successfully" : "You received SOL 🎉",
-                body: isSender ? String(row.description) + ". Your SOL has left your wallet and is on its way." : String(row.description) + ". It has landed in your MYRAVEN wallet.");
+                body: isSender ? String(row.description) + ". Your SOL has left your wallet and is on its way." : String(row.description) + ". It has landed in your MYRAVEN wallet.",
                 data: { action_id: actionId, type: isSender ? "sent" : "received", asset: "SOL", network: "solana-devnet" },
               });
             }
