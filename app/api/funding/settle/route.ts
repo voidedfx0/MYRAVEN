@@ -374,16 +374,17 @@ export async function POST(request: Request) {
       credited_output_amount: solAmount,
       blockchain_signature: signature,
       failure_code: null,
-      metadata: { ...(deposit.metadata ?? {}), treasury_settlement: completed },
+      metadata: { ...record(deposit.metadata), treasury_settlement: completed, settlement_diagnostics: null },
     }).eq("id", deposit.id).eq("user_id", user.id).eq("status", "converting");
     if (completeError) throw new Error("On-chain transfer confirmed but the funding record could not be finalized. Refresh activity to reconcile.");
     return NextResponse.json({ status: "credited", solAmount, signature, destinationBalanceSol: destinationBalance / 1_000_000_000 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Treasury settlement failed.";
     console.error("[MYRAVEN funding settlement]", { depositId, stage: settlementStage, error: message });
+    const { data: latestDeposit } = await admin.from("funding_deposits").select("metadata").eq("id", deposit.id).eq("user_id", user.id).maybeSingle();
     await admin.from("funding_deposits").update({
       metadata: {
-        ...(deposit.metadata ?? {}),
+        ...record(latestDeposit?.metadata),
         settlement_diagnostics: { stage: settlementStage, last_error: message.slice(0, 240), occurred_at: new Date().toISOString() },
       },
     }).eq("id", deposit.id).eq("user_id", user.id).eq("status", "converting");
