@@ -274,7 +274,7 @@ export default function Home() {
       const latest = refreshed.ok && Array.isArray(refreshedData.deposits) ? refreshedData.deposits : deposits;
 
       // Verified test payments settle from the central Devnet treasury into the user's Privy wallet.
-      const readyForSettlement: FundingDeposit[] = latest.filter((deposit) =>
+      const readyForSettlement: FundingDeposit[] = latest.filter((deposit: FundingDeposit) =>
         deposit.status === "converting"
         && deposit.metadata?.payment_state === "successful"
         && deposit.metadata?.environment === "test"
