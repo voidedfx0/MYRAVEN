@@ -292,11 +292,17 @@ export default function Home() {
             body: JSON.stringify({ deposit_id: deposit.id }),
           });
           const settlementResult = await settlementResponse.json().catch(() => ({}));
-          if (!settlementResponse.ok && settlementResponse.status !== 202) {
+          if (settlementResponse.status === 202) {
+            // Keep the shared treasury serial: finish this transfer before starting another.
+            break;
+          }
+          if (!settlementResponse.ok) {
             settlementErrors.push(String(settlementResult.error ?? "SOL settlement could not be completed."));
+            break;
           }
         } catch {
           settlementErrors.push("Could not reach the SOL settlement service. It will retry automatically.");
+          break;
         }
       }
       const finalResponse = await fetch("/api/funding/deposits", { cache: "no-store" });
