@@ -16,6 +16,7 @@ export default function AccountPage() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [nickname, setNickname] = useState("");
   const [legalFullName, setLegalFullName] = useState("");
   const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
   const [businessName, setBusinessName] = useState("");
@@ -30,7 +31,7 @@ export default function AccountPage() {
   const provisionWorkspace = useCallback(async (type: AccountType) => {
     const response = await fetch("/api/account/setup", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accountType: type, firstName, lastName, legalFullName, countryCode, countryName }),
+      body: JSON.stringify({ accountType: type, firstName, lastName, nickname, legalFullName, countryCode, countryName }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "Could not set up your workspace.");
@@ -83,7 +84,7 @@ export default function AccountPage() {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(), password,
           options: {
-            data: { first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName, legal_full_name: legalFullName.trim(), account_type: accountType, business_name: businessName.trim(), country_code: countryCode, country_name: countryName },
+            data: { first_name: firstName.trim(), last_name: lastName.trim(), nickname: nickname.trim(), display_name: nickname.trim() || displayName, legal_full_name: legalFullName.trim(), account_type: accountType, business_name: businessName.trim(), country_code: countryCode, country_name: countryName },
             emailRedirectTo: window.location.origin + "/auth/callback?next=/account?type=" + accountType + "%26complete=1",
           },
         });
@@ -136,6 +137,7 @@ export default function AccountPage() {
             <label>FIRST NAME<input value={firstName} onChange={e => setFirstName(e.target.value)} required maxLength={60} autoComplete="given-name"/></label>
             <label>LAST NAME<input value={lastName} onChange={e => setLastName(e.target.value)} required maxLength={60} autoComplete="family-name"/></label>
           </div>
+          <label> NICKNAME <span className="field-optional">SHOWN IN YOUR MYRAVEN WORKSPACE</span><input value={nickname} onChange={e => setNickname(e.target.value)} maxLength={60} placeholder="What should we call you?"/></label>
           <label>FULL LEGAL NAME <span className="field-optional">MUST MATCH FUTURE KYC DOCUMENTS</span><input value={legalFullName} onChange={e => setLegalFullName(e.target.value)} required maxLength={160} autoComplete="name" placeholder="Enter your full name as shown on your identity document"/></label>
           <label>COUNTRY / REGION<select value={countryCode} onChange={e => setCountryCode(e.target.value)} required><option value="">Select your country</option>{countries.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
           <p className="account-legal">A personal Solana Devnet wallet is created automatically for your MYRAVEN account after sign-up.</p>
