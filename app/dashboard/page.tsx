@@ -692,7 +692,7 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
               <div>
                 <span className="panel-kicker">COUNTRY ROUTE CHECK</span>
                 <b>{fundingCountry ? `Funding route for ${fundingCountriesData.countries.find((country) => country.code === fundingCountry)?.name || fundingCountry}` : "Choose your country to check funding routes"}</b>
-                <p>{fundingCountry ? "Your country and currency are identified. MYRAVEN will only display banks, payment providers or account details after a connected funding partner confirms they are available for this country and your account." : "Select a country above. MYRAVEN will use it to determine the local currency and check eligible funding methods."}</p>
+                <p>{fundingCountry ? "Country and currency identified. Funding options appear when supported by our partner and your account." : "Select your country to check local currency and available funding options."}</p>
               </div>
               <span className="funding-provider-status">FLUTTERWAVE</span>
             </div>
@@ -701,7 +701,7 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
               <div>
                 <span className="panel-kicker">SELECTED METHOD</span>
                 <b>Flutterwave secure checkout</b>
-                <p>Flutterwave handles card funding. Available payment methods and country coverage depend on location and merchant approval. MYRAVEN does not offer standalone bank transfer.</p>
+                <p>Flutterwave handles card payments. Available options depend on your country and account approval.</p>
               </div>
               <span className="read-only-tag"><LockKeyhole size={11} /> TEST SETUP</span>
             </div>
