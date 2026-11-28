@@ -549,7 +549,7 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
 
       <section className="main-area">
         <header className="top-header">
-          <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu"><Menu size={19} /></button>
+          <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen}><Menu size={19} /></button>
           <div className="breadcrumb">Workspace <span>/</span> <b>Overview</b></div>
           <div className="header-actions"><span className="environment-pill"><i /> PREVIEW MODE</span><AuthActions variant="workspace" /><button className="icon-button" aria-label="Notifications"><Bell size={17} /></button><span className="header-avatar">M</span></div>
         </header>
