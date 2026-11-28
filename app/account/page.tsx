@@ -17,7 +17,6 @@ export default function AccountPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [legalFullName, setLegalFullName] = useState("");
-  const [walletAddress, setWalletAddress] = useState("");
   const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
   const [businessName, setBusinessName] = useState("");
   const [countryCode, setCountryCode] = useState("");
@@ -31,12 +30,19 @@ export default function AccountPage() {
   const provisionWorkspace = useCallback(async (type: AccountType) => {
     const response = await fetch("/api/account/setup", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accountType: type, firstName, lastName, legalFullName, countryCode, countryName, walletAddress }),
+      body: JSON.stringify({ accountType: type, firstName, lastName, legalFullName, countryCode, countryName }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "Could not set up your workspace.");
     return data;
-  }, [firstName, lastName, legalFullName, countryCode, countryName, walletAddress]);
+  }, [firstName, lastName, legalFullName, countryCode, countryName]);
+
+  const provisionWallet = useCallback(async () => {
+    const response = await fetch("/api/account/wallet", { method: "POST" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? "Your Solana wallet could not be created.");
+    return data;
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -53,6 +59,7 @@ export default function AccountPage() {
           const chosenType: AccountType = context?.accountType ?? requestedType;
           if (params.get("complete") === "1" || !context?.accountType) {
             await provisionWorkspace(requestedType);
+            await provisionWallet();
             window.location.replace(requestedType === "business" ? "/business" : "/dashboard");
             return;
           }
@@ -65,7 +72,7 @@ export default function AccountPage() {
       setChecking(false);
     });
     return () => { active = false; };
-  }, [supabase, provisionWorkspace]);
+  }, [supabase, provisionWorkspace, provisionWallet]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -84,6 +91,7 @@ export default function AccountPage() {
           setMessage("Check your email to confirm your account. Your selected workspace will be prepared after confirmation.");
         } else {
           await provisionWorkspace(accountType);
+          await provisionWallet();
           window.location.assign(destination);
         }
       } else {
@@ -91,6 +99,7 @@ export default function AccountPage() {
         if (error) throw error;
         const response = await fetch("/api/account/context", { cache: "no-store" });
         const context = response.ok ? await response.json() : null;
+        await provisionWallet();
         const actualType: AccountType = context?.accountType ?? accountType;
         if (actualType !== accountType) {
           setMessage("This login belongs to a " + actualType + " account. Switch account type to continue.");
@@ -101,19 +110,6 @@ export default function AccountPage() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not complete account request.");
     } finally { setLoading(false); }
-  }
-
-  async function connectSolanaWallet() {
-    setMessage("");
-    try {
-      const provider = (window as Window & { solana?: { isPhantom?: boolean; connect: () => Promise<{ publicKey: { toString(): string } }> } }).solana;
-      if (!provider?.isPhantom) throw new Error("Install or unlock the Phantom wallet to connect a Solana address.");
-      const result = await provider.connect();
-      setWalletAddress(result.publicKey.toString());
-      setMessage("Solana wallet connected for account setup. Ownership has not yet been cryptographically verified.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not connect the Solana wallet.");
-    }
   }
 
   if (checking) return <main className="account-shell"><div className="account-card"><LoaderCircle className="spin" /> Preparing your MYRAVEN workspace…</div></main>;
@@ -141,7 +137,7 @@ export default function AccountPage() {
           </div>
           <label>FULL LEGAL NAME <span className="field-optional">MUST MATCH FUTURE KYC DOCUMENTS</span><input value={legalFullName} onChange={e => setLegalFullName(e.target.value)} required maxLength={160} autoComplete="name" placeholder="Enter your full name as shown on your identity document"/></label>
           <label>COUNTRY / REGION<select value={countryCode} onChange={e => setCountryCode(e.target.value)} required><option value="">Select your country</option>{countries.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
-          <button type="button" className="account-google" onClick={() => void connectSolanaWallet()}>{walletAddress ? "Solana wallet connected · " + walletAddress.slice(0, 5) + "…" + walletAddress.slice(-5) : "Connect Solana wallet (optional)"} <ArrowUpRight size={15}/></button>
+          <p className="account-legal">A personal Solana Devnet wallet is created automatically for your MYRAVEN account after sign-up.</p>
         </>}
         {mode === "signup" && accountType === "business" && <label>BUSINESS / ORGANISATION NAME<input value={businessName} onChange={e => setBusinessName(e.target.value)} required maxLength={120} placeholder="Registered or trading name"/></label>}
         
@@ -150,7 +146,7 @@ export default function AccountPage() {
         <button className="account-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={16}/> : null}{mode === "signup" ? "Create " + (accountType === "business" ? "business" : "personal") + " account" : "Sign in"}<ArrowUpRight size={16}/></button>
       </form>
       {message && <p className="account-message" role="status">{message}</p>}
-      <p className="account-legal">Your legal name should match your future KYC document exactly. Wallet connection currently attaches an address for setup only; wallet-only authentication and ownership verification are not enabled yet. Regulated services remain subject to applicable eligibility and verification requirements.</p>
+      <p className="account-legal">Your legal name should match your future KYC document exactly. Your Solana wallet is provisioned automatically through Privy and linked to your MYRAVEN account. Regulated services remain subject to applicable eligibility and verification requirements.</p>
     </section>
     <footer className="account-footer">MONEY MOVES. INTELLIGENCE CONNECTS.</footer>
   </main>;
