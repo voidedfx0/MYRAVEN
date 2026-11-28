@@ -40,6 +40,7 @@ export async function GET() {
   return NextResponse.json({
     profile: profileResult.data,
     email: user.email ?? null,
+    preferredCurrency: typeof user.user_metadata?.preferred_currency === "string" ? user.user_metadata.preferred_currency : null,
     balances,
     solanaWallet: walletResult.data,
     transactions: transactionsResult.data ?? [],
