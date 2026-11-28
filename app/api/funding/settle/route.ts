@@ -179,7 +179,7 @@ export async function POST(request: Request) {
 
   const admin = createSupabaseAdmin(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
   const { data: deposit, error: depositError } = await admin.from("funding_deposits")
-    .select("id,user_id,status,input_amount,input_currency,target_asset,metadata")
+    .select("id,user_id,status,input_amount,input_currency,target_asset,credited_output_amount,metadata")
     .eq("id", depositId).eq("user_id", user.id).eq("provider_code", "flutterwave").maybeSingle();
   if (depositError || !deposit) return NextResponse.json({ error: "Funding request not found." }, { status: 404 });
   if (deposit.status === "credited" && Number(deposit.credited_output_amount) > 0) {
