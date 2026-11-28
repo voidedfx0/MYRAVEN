@@ -591,3 +591,13 @@ button,a,input,select,textarea{touch-action:manipulation}
 @media(prefers-reduced-motion:reduce){
   .sidebar{transition:none}
 }
+
+
+/* Keep wallet status metadata visually separated from the address */
+.receive-address-value>div:first-child{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0}
+.receive-address-value>div:first-child>code{display:block;line-height:1.7}
+.receive-address-value>div:first-child>small{display:block;margin-top:5px;padding-top:8px;border-top:1px solid rgba(255,255,255,.09);color:#9b95ad;font-size:10px;line-height:1.5}
+@media(max-width:760px){
+  .receive-address-value>div:first-child{gap:12px;width:100%}
+  .receive-address-value>div:first-child>small{margin-top:8px;padding-top:10px;font-size:9px}
+}
