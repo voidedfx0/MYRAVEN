@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import ReconcileActivity from "./reconcile-activity";
 
 function money(amount: number | string, currency: string) {
   const value = Number(amount);
@@ -38,6 +39,13 @@ export default async function FundingActivityPage() {
   ]);
   const deposits = depositResult.data ?? [];
   const transactions = transactionResult.data ?? [];
+  const referencesToVerify = deposits.filter((deposit) => {
+    const metadata = deposit.metadata && typeof deposit.metadata === "object" ? deposit.metadata as Record<string, unknown> : {};
+    return Boolean(deposit.provider_reference)
+      && /^MRV-FUND-[0-9a-f-]{36}$/i.test(deposit.provider_reference ?? "")
+      && !["credited", "failed", "cancelled", "expired", "recovery_pending"].includes(deposit.status)
+      && metadata.payment_state !== "successful";
+  }).map((deposit) => deposit.provider_reference as string);
   const error = depositResult.error || transactionResult.error;
 
   return (
@@ -54,7 +62,7 @@ export default async function FundingActivityPage() {
               <h1>Activity</h1>
               <p>Your complete funding history and payment verification details.</p>
             </div>
-            <div className="welcome-date"><span>RECORDS</span><b>{deposits.length + transactions.length} transactions</b></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}><div className="welcome-date"><span>RECORDS</span><b>{deposits.length + transactions.length} transactions</b></div><ReconcileActivity references={referencesToVerify} /></div>
           </section>
 
           <section className="panel funding-hub-panel">
