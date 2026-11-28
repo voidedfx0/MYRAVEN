@@ -23,7 +23,6 @@ export default async function NotificationsPage() {
       <section className="main-area">
         <header className="top-header">
           <div className="breadcrumb"><Link href="/dashboard">Workspace</Link><span>/</span><b>Notifications</b></div>
-          <Link className="connect-button" href="/dashboard">Back to overview</Link>
         </header>
         <div className="content-wrap">
           <section className="welcome-row"><div><div className="eyebrow">MYRAVEN · INBOX</div><h1>Notifications</h1><p>Your latest payment confirmations and account alerts, newest first.</p></div></section>
