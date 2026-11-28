@@ -7,8 +7,18 @@ export const runtime = "nodejs";
 
 const SOLANA_ADDRESS_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-function getWallet(data: any) {
-  return data?.wallet ?? data?.data?.wallet ?? data?.data ?? data ?? {};
+type PrivyWalletRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): PrivyWalletRecord {
+  return typeof value === "object" && value !== null
+    ? value as PrivyWalletRecord
+    : {};
+}
+
+function getWallet(data: unknown): PrivyWalletRecord {
+  const root = asRecord(data);
+  const nested = asRecord(root.data);
+  return asRecord(root.wallet ?? nested.wallet ?? root.data ?? root);
 }
 
 async function privyRequest(path: string, method: "GET" | "POST", appId: string, appSecret: string, body?: unknown, idempotencyKey?: string) {
@@ -85,7 +95,7 @@ export async function POST() {
     return NextResponse.json({ error: "Your wallet setup could not be prepared. Please retry." }, { status: 503 });
   }
 
-  let providerWallet: any = null;
+  let providerWallet: PrivyWalletRecord | null = null;
   try {
     // Recover by immutable external ID first. This prevents duplicate wallets if
     // Privy created one but a previous request failed before saving it to Supabase.
