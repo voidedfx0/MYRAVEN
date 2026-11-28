@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Bell, X } from "lucide-react";
 
 type Notice = { id: string; title: string; body: string; category?: string };
@@ -29,6 +30,8 @@ function playChime() {
 }
 
 export default function NotificationListener() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [notice, setNotice] = useState<Notice | null>(null);
   const seen = useRef(new Set<string>());
   useEffect(() => {
@@ -46,12 +49,13 @@ export default function NotificationListener() {
         const latest = fresh[0];
         setNotice(latest);
         playChime();
+        if (pathname === "/notifications") router.refresh();
       } catch { /* Keep the workspace usable while notifications reconnect. */ }
     }
     void poll();
     const timer = window.setInterval(() => { void poll(); }, 5000);
     return () => { active = false; window.clearInterval(timer); };
-  }, []);
+  }, [pathname, router]);
   useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => setNotice(null), 6500);
