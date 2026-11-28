@@ -27,6 +27,7 @@ export default function SettlementTestPage() {
   const [solBalance, setSolBalance] = useState(0);
   const [lastSol, setLastSol] = useState(0);
   const autoSettled = useRef(new Set<string>());
+  const selectedRef = useRef("");
 
   async function load() {
     let response = await fetch("/api/funding/deposits?all=1", { cache: "no-store" });
@@ -63,7 +64,7 @@ export default function SettlementTestPage() {
       setStage("success");
     }
 
-    if (!selected && rows[0]) setSelected(rows[0].id);
+    if (!selectedRef.current && rows[0]) { selectedRef.current = rows[0].id; setSelected(rows[0].id); }
 
     const next = rows.find((item) =>
       item.metadata?.payment_state === "successful" &&
@@ -74,6 +75,7 @@ export default function SettlementTestPage() {
       autoSettled.current.add(next.id);
       const usdcAmount = Number(next.input_amount);
       const solAmount = Number((usdcAmount * 0.01).toFixed(6));
+      selectedRef.current = next.id;
       setSelected(next.id);
       setStage("payment");
       setBusy(true);
@@ -192,7 +194,7 @@ export default function SettlementTestPage() {
 
           <div style={{ marginTop: 23, padding: 18, borderRadius: 16, background: "#0b0b13", border: "1px solid #2d293c" }}>
             <label style={{ display: "block", color: "#b9b3cb", fontSize: 12, marginBottom: 8 }}>Flutterwave test payment (auto-verified)</label>
-            <select value={selected} onChange={(event) => setSelected(event.target.value)} style={{ width: "100%", padding: 13, background: "#171622", color: "white", border: "1px solid #484258", borderRadius: 10 }}>
+            <select value={selected} onChange={(event) => { selectedRef.current = event.target.value; setSelected(event.target.value); }} style={{ width: "100%", padding: 13, background: "#171622", color: "white", border: "1px solid #484258", borderRadius: 10 }}>
               <option value="">Select a successful payment</option>
               {deposits.map((deposit) => <option key={deposit.id} value={deposit.id}>{deposit.input_amount} {deposit.input_currency} · {deposit.provider_reference ?? deposit.id}</option>)}
             </select>
