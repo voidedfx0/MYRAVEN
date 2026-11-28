@@ -11,9 +11,9 @@ export async function GET() {
     return NextResponse.json({ error: "Sign in to view your MYRAVEN account." }, { status: 401 });
   }
 
-  const [profileResult, balancesResult, transactionsResult] = await Promise.all([
+  const [profileResult, balancesResult, transactionsResult, walletResult] = await Promise.all([
     supabase.from("profiles")
-      .select("myraven_id,display_name,country_code,preferred_language,account_type,created_at")
+      .select("myraven_id,account_number,display_name,first_name,last_name,country_code,preferred_language,account_type,created_at")
       .eq("id", user.id)
       .maybeSingle(),
     supabase.from("ledger_account_balances")
@@ -24,9 +24,13 @@ export async function GET() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(25),
+    supabase.from("user_solana_wallets")
+      .select("wallet_address,status,network,custody_provider")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
-  const error = profileResult.error || balancesResult.error || transactionsResult.error;
+  const error = profileResult.error || balancesResult.error || transactionsResult.error || walletResult.error;
   if (error) {
     return NextResponse.json({ error: "Account data is temporarily unavailable." }, { status: 503 });
   }
@@ -37,6 +41,7 @@ export async function GET() {
     profile: profileResult.data,
     email: user.email ?? null,
     balances,
+    solanaWallet: walletResult.data,
     transactions: transactionsResult.data ?? [],
     accountMode: "preview",
     moneyMovementEnabled: false,
