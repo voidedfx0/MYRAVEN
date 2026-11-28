@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Deposit = {
   id: string;
@@ -9,6 +9,7 @@ type Deposit = {
   status: string;
   provider_reference: string | null;
   created_at: string;
+  metadata?: { mock_settlement?: { transfer_status?: string; sol_amount?: number } };
 };
 
 type Stage = "idle" | "payment" | "converting" | "success" | "failed";
@@ -25,48 +26,100 @@ export default function SettlementTestPage() {
   const [stage, setStage] = useState<Stage>("idle");
   const [solBalance, setSolBalance] = useState(0);
   const [lastSol, setLastSol] = useState(0);
+  const autoSettled = useRef(new Set<string>());
 
   async function load() {
-    const response = await fetch("/api/funding/deposits?all=1", { cache: "no-store" });
-    const data = await response.json();
+    let response = await fetch("/api/funding/deposits?all=1", { cache: "no-store" });
+    let data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "Could not load deposits.");
-    const rows = (data.deposits ?? []).filter((item: Deposit) => item.status === "converting");
+
+    const all: Deposit[] = data.deposits ?? [];
+    const toVerify = all.filter((item) =>
+      item.provider_reference &&
+      /^MRV-FUND-[0-9a-f-]{36}$/i.test(item.provider_reference) &&
+      !["credited", "failed", "cancelled", "expired", "recovery_pending"].includes(item.status) &&
+      item.metadata?.payment_state !== "successful"
+    );
+    for (const item of toVerify) {
+      await fetch("/api/funding/reconcile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tx_ref: item.provider_reference }),
+      }).catch(() => null);
+    }
+
+    response = await fetch("/api/funding/deposits?all=1", { cache: "no-store" });
+    data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? "Could not refresh deposits.");
+    const rows: Deposit[] = (data.deposits ?? []).filter((item: Deposit) => item.status === "converting");
     setDeposits(rows);
+
+    const settled = rows.filter((item) => item.metadata?.mock_settlement?.transfer_status === "simulated_success");
+    const balance = settled.reduce((sum, item) => sum + Number(item.metadata?.mock_settlement?.sol_amount ?? 0), 0);
+    setSolBalance(balance);
+    if (settled.length) {
+      const latest = settled[0];
+      setLastSol(Number(latest.metadata?.mock_settlement?.sol_amount ?? 0));
+      setStage("success");
+    }
+
     if (!selected && rows[0]) setSelected(rows[0].id);
+
+    const next = rows.find((item) =>
+      item.metadata?.payment_state === "successful" &&
+      item.metadata?.mock_settlement?.transfer_status !== "simulated_success" &&
+      !autoSettled.current.has(item.id)
+    );
+    if (next) {
+      autoSettled.current.add(next.id);
+      const usdcAmount = Number(next.input_amount);
+      const solAmount = Number((usdcAmount * 0.01).toFixed(6));
+      setSelected(next.id);
+      setStage("payment");
+      setBusy(true);
+      await wait(900);
+      setStage("converting");
+      await wait(1600);
+      const settleResponse = await fetch("/api/funding/mock-settlement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deposit_id: next.id, usdc_amount: usdcAmount, sol_amount: solAmount, outcome: "success" }),
+      });
+      const settleData = await settleResponse.json();
+      if (!settleResponse.ok) throw new Error(settleData.error ?? "SOL test conversion failed.");
+      setLastSol(solAmount);
+      setSolBalance((current) => current + solAmount);
+      setStage("success");
+      setMessage("Payment successful. SOL has been added to your MYRAVEN demo balance.");
+      setBusy(false);
+      await load();
+    }
   }
 
-  useEffect(() => { void load().catch((error) => setMessage(error.message)); }, []);
+  useEffect(() => {
+    void load().catch((error) => setMessage(error.message));
+    const timer = window.setInterval(() => { void load().catch(() => undefined); }, 5000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   async function simulate(outcome: "success" | "failed") {
     if (!selected) return;
     setBusy(true);
     setMessage("");
     setStage("payment");
-    await wait(1100);
+    await wait(900);
     if (outcome === "success") setStage("converting");
     try {
-      if (outcome === "success") await wait(1800);
+      if (outcome === "success") await wait(1600);
       const response = await fetch("/api/funding/mock-settlement", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deposit_id: selected,
-          usdc_amount: Number(usdc),
-          sol_amount: Number(sol),
-          outcome,
-        }),
+        body: JSON.stringify({ deposit_id: selected, usdc_amount: Number(usdc), sol_amount: Number(sol), outcome }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Simulation failed.");
-      if (outcome === "success") {
-        setLastSol(Number(sol));
-        setSolBalance((current) => current + Number(sol));
-        setStage("success");
-        setMessage("SOL successfully deposited to your MYRAVEN test balance.");
-      } else {
-        setStage("failed");
-        setMessage("The simulated transfer failed. Your balance was not changed.");
-      }
+      setStage(outcome === "success" ? "success" : "failed");
+      setMessage(outcome === "success" ? "SOL successfully added to your MYRAVEN demo balance." : "The simulated transfer failed. Your demo balance was not changed.");
       await load();
     } catch (error) {
       setStage("failed");
@@ -78,7 +131,7 @@ export default function SettlementTestPage() {
 
   const steps = [
     { key: "payment", title: "Payment successful", detail: "Flutterwave test payment verified" },
-    { key: "converting", title: "Converting to SOL", detail: "Simulating USDC on Solana → SOL" },
+    { key: "converting", title: "Converting to SOL", detail: "Demo conversion at 0.01 SOL per funded unit" },
     { key: "success", title: "SOL deposited", detail: "Your test balance has been updated" },
   ];
   const active = stage === "failed" ? -1 : steps.findIndex((step) => step.key === stage);
@@ -100,7 +153,7 @@ export default function SettlementTestPage() {
         <div style={{ textAlign: "center", margin: "38px auto 30px" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: "1px solid #514174", borderRadius: 30, padding: "7px 13px", color: "#c8b8ff", fontSize: 11, letterSpacing: 2, background: "#171327" }}>MYRAVEN <span style={{ color: "#8d79c8" }}>·</span> TEST SETTLEMENT</div>
           <h1 style={{ fontSize: "clamp(32px,6vw,48px)", letterSpacing: "-1.8px", margin: "18px 0 9px", fontWeight: 750 }}>From payment to SOL.</h1>
-          <p style={{ color: "#a8a5ba", margin: 0, fontSize: 15 }}>A seamless funding experience, simulated end to end.</p>
+          <p style={{ color: "#a8a5ba", margin: 0, fontSize: 15 }}>Payment verification, SOL conversion and demo balance — automated in test mode.</p>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14, marginBottom: 20 }}>
@@ -115,7 +168,7 @@ export default function SettlementTestPage() {
           <div style={{ border: "1px solid #353047", borderRadius: 18, padding: 21, background: "#11111b" }}>
             <div style={{ color: "#aaa3c1", fontSize: 12 }}>LATEST CONVERSION</div>
             <div style={{ fontSize: 28, fontWeight: 700, marginTop: 13 }}>{lastSol ? `+${lastSol.toFixed(6)} SOL` : "—"}</div>
-            <div style={{ color: "#77738c", fontSize: 11, marginTop: 10 }}>{lastSol ? "Successfully added to test balance" : "Complete a test payment to begin"}</div>
+            <div style={{ color: "#77738c", fontSize: 11, marginTop: 10 }}>{lastSol ? "Successfully added to test balance" : "Waiting for a verified test payment"}</div>
           </div>
         </div>
 
@@ -138,7 +191,7 @@ export default function SettlementTestPage() {
           </div>
 
           <div style={{ marginTop: 23, padding: 18, borderRadius: 16, background: "#0b0b13", border: "1px solid #2d293c" }}>
-            <label style={{ display: "block", color: "#b9b3cb", fontSize: 12, marginBottom: 8 }}>Choose a verified Flutterwave test payment</label>
+            <label style={{ display: "block", color: "#b9b3cb", fontSize: 12, marginBottom: 8 }}>Flutterwave test payment (auto-verified)</label>
             <select value={selected} onChange={(event) => setSelected(event.target.value)} style={{ width: "100%", padding: 13, background: "#171622", color: "white", border: "1px solid #484258", borderRadius: 10 }}>
               <option value="">Select a successful payment</option>
               {deposits.map((deposit) => <option key={deposit.id} value={deposit.id}>{deposit.input_amount} {deposit.input_currency} · {deposit.provider_reference ?? deposit.id}</option>)}
@@ -158,7 +211,7 @@ export default function SettlementTestPage() {
           {stage === "failed" && message ? <p role="status" style={{ color: "#ffb6bd", marginTop: 18, textAlign: "center" }}>{message}</p> : null}
           {message && stage === "success" ? <p role="status" style={{ color: "#91e9bf", textAlign: "center", fontSize: 12 }}>{message}</p> : null}
         </section>
-        <p style={{ textAlign: "center", color: "#6f6a80", fontSize: 11, lineHeight: 1.6, marginTop: 18 }}>This is a visual test simulation. No real USDC or SOL is transferred, and your actual wallet balance is not credited.</p>
+        <p style={{ textAlign: "center", color: "#6f6a80", fontSize: 11, lineHeight: 1.6, marginTop: 18 }}>TEST SIMULATION ONLY. The displayed conversion uses a fixed demo rate of 0.01 SOL per funded currency unit. No real USDC/SOL is transferred and no actual wallet is credited.</p>
       </div>
     </main>
   );
