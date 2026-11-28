@@ -636,7 +636,7 @@ export default function Home() {
         <header className="top-header">
           <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen}><Menu size={19} /></button>
           <div className="breadcrumb"><button className="icon-button" type="button" aria-label="Go back" title="Go back" onClick={() => { if (window.history.length > 1) window.history.back(); else window.location.assign("/dashboard"); }}><ArrowLeft size={16} /></button>Workspace <span>/</span> <b>Overview</b></div>
-          <div className="header-actions"><span className="environment-pill"><i /> PREVIEW MODE</span><AuthActions variant="workspace" /><button className="icon-button" aria-label="Notifications"><Bell size={17} /></button><span className="header-avatar">M</span></div>
+          <div className="header-actions"><span className="environment-pill"><i /> PREVIEW MODE</span><AuthActions variant="workspace" /><a className="icon-button" href="/notifications" aria-label="Notifications" title="Notifications"><Bell size={17} /></a><span className="header-avatar">M</span></div>
         </header>
 
         <div className="content-wrap">
