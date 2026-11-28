@@ -1,219 +1,172 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { RefreshCw, Wallet, CheckCircle2, Clock3, AlertCircle } from "lucide-react";
 
 type Deposit = {
   id: string;
   input_amount: number | string;
   input_currency: string;
+  target_asset: string;
+  credited_output_amount?: number | string | null;
   status: string;
   provider_reference: string | null;
   created_at: string;
-  metadata?: { payment_state?: string; environment?: string; mock_settlement?: { transfer_status?: string; sol_amount?: number; demo_balance_credit?: number } };
+  metadata?: {
+    payment_state?: string;
+    environment?: string;
+    treasury_settlement?: {
+      transfer_status?: string;
+      sol_amount?: number | string;
+      blockchain_signature?: string;
+      wallet_credited?: boolean;
+    };
+  };
 };
 
-type Stage = "idle" | "payment" | "converting" | "success" | "failed";
-
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+type WalletBalance = { availableSol?: number | null; address?: string; error?: string };
 
 export default function SettlementTestPage() {
   const [deposits, setDeposits] = useState<Deposit[]>([]);
-  const [selected, setSelected] = useState("");
-  const [usdc, setUsdc] = useState("10");
-  const [sol, setSol] = useState("0.1");
+  const [balance, setBalance] = useState<number | null>(null);
+  const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const [stage, setStage] = useState<Stage>("idle");
-  const [solBalance, setSolBalance] = useState(0);
-  const [lastSol, setLastSol] = useState(0);
-  const autoSettled = useRef(new Set<string>());
-  const selectedRef = useRef("");
+  const loading = useRef(false);
 
-  async function load() {
-    let response = await fetch("/api/funding/deposits?all=1", { cache: "no-store" });
-    let data = await response.json();
-    if (!response.ok) throw new Error(data.error ?? "Could not load deposits.");
-
-    const all: Deposit[] = data.deposits ?? [];
-    const toVerify = all.filter((item) =>
-      item.provider_reference &&
-      /^MRV-FUND-[0-9a-f-]{36}$/i.test(item.provider_reference) &&
-      !["credited", "failed", "cancelled", "expired", "recovery_pending"].includes(item.status) &&
-      item.metadata?.payment_state !== "successful"
-    );
-    for (const item of toVerify) {
-      await fetch("/api/funding/reconcile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tx_ref: item.provider_reference }),
-      }).catch(() => null);
-    }
-
-    response = await fetch("/api/funding/deposits?all=1", { cache: "no-store" });
-    data = await response.json();
-    if (!response.ok) throw new Error(data.error ?? "Could not refresh deposits.");
-    const rows: Deposit[] = (data.deposits ?? []).filter((item: Deposit) => item.status === "converting");
-    setDeposits(rows);
-
-    const settled = rows.filter((item) => item.metadata?.mock_settlement?.transfer_status === "simulated_success");
-    const balance = settled.reduce((sum, item) => sum + Number(item.metadata?.mock_settlement?.sol_amount ?? 0), 0);
-    setSolBalance(balance);
-    if (settled.length) {
-      const latest = settled[0];
-      setLastSol(Number(latest.metadata?.mock_settlement?.sol_amount ?? 0));
-      setStage("success");
-    }
-
-    if (!selectedRef.current && rows[0]) { selectedRef.current = rows[0].id; setSelected(rows[0].id); }
-
-    const next = rows.find((item) =>
-      item.metadata?.payment_state === "successful" &&
-      item.metadata?.mock_settlement?.transfer_status !== "simulated_success" &&
-      !autoSettled.current.has(item.id)
-    );
-    if (next) {
-      autoSettled.current.add(next.id);
-      const usdcAmount = Number(next.input_amount);
-      const solAmount = Number((usdcAmount * 0.01).toFixed(6));
-      selectedRef.current = next.id;
-      setSelected(next.id);
-      setStage("payment");
-      setBusy(true);
-      await wait(900);
-      setStage("converting");
-      await wait(1600);
-      const settleResponse = await fetch("/api/funding/mock-settlement", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deposit_id: next.id, usdc_amount: usdcAmount, sol_amount: solAmount, outcome: "success" }),
-      });
-      const settleData = await settleResponse.json();
-      if (!settleResponse.ok) throw new Error(settleData.error ?? "SOL test conversion failed.");
-      setLastSol(solAmount);
-      setSolBalance((current) => current + solAmount);
-      setStage("success");
-      setMessage("Payment successful. SOL has been added to your MYRAVEN demo balance.");
-      setBusy(false);
-      await load();
-    }
-  }
-
-  useEffect(() => {
-    void load().catch((error) => setMessage(error.message));
-    const timer = window.setInterval(() => { void load().catch(() => undefined); }, 5000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  async function simulate(outcome: "success" | "failed") {
-    if (!selected) return;
-    setBusy(true);
-    setMessage("");
-    setStage("payment");
-    await wait(900);
-    if (outcome === "success") setStage("converting");
+  const load = useCallback(async () => {
+    if (loading.current) return;
+    loading.current = true;
     try {
-      if (outcome === "success") await wait(1600);
-      const response = await fetch("/api/funding/mock-settlement", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deposit_id: selected, usdc_amount: Number(usdc), sol_amount: Number(sol), outcome }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Simulation failed.");
-      setStage(outcome === "success" ? "success" : "failed");
-      setMessage(outcome === "success" ? "SOL successfully added to your MYRAVEN demo balance." : "The simulated transfer failed. Your demo balance was not changed.");
-      await load();
+      let response = await fetch("/api/funding/deposits?all=1", { cache: "no-store" });
+      let data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Could not load funding activity.");
+      const all: Deposit[] = data.deposits ?? [];
+
+      const toVerify = all.filter((item: Deposit) =>
+        item.provider_reference &&
+        /^MRV-FUND-[0-9a-f-]{36}$/i.test(item.provider_reference) &&
+        !["credited", "failed", "cancelled", "expired", "recovery_pending"].includes(item.status) &&
+        item.metadata?.payment_state !== "successful"
+      );
+      for (const item of toVerify) {
+        await fetch("/api/funding/reconcile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tx_ref: item.provider_reference }),
+        }).catch(() => null);
+      }
+
+      response = await fetch("/api/funding/deposits?all=1", { cache: "no-store" });
+      data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Could not refresh funding activity.");
+      const latest: Deposit[] = data.deposits ?? [];
+
+      const ready = latest.filter((item: Deposit) =>
+        item.status === "converting" &&
+        item.metadata?.payment_state === "successful" &&
+        item.metadata?.environment === "test" &&
+        item.target_asset === "SOL" &&
+        item.metadata?.treasury_settlement?.transfer_status !== "confirmed"
+      );
+      if (ready.length) {
+        setBusy(true);
+        await Promise.all(ready.map((item: Deposit) =>
+          fetch("/api/funding/settle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ deposit_id: item.id }),
+          }).catch(() => null)
+        ));
+        setBusy(false);
+        response = await fetch("/api/funding/deposits?all=1", { cache: "no-store" });
+        data = await response.json();
+      }
+
+      const rows: Deposit[] = data.deposits ?? [];
+      setDeposits(rows.filter((item: Deposit) => item.provider_reference && /^MRV-FUND-[0-9a-f-]{36}$/i.test(item.provider_reference)));
+
+      const walletResponse = await fetch("/api/account/wallet/balance", { cache: "no-store" });
+      const walletData: WalletBalance = await walletResponse.json();
+      if (walletResponse.ok && typeof walletData.availableSol === "number") {
+        setBalance(walletData.availableSol);
+        setAddress(walletData.address ?? "");
+      } else {
+        setBalance(null);
+        if (walletData.error) setMessage(walletData.error);
+      }
     } catch (error) {
-      setStage("failed");
-      setMessage(error instanceof Error ? error.message : "Simulation failed.");
+      setMessage(error instanceof Error ? error.message : "Could not refresh settlement status.");
     } finally {
       setBusy(false);
+      loading.current = false;
     }
-  }
+  }, []);
 
-  const steps = [
-    { key: "payment", title: "Payment successful", detail: "Flutterwave test payment verified" },
-    { key: "converting", title: "Converting to SOL", detail: "Demo conversion at 0.01 SOL per funded unit" },
-    { key: "success", title: "SOL deposited", detail: "Your test balance has been updated" },
-  ];
-  const active = stage === "failed" ? -1 : steps.findIndex((step) => step.key === stage);
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(() => { void load(); }, 10000);
+    return () => window.clearInterval(timer);
+  }, [load]);
+
+  const pendingCount = deposits.filter((item) => item.status === "converting").length;
+  const credited = deposits.filter((item) => item.status === "credited");
+  const latestCredit = credited[0];
 
   return (
     <main style={{ minHeight: "100vh", background: "radial-gradient(ellipse at 50% -15%, #30205d 0%, #10101d 42%, #080910 78%)", color: "#f7f6ff", padding: "38px 18px 70px", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
-      <style>{`
-        @keyframes orbit { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 #9875ff33; } 50% { box-shadow: 0 0 0 13px #9875ff00; } }
-        @keyframes glow { 0%,100% { opacity:.55 } 50% { opacity:1 } }
-        .step-card { transition:all .35s ease; }
-        .step-card.active { border-color:#9b7bff !important; background:#211b36 !important; box-shadow:0 0 28px #805aff20; }
-        .step-card.done { border-color:#397e68 !important; background:#10251f !important; }
-        .primary-btn { transition:transform .2s, filter .2s; }
-        .primary-btn:hover { transform:translateY(-2px); filter:brightness(1.12); }
-      `}</style>
       <div style={{ maxWidth: 850, margin: "0 auto" }}>
         <a href="/dashboard" style={{ color: "#c2b2ff", textDecoration: "none", fontSize: 14 }}>← Back to dashboard</a>
         <div style={{ textAlign: "center", margin: "38px auto 30px" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: "1px solid #514174", borderRadius: 30, padding: "7px 13px", color: "#c8b8ff", fontSize: 11, letterSpacing: 2, background: "#171327" }}>MYRAVEN <span style={{ color: "#8d79c8" }}>·</span> TEST SETTLEMENT</div>
-          <h1 style={{ fontSize: "clamp(32px,6vw,48px)", letterSpacing: "-1.8px", margin: "18px 0 9px", fontWeight: 750 }}>From payment to SOL.</h1>
-          <p style={{ color: "#a8a5ba", margin: 0, fontSize: 15 }}>Payment verification, SOL conversion and demo balance — automated in test mode.</p>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: "1px solid #514174", borderRadius: 30, padding: "7px 13px", color: "#c8b8ff", fontSize: 11, letterSpacing: 2, background: "#171327" }}>MYRAVEN <span style={{ color: "#8d79c8" }}>·</span> DEVNET SETTLEMENT</div>
+          <h1 style={{ fontSize: "clamp(32px,6vw,48px)", letterSpacing: "-1.8px", margin: "18px 0 9px", fontWeight: 750 }}>Funding to SOL.</h1>
+          <p style={{ color: "#a8a5ba", margin: 0, fontSize: 15 }}>Verified test payments settle from the shared treasury into your existing Privy wallet.</p>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14, marginBottom: 20 }}>
           <div style={{ border: "1px solid #353047", borderRadius: 18, padding: 21, background: "linear-gradient(135deg,#19152a,#11111b)" }}>
-            <div style={{ color: "#aaa3c1", fontSize: 12 }}>MYRAVEN TEST SOL BALANCE</div>
+            <div style={{ color: "#aaa3c1", fontSize: 12 }}>AVAILABLE TO SEND</div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: "50%", background: "linear-gradient(135deg,#a7f3d0,#6d42c5)", display: "grid", placeItems: "center", color: "#10101a", fontWeight: 900 }}>◎</div>
-              <strong style={{ fontSize: 30, letterSpacing: "-1px" }}>{solBalance.toFixed(6)} <span style={{ color: "#aaa3c1", fontSize: 15 }}>SOL</span></strong>
+              <div style={{ width: 38, height: 38, borderRadius: "50%", background: "linear-gradient(135deg,#a7f3d0,#6d42c5)", display: "grid", placeItems: "center", color: "#10101a" }}><Wallet size={19}/></div>
+              <strong style={{ fontSize: 30, letterSpacing: "-1px" }}>{balance === null ? "—" : balance.toLocaleString("en-US", { maximumFractionDigits: 8 })} <span style={{ color: "#aaa3c1", fontSize: 15 }}>SOL</span></strong>
             </div>
-            <div style={{ color: "#77738c", fontSize: 11, marginTop: 10 }}>Demo balance · not withdrawable</div>
+            <div style={{ color: "#77738c", fontSize: 11, marginTop: 10 }}>Live confirmed Solana Devnet wallet balance</div>
           </div>
           <div style={{ border: "1px solid #353047", borderRadius: 18, padding: 21, background: "#11111b" }}>
-            <div style={{ color: "#aaa3c1", fontSize: 12 }}>LATEST CONVERSION</div>
-            <div style={{ fontSize: 28, fontWeight: 700, marginTop: 13 }}>{lastSol ? `+${lastSol.toFixed(6)} SOL` : "—"}</div>
-            <div style={{ color: "#77738c", fontSize: 11, marginTop: 10 }}>{lastSol ? "Successfully added to test balance" : "Waiting for a verified test payment"}</div>
+            <div style={{ color: "#aaa3c1", fontSize: 12 }}>LATEST WALLET CREDIT</div>
+            <div style={{ fontSize: 28, fontWeight: 700, marginTop: 13 }}>{latestCredit?.credited_output_amount ? "+" + Number(latestCredit.credited_output_amount).toFixed(8) + " SOL" : "—"}</div>
+            <div style={{ color: "#77738c", fontSize: 11, marginTop: 10 }}>{latestCredit ? "Confirmed in your Privy wallet" : "Waiting for a confirmed settlement"}</div>
           </div>
         </div>
 
         <section style={{ border: "1px solid #39334e", borderRadius: 22, padding: "clamp(18px,4vw,30px)", background: "linear-gradient(145deg,#151421,#101019)", boxShadow: "0 24px 80px #0006" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <div><div style={{ color: "#a994ff", fontSize: 11, letterSpacing: 2 }}>SETTLEMENT JOURNEY</div><h2 style={{ fontSize: 22, margin: "7px 0 0" }}>Watch your funds arrive</h2></div>
-            <span style={{ color: "#f4d58b", background: "#3a2c19", border: "1px solid #66502b", borderRadius: 20, padding: "7px 11px", fontSize: 10, letterSpacing: 1 }}>TEST MODE ONLY</span>
+            <div><div style={{ color: "#a994ff", fontSize: 11, letterSpacing: 2 }}>SETTLEMENT STATUS</div><h2 style={{ fontSize: 22, margin: "7px 0 0" }}>Your funding activity</h2></div>
+            <button onClick={() => void load()} disabled={busy} style={{ display: "inline-flex", alignItems: "center", gap: 8, border: "1px solid #514174", borderRadius: 10, padding: "9px 12px", color: "#d4caff", background: "#171327", cursor: "pointer" }}><RefreshCw size={14}/> Refresh</button>
           </div>
-
-          <div style={{ display: "grid", gap: 10, marginTop: 24 }}>
-            {steps.map((step, index) => {
-              const done = (stage as Stage) === "success" || (stage === "converting" && index === 0);
-              const isActive = active === index;
-              return <div key={step.key} className={`step-card ${done ? "done" : isActive ? "active" : ""}`} style={{ display: "flex", gap: 14, alignItems: "center", padding: 15, border: "1px solid #302d3d", borderRadius: 14, background: "#12121c" }}>
-                <div style={{ width: 38, height: 38, flex: "0 0 38px", borderRadius: "50%", display: "grid", placeItems: "center", background: done ? "#174b3b" : isActive ? "#49347b" : "#252333", color: done ? "#80f0bd" : "#c9b9ff", fontSize: 18, animation: isActive ? "pulse 1.5s infinite" : "none" }}>{done ? "✓" : index + 1}</div>
-                <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15 }}>{step.title}</div><div style={{ color: "#9691a8", fontSize: 12, marginTop: 4 }}>{step.detail}</div></div>
-                {isActive && busy ? <span style={{ color: "#c8b8ff", fontSize: 11, animation: "glow 1s infinite" }}>IN PROGRESS</span> : done ? <span style={{ color: "#80f0bd", fontSize: 10 }}>COMPLETED</span> : null}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20 }}>
+            <span style={{ color: "#f4d58b", background: "#3a2c19", border: "1px solid #66502b", borderRadius: 20, padding: "7px 11px", fontSize: 10, letterSpacing: 1 }}>DEVNET TEST MODE</span>
+            <span style={{ color: "#b7d9ca", background: "#10251f", border: "1px solid #397e68", borderRadius: 20, padding: "7px 11px", fontSize: 10 }}>{pendingCount} PENDING</span>
+            <span style={{ color: "#c8b8ff", background: "#211b36", border: "1px solid #514174", borderRadius: 20, padding: "7px 11px", fontSize: 10 }}>{credited.length} CREDITED</span>
+          </div>
+          {busy ? <p style={{ color: "#c8b8ff", fontSize: 12, marginTop: 18 }}>Treasury settlement is processing. Your available balance changes only after Solana confirms the transfer.</p> : null}
+          {message ? <p role="status" style={{ color: "#ffb6bd", fontSize: 12, marginTop: 18 }}>{message}</p> : null}
+          <div style={{ display: "grid", gap: 10, marginTop: 22 }}>
+            {deposits.length === 0 ? <p style={{ color: "#9691a8", fontSize: 13 }}>No Flutterwave funding requests yet.</p> : deposits.slice(0, 15).map((item) => {
+              const done = item.status === "credited";
+              const pending = item.status === "converting";
+              const failed = ["failed", "recovery_pending"].includes(item.status);
+              const state = done ? "SOL credited" : pending ? (item.metadata?.treasury_settlement?.transfer_status ? "Treasury transfer pending" : "Payment verified · settling") : failed ? "Needs review" : item.status;
+              return <div key={item.id} style={{ display: "flex", gap: 14, alignItems: "center", padding: 15, border: "1px solid #302d3d", borderRadius: 14, background: "#12121c" }}>
+                <div style={{ width: 38, height: 38, flex: "0 0 38px", borderRadius: "50%", display: "grid", placeItems: "center", background: done ? "#174b3b" : pending ? "#49347b" : "#252333", color: done ? "#80f0bd" : "#c9b9ff" }}>{done ? <CheckCircle2 size={19}/> : pending ? <Clock3 size={19}/> : <AlertCircle size={19}/>}</div>
+                <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{item.input_amount} {item.input_currency} · {item.target_asset}</div><div style={{ color: "#9691a8", fontSize: 12, marginTop: 4 }}>{new Date(item.created_at).toLocaleString()}</div></div>
+                <div style={{ textAlign: "right" }}><div style={{ color: done ? "#80f0bd" : pending ? "#c8b8ff" : "#a69dbb", fontSize: 12, fontWeight: 700 }}>{state}</div><div style={{ color: "#9691a8", fontSize: 11, marginTop: 4 }}>{done && item.credited_output_amount ? Number(item.credited_output_amount).toFixed(8) + " SOL" : "Not spendable yet"}</div></div>
               </div>;
             })}
           </div>
-
-          <div style={{ marginTop: 23, padding: 18, borderRadius: 16, background: "#0b0b13", border: "1px solid #2d293c" }}>
-            <label style={{ display: "block", color: "#b9b3cb", fontSize: 12, marginBottom: 8 }}>Flutterwave test payment (auto-verified)</label>
-            <select value={selected} onChange={(event) => { selectedRef.current = event.target.value; setSelected(event.target.value); }} style={{ width: "100%", padding: 13, background: "#171622", color: "white", border: "1px solid #484258", borderRadius: 10 }}>
-              <option value="">Select a successful payment</option>
-              {deposits.map((deposit) => <option key={deposit.id} value={deposit.id}>{deposit.input_amount} {deposit.input_currency} · {deposit.provider_reference ?? deposit.id}</option>)}
-            </select>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
-              <label style={{ color: "#aaa4ba", fontSize: 12 }}>USDC received<input value={usdc} onChange={(event) => setUsdc(event.target.value)} type="number" min="0.000001" step="any" style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: 7, padding: 12, background: "#171622", color: "white", border: "1px solid #484258", borderRadius: 9 }} /></label>
-              <label style={{ color: "#aaa4ba", fontSize: 12 }}>SOL to deposit<input value={sol} onChange={(event) => setSol(event.target.value)} type="number" min="0.000000001" step="any" style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: 7, padding: 12, background: "#171622", color: "white", border: "1px solid #484258", borderRadius: 9 }} /></label>
-            </div>
-            <button className="primary-btn" disabled={busy || !selected} onClick={() => void simulate("success")} style={{ width: "100%", marginTop: 18, padding: 15, border: 0, borderRadius: 11, color: "white", fontWeight: 750, fontSize: 14, background: "linear-gradient(100deg,#7551e8,#9c70ff)", cursor: busy || !selected ? "not-allowed" : "pointer", opacity: busy || !selected ? .55 : 1 }}>{busy ? "Processing your conversion…" : "Run SOL conversion simulation →"}</button>
-            <button disabled={busy || !selected} onClick={() => void simulate("failed")} style={{ display: "block", margin: "12px auto 0", background: "transparent", border: 0, color: "#a69dbb", cursor: "pointer", fontSize: 12 }}>Test a failed payment instead</button>
-          </div>
-
-          {stage === "success" ? <div style={{ textAlign: "center", marginTop: 22, padding: 22, borderRadius: 16, background: "linear-gradient(135deg,#102b24,#15241f)", border: "1px solid #2e745a" }}>
-            <div style={{ fontSize: 34, color: "#86f2bd" }}>✓</div><div style={{ fontSize: 21, fontWeight: 750, marginTop: 7 }}>SOL deposited successfully!</div><div style={{ color: "#b7d9ca", fontSize: 13, marginTop: 7 }}>+{lastSol.toFixed(6)} SOL added to your MYRAVEN test balance</div>
-            <div style={{ fontSize: 12, color: "#86f2bd", marginTop: 14 }}>New demo balance: {solBalance.toFixed(6)} SOL</div>
-          </div> : null}
-          {stage === "failed" && message ? <p role="status" style={{ color: "#ffb6bd", marginTop: 18, textAlign: "center" }}>{message}</p> : null}
-          {message && stage === "success" ? <p role="status" style={{ color: "#91e9bf", textAlign: "center", fontSize: 12 }}>{message}</p> : null}
         </section>
-        <p style={{ textAlign: "center", color: "#6f6a80", fontSize: 11, lineHeight: 1.6, marginTop: 18 }}>TEST SIMULATION ONLY. The displayed conversion uses a fixed demo rate of 0.01 SOL per funded currency unit. No real USDC/SOL is transferred and no actual wallet is credited.</p>
+
+        <p style={{ textAlign: "center", color: "#6f6a80", fontSize: 11, lineHeight: 1.6, marginTop: 18 }}>Test payments are not real-money-backed crypto purchases. MYRAVEN uses shared Devnet treasury SOL; confirmed transfers appear in the same wallet balance used for sending. {address ? "Wallet: " + address.slice(0, 6) + "…" + address.slice(-6) : ""}</p>
       </div>
     </main>
   );
