@@ -42,6 +42,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Only a successfully verified Flutterwave test payment can enter mock settlement." }, { status: 409 });
   }
 
+  if (deposit.metadata?.mock_settlement?.transfer_status === "simulated_success") {
+    return NextResponse.json({ status: "simulated_success", settlement: deposit.metadata.mock_settlement, already_settled: true });
+  }
+
   const mock = {
     mode: "simulation",
     provider: "MYRAVEN mock settlement",
@@ -53,6 +57,7 @@ export async function POST(request: Request) {
     transfer_status: outcome === "success" ? "simulated_success" : "simulated_failure",
     conversion_status: outcome === "success" ? "simulated_success" : "not_run",
     wallet_credited: false,
+    demo_balance_credit: outcome === "success" ? solAmount : 0,
     note: "Simulation only. No stablecoins were transferred and no wallet balance was changed.",
     completed_at: new Date().toISOString(),
   };
