@@ -11,7 +11,7 @@ function record(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
 }
 
-async function reconcilePendingTransfers(admin: ReturnType<typeof createSupabaseAdmin>, currentUserId: string) {
+async function reconcilePendingTransfers(admin: unknown, currentUserId: string) {
   // The service-role client is dynamically typed because this project has no generated Database type.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminDb = admin as any;
