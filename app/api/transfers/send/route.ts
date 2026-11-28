@@ -73,6 +73,8 @@ export async function POST(request: Request) {
   if (recipientProfileError || !recipientProfile?.id) {
     return NextResponse.json({ error: "Recipient account could not be resolved securely." }, { status: 404 });
   }
+  const { data: senderProfile } = await admin.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+  const senderName = String(senderProfile?.display_name ?? user.user_metadata?.nickname ?? user.user_metadata?.display_name ?? "a MYRAVEN user").trim() || "a MYRAVEN user";
   const destination = String(recipient.solana_address);
   if (!ADDRESS.test(destination)) return NextResponse.json({ error: "Recipient wallet address is invalid." }, { status: 409 });
   if (destination === senderWallet.wallet_address) return NextResponse.json({ error: "You cannot send SOL to your own MYRAVEN wallet." }, { status: 400 });
@@ -113,7 +115,7 @@ export async function POST(request: Request) {
 
     const descriptionBase = amountText + " SOL";
     const senderDescription = "Sent " + descriptionBase + " to " + String(recipient.display_name ?? recipient.myraven_id ?? identifier);
-    const receiverDescription = "Received " + descriptionBase + " from MYRAVEN user";
+    const receiverDescription = "Received " + descriptionBase + " from " + senderName;
     const { error: senderLedgerError } = await admin.from("ledger_transactions").upsert({
       user_id: user.id, idempotency_key: idempotencyKey, source_type: "transfer",
       source_reference: String(action.id),
