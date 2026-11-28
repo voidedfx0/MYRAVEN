@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const TEST_MODE = process.env.MYRAVEN_MODE === "test";
 
-const allowedAssets = ["SOL", "USDC"] as const;
+const allowedAssets = ["SOL"] as const;
 const methods = ["card"] as const;
 const countries = countriesData.countries as Array<{ code: string; currency: string[] }>;
 
