@@ -18,6 +18,16 @@ type Quote = {
 type WalletConnection = { network: "Solana"; address: string; name: string };
 type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string };
 type RecipientProfile = { myravenId: string; displayName: string | null; countryCode: string | null };
+type FundingDeposit = {
+  id: string; funding_method: string; input_kind: string; input_currency: string;
+  input_amount: number | string; target_asset: string; credited_output_amount: number | string | null;
+  status: string; failure_code: string | null; provider_code: string | null; provider_reference: string | null;
+  created_at: string; updated_at: string;
+  metadata?: {
+    payment_state?: string; environment?: string;
+    mock_settlement?: { transfer_status?: string; sol_amount?: number | string };
+  } | null;
+};
 
 declare global {
   interface Window {
@@ -81,10 +91,6 @@ export default function Home() {
   const [fundingCheckoutLoading, setFundingCheckoutLoading] = useState(false);
   const [fundingMessage, setFundingMessage] = useState("");
   const [fundingHistory, setFundingHistory] = useState<Array<{
-    id: string; funding_method: string; input_kind: string; input_currency: string;
-    input_amount: number | string; target_asset: string; credited_output_amount: number | string | null;
-    status: string; failure_code: string | null; provider_code: string | null; provider_reference: string | null;
-    created_at: string; updated_at: string; metadata?: Record<string, any>;
   }>>([]);
   const [fundingHistoryLoading, setFundingHistoryLoading] = useState(false);
   const [fundingHistoryMessage, setFundingHistoryMessage] = useState("");
@@ -144,17 +150,17 @@ export default function Home() {
       const response = await fetch("/api/funding/deposits", { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Funding history could not be loaded.");
-      const deposits = Array.isArray(data.deposits) ? data.deposits : [];
+      const deposits: FundingDeposit[] = Array.isArray(data.deposits) ? data.deposits : [];
       setFundingHistory(deposits);
       // Main dashboard handles verification and the clearly labelled test conversion.
-      const needsVerification = deposits.filter((deposit: any) =>
+      const needsVerification = deposits.filter((deposit) =>
         ["awaiting_payment", "converting"].includes(deposit.status)
         && deposit.provider_reference
         && deposit.metadata?.payment_state !== "successful"
         && /^MRV-FUND-[0-9a-f-]{36}$/i.test(deposit.provider_reference)
       );
       if (needsVerification.length) {
-        await Promise.all(needsVerification.map((deposit: any) =>
+        await Promise.all(needsVerification.map((deposit) =>
           fetch("/api/funding/reconcile", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -167,13 +173,13 @@ export default function Home() {
       const latest = refreshed.ok && Array.isArray(refreshedData.deposits) ? refreshedData.deposits : deposits;
 
       // Test-mode presentation only: never credits the spendable ledger or moves real SOL.
-      const readyForDemo = latest.filter((deposit: any) =>
+      const latestDeposits: FundingDeposit[] = latest;\n      const readyForDemo = latestDeposits.filter((deposit) =>
         deposit.status === "converting"
         && deposit.metadata?.payment_state === "successful"
         && deposit.metadata?.environment === "test"
         && deposit.metadata?.mock_settlement?.transfer_status !== "simulated_success"
       );
-      await Promise.all(readyForDemo.map((deposit: any) => {
+      await Promise.all(readyForDemo.map((deposit) => {
         const sourceAmount = Number(deposit.input_amount);
         if (!deposit.id || !Number.isFinite(sourceAmount) || sourceAmount <= 0) return Promise.resolve(null);
         return fetch("/api/funding/mock-settlement", {
