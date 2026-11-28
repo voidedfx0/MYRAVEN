@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const TEST_MODE = process.env.MYRAVEN_MODE === "test";
 
 const allowedAssets = ["SOL", "USDC"] as const;
-const methods = ["card", "bank_transfer", "local_payment"] as const;
+const methods = ["card"] as const;
 const countries = countriesData.countries as Array<{ code: string; currency: string[] }>;
 
 function isTrustedFlutterwaveCheckout(rawLink: unknown): rawLink is string {
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
         tx_ref: txRef,
         amount: amount.toFixed(2),
         currency,
-        payment_options: method === "bank_transfer" ? "banktransfer" : method === "card" ? "card" : undefined,
+        payment_options: "card",
         redirect_url: `${origin}/dashboard?funding=return`,
         customer: { email: user.email, name: user.user_metadata?.full_name ?? user.email },
         customizations: { title: "MYRAVEN wallet funding", description: `Add funds to your MYRAVEN wallet (${targetAsset})` },
