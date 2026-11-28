@@ -61,7 +61,7 @@ export default function SettingsPage() {
       setEmail(user.email ?? "");
       setAccountType(kind);
       setPreferences({
-        displayName: String(meta.display_name ?? [meta.first_name, meta.last_name].filter(Boolean).join(" ") ?? ""),
+        displayName: String(meta.nickname ?? meta.display_name ?? [meta.first_name, meta.last_name].filter(Boolean).join(" ") ?? ""),
         currency: String(meta.preferred_currency ?? "USD"),
         paymentAlerts: meta.payment_alerts !== false,
         securityAlerts: meta.security_alerts !== false,
@@ -83,15 +83,14 @@ export default function SettingsPage() {
 
   async function savePreferences(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setMessage(""); setError("");
-    const { error: updateError } = await supabase.auth.updateUser({ data: {
-      display_name: preferences.displayName.trim(),
-      preferred_currency: preferences.currency,
-      payment_alerts: preferences.paymentAlerts,
-      security_alerts: preferences.securityAlerts,
-      product_updates: preferences.productUpdates,
-    }});
-    if (updateError) setError(updateError.message);
-    else setMessage("Your preferences have been saved.");
+    const response = await fetch("/api/account/profile", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nickname: preferences.displayName.trim(), preferredCurrency: preferences.currency,
+        paymentAlerts: preferences.paymentAlerts, securityAlerts: preferences.securityAlerts, productUpdates: preferences.productUpdates }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) setError(result.error ?? "Could not save your profile.");
+    else setMessage("Your nickname and preferences have been saved.");
     setSaving(false);
   }
 
@@ -172,7 +171,7 @@ export default function SettingsPage() {
         <section className="settings-card" id="profile">
           <div className="settings-card-title"><span className="settings-icon"><UserRound size={18}/></span><div><h3>Personal profile</h3><p>Keep your contact and display information current.</p></div></div>
           <form onSubmit={savePreferences} className="settings-form">
-            <label>DISPLAY NAME<input value={preferences.displayName} onChange={e=>setPreferences(p=>({...p,displayName:e.target.value}))} maxLength={80} placeholder="How your name appears in MYRAVEN"/></label>
+            <label>NICKNAME<input value={preferences.displayName} onChange={e=>setPreferences(p=>({...p,displayName:e.target.value}))} maxLength={80} placeholder="What should MYRAVEN call you?"/></label>
             <label>EMAIL ADDRESS<input value={email} disabled/><small>Use the email-change section below to update this address.</small></label>
             <div className="settings-note"><LockKeyhole size={15}/> Your legal identity details are handled separately from your display name.</div>
             <button className="settings-primary" type="submit" disabled={saving}>{saving?"Saving…":"Save profile"} <Check size={15}/></button>
