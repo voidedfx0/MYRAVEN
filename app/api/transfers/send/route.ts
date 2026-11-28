@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
-import { PrivyClient } from "@privy-io/node";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -98,43 +97,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Insufficient SOL. Keep at least 0.00001 SOL available for network fees." }, { status: 409 });
     }
 
-    const privy = new PrivyClient({ appId, appSecret });
+    // Do not attempt to rewrite owner_id in the payment path. Ownership changes
+    // require authorization from the wallet's current owner and must be handled
+    // as a separate, explicit migration. Submit the transfer using the configured
+    // authorization key; Privy will enforce the wallet's actual owner/signers.
     const walletId = String(senderWallet.provider_wallet_reference);
-    const walletResponse = await fetch("https://api.privy.io/v1/wallets/" + encodeURIComponent(walletId), {
-      headers: { "privy-app-id": appId, Authorization: "Basic " + Buffer.from(appId + ":" + appSecret).toString("base64") },
+    const action = await fetch("https://api.privy.io/v1/wallets/" + encodeURIComponent(walletId) + "/transfer", {
+      method: "POST",
+      headers: {
+        "privy-app-id": appId,
+        Authorization: "Basic " + Buffer.from(appId + ":" + appSecret).toString("base64"),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chain_type: "solana",
+        asset: "sol",
+        amount: amountText,
+        destination: destination,
+        authorization_context: { authorization_private_keys: [authorizationPrivateKey] },
+      }),
       cache: "no-store",
-      signal: AbortSignal.timeout(12000),
-    });
-    const walletPayload = await walletResponse.json();
-    if (!walletResponse.ok) {
-      return NextResponse.json({ error: "Privy could not verify your existing wallet (HTTP " + walletResponse.status + "). No SOL was sent." }, { status: 502 });
-    }
-    const walletData = record(record(walletPayload).data);
-    const providerWallet = record(record(walletPayload).wallet ?? walletData.wallet ?? walletData);
-    const ownerId = providerWallet.owner_id == null ? null : String(providerWallet.owner_id);
-    if (ownerId && ownerId !== quorumId) {
-      return NextResponse.json({ error: "This existing wallet is owned by a different Privy authorization identity. It has not been changed and no SOL was sent." }, { status: 409 });
-    }
-    if (!ownerId) {
-      try {
-        await privy.wallets().update(walletId, {
-          owner_id: quorumId,
-          authorization_context: { authorization_private_keys: [authorizationPrivateKey] },
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "authorization rejected";
-        return NextResponse.json({ error: "Privy could not authorize this existing wallet for sending (" + message.slice(0, 180) + "). No SOL was sent." }, { status: 403 });
+      signal: AbortSignal.timeout(20000),
+    }).then(async response => {
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const detail = typeof payload?.error === "string" ? payload.error : "Privy authorization rejected the transfer";
+        throw new Error("Privy transfer failed (HTTP " + response.status + "): " + detail);
       }
-    }
+      return payload?.data ?? payload;
+    });
 
-    const action = await privy.wallets().transfer(walletId, {
+    /*const action = await privy.wallets().transfer(walletId, {
       source: { asset: "sol", chain: "solana_devnet" },
       amount: amountText,
       destination: { address: destination },
       reference_id: "myraven-" + idempotencyKey,
       idempotency_key: idempotencyKey,
       authorization_context: { authorization_private_keys: [authorizationPrivateKey] },
-    });
+    });*/
     const descriptionBase = amountText + " SOL";
     const senderDescription = "Sent " + descriptionBase + " to " + String(recipient.display_name ?? recipient.myraven_id ?? identifier);
     const receiverDescription = "Received " + descriptionBase + " from MYRAVEN user";
