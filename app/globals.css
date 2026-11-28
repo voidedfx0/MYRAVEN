@@ -709,3 +709,16 @@ button,a,input,select,textarea{touch-action:manipulation}
 .global-back-wrap{padding-top:10px;padding-bottom:4px}
 .global-back-button{min-height:32px;padding:0 12px}
 @media(max-width:760px){.activity-category-box{gap:8px;padding:8px;margin-bottom:20px}.activity-category-box .activity-filter{flex:1 1 calc(50% - 8px);min-height:37px;padding:0 10px}.overview-payments-panel .funding-history-actions{gap:9px}.overview-payments-panel .funding-history-actions .connect-button{flex:1 1 auto;justify-content:center}.global-back-wrap{padding:8px 12px 5px}}
+
+
+/* Live payment notifications */
+.mrv-live-notice{position:fixed;right:24px;top:84px;z-index:1000;width:min(410px,calc(100vw - 32px));display:flex;align-items:center;gap:12px;padding:15px 16px 17px;border:1px solid rgba(155,123,255,.34);border-radius:14px;background:linear-gradient(145deg,#191b2a,#10131c);box-shadow:0 20px 65px rgba(0,0,0,.48),0 0 28px rgba(139,92,246,.12);animation:mrvNoticeIn .32s cubic-bezier(.2,.8,.2,1) both;overflow:hidden}
+.mrv-live-notice-icon{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;border-radius:11px;background:rgba(155,123,255,.16);color:#c7b8ff}
+.mrv-live-notice-copy{min-width:0;flex:1;display:grid;gap:5px}
+.mrv-live-notice-copy b{font-size:12px;color:#f4f2ff}
+.mrv-live-notice-copy small{font-size:10px;line-height:1.55;color:#b5bbca}
+.mrv-live-notice>button{border:0;background:transparent;color:#8790a2;padding:4px}
+.mrv-live-notice-progress{position:absolute;left:0;bottom:0;height:2px;width:100%;background:linear-gradient(90deg,#a78bfa,#67e8f9);transform-origin:left;animation:mrvNoticeProgress 6.5s linear forwards}
+@keyframes mrvNoticeIn{from{opacity:0;transform:translate3d(0,-10px,0) scale(.98)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
+@keyframes mrvNoticeProgress{to{transform:scaleX(0)}}
+@media(max-width:600px){.mrv-live-notice{top:72px;right:12px;width:calc(100vw - 24px);padding:13px}}
