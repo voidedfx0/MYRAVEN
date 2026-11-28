@@ -882,7 +882,6 @@ export default function Home() {
               </article>
             </div>
             <div className="wallet-security"><ShieldCheck size={15} /><span>External wallet balances are informational only. MYRAVEN does not receive signing permission, move funds, or access your seed phrase or private key.</span></div>
-            </div>
           </section>
 
           <section className="bottom-grid" id="safety">
