@@ -101,7 +101,6 @@ export default async function FundingActivityPage({ searchParams }: { searchPara
               <div className="panel-heading"><div><span className="panel-kicker">PENDING</span><h2>Awaiting completion</h2><p>Transfers and funding still processing</p></div></div>
               {pendingTransactions.length || pendingDeposits.length ? <div className="funding-history-list">
                 <ScheduledTransferActivity />
-                <ScheduledTransferActivity />
                 {pendingTransactions.map((item)=><article className="funding-history-item" key={item.id}><span className="funding-history-mark">◷</span><span className="funding-history-copy"><b>{item.description}</b><small>{new Date(item.created_at).toLocaleString()}</small></span><span className="funding-history-status status-pending"><b>Pending</b></span></article>)}
                 {pendingDeposits.map((item)=><article className="funding-history-item" key={item.id}><span className="funding-history-mark">◷</span><span className="funding-history-copy"><b>{money(item.input_amount,item.input_currency)} funding · {item.target_asset}</b><small>{new Date(item.created_at).toLocaleString()}</small></span><span className="funding-history-status status-pending"><b>{statusLabel(item.status)}</b></span></article>)}
               </div>  : <><ScheduledTransferActivity /><p className="funding-history-empty">Nothing pending.</p></>}
