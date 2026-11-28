@@ -704,6 +704,7 @@ export default function Home() {
                 <div className="wallet-balance-card-top"><span><Wallet size={15} /> MYRAVEN WALLET</span><small>INTERNAL LEDGER</small></div>
                 <strong>{balanceLoading ? "Loading…" : availableSol === null ? "— SOL" : `${availableSol.toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL`}</strong>
                 <p>Available to send from your MYRAVEN account. Pending funds are excluded.</p>
+                <small className="wallet-card-foot">Demo SOL from verified test deposits: {fundingHistory.reduce((sum, deposit) => sum + (deposit.metadata?.mock_settlement?.transfer_status === "simulated_success" ? Number(deposit.metadata.mock_settlement.sol_amount ?? 0) : 0), 0).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL · simulation only, not spendable</small>
                 <small className="wallet-card-foot">{balanceError ? "Balance could not be loaded" : "Ledger-backed balance · Solana Devnet · Test only"}</small>
               </article>
               <article className="wallet-balance-card external-wallet-card">
