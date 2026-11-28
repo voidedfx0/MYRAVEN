@@ -11,35 +11,27 @@ export async function GET() {
     return NextResponse.json({ error: "Sign in to view your MYRAVEN receiving wallet." }, { status: 401 });
   }
 
-  // Create only a per-user placeholder. The client is deliberately unable to
-  // assign an address, custody provider, or provider wallet reference.
-  const { error: createError } = await supabase
-    .from("user_solana_wallets")
-    .upsert(
-      { user_id: user.id, network: "solana-mainnet", status: "awaiting_provider" },
-      { onConflict: "user_id", ignoreDuplicates: true },
-    );
-
-  if (createError) {
-    return NextResponse.json({ error: "Your wallet profile could not be initialized yet." }, { status: 503 });
-  }
-
+  // Wallet records are provisioned server-side through Privy. Never create a
+  // client-side placeholder or silently switch this account to mainnet.
   const { data: wallet, error } = await supabase
     .from("user_solana_wallets")
     .select("network,wallet_address,status,created_at")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (error || !wallet) {
+  if (error) {
     return NextResponse.json({ error: "Your wallet profile is temporarily unavailable." }, { status: 503 });
   }
 
+  const addressReady = wallet?.network === "solana-devnet" &&
+    wallet.status === "provisioned" && Boolean(wallet.wallet_address);
+
   return NextResponse.json({
-    wallet,
-    addressReady: wallet.status === "provisioned" && Boolean(wallet.wallet_address),
-    canReceive: false,
-    note: wallet.wallet_address
-      ? "Address is assigned, but deposits remain disabled until custody and deposit monitoring are approved."
-      : "A unique address will be assigned by the MYRAVEN custody provider. No shared or placeholder address is displayed.",
+    wallet: wallet ?? { network: "solana-devnet", wallet_address: null, status: "awaiting_provider" },
+    addressReady,
+    canReceive: addressReady,
+    note: addressReady
+      ? "This is your personal Solana Devnet address. Only send test SOL on Devnet."
+      : "Your personal Devnet wallet has not been provisioned yet. Open Account details to retry setup.",
   }, { headers: { "Cache-Control": "no-store" } });
 }
