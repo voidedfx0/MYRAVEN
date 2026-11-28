@@ -60,25 +60,35 @@ async function ensureTreasury(admin: ReturnType<typeof createSupabaseAdmin>, app
   if (error) throw new Error("Could not load the MYRAVEN treasury record.");
   if (existing?.wallet_address && existing.provider_wallet_reference && existing.status === "provisioned") return existing;
 
-  const response = await fetch("https://api.privy.io/v1/wallets", {
-    method: "POST",
-    headers: {
-      "privy-app-id": appId,
-      Authorization: "Basic " + Buffer.from(appId + ":" + appSecret).toString("base64"),
-      "Content-Type": "application/json",
-      "privy-idempotency-key": TREASURY_EXTERNAL_ID,
-    },
-    body: JSON.stringify({
-      chain_type: "solana",
-      display_name: "MYRAVEN Treasury · Devnet",
-      external_id: TREASURY_EXTERNAL_ID,
-      owner_id: quorumId,
-    }),
-    cache: "no-store",
-    signal: AbortSignal.timeout(20000),
+  const headers = {
+    "privy-app-id": appId,
+    Authorization: "Basic " + Buffer.from(appId + ":" + appSecret).toString("base64"),
+    "Content-Type": "application/json",
+  };
+  const lookup = await fetch("https://api.privy.io/v1/wallets/ext_wal_" + TREASURY_EXTERNAL_ID, {
+    headers, cache: "no-store", signal: AbortSignal.timeout(15000),
   });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error("Privy could not create the MYRAVEN treasury (HTTP " + response.status + ").");
+  let payload: unknown = null;
+  if (lookup.ok) {
+    payload = await lookup.json().catch(() => null);
+  } else if (lookup.status === 404) {
+    const response = await fetch("https://api.privy.io/v1/wallets", {
+      method: "POST",
+      headers: { ...headers, "privy-idempotency-key": TREASURY_EXTERNAL_ID },
+      body: JSON.stringify({
+        chain_type: "solana",
+        display_name: "MYRAVEN Treasury · Devnet",
+        external_id: TREASURY_EXTERNAL_ID,
+        owner_id: quorumId,
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(20000),
+    });
+    payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error("Privy could not create the MYRAVEN treasury (HTTP " + response.status + ").");
+  } else {
+    throw new Error("Privy could not look up the MYRAVEN treasury (HTTP " + lookup.status + ").");
+  }
   const root = record(payload);
   const data = record(root.data);
   const wallet = record(root.wallet ?? data.wallet ?? root.data ?? root);
@@ -187,9 +197,15 @@ export async function POST(request: Request) {
 
   try {
     const prior = record(deposit.metadata?.treasury_settlement);
-    const { solPriceUsd, fiatUsdRate } = await getPriceAndFx(String(deposit.metadata?.verified_currency ?? deposit.input_currency).toUpperCase());
     const fiatAmount = Number(deposit.metadata?.verified_amount ?? deposit.input_amount);
-    const solAmount = Number(((fiatAmount * fiatUsdRate) / solPriceUsd).toFixed(8));
+    let solPriceUsd = Number(prior.sol_price_usd) || 0;
+    let fiatUsdRate = Number(prior.fiat_usd_rate) || 0;
+    if (!solPriceUsd || !fiatUsdRate) {
+      const rates = await getPriceAndFx(String(deposit.metadata?.verified_currency ?? deposit.input_currency).toUpperCase());
+      solPriceUsd = rates.solPriceUsd;
+      fiatUsdRate = rates.fiatUsdRate;
+    }
+    const solAmount = Number(prior.sol_amount) || Number(((fiatAmount * fiatUsdRate) / solPriceUsd).toFixed(8));
     if (!Number.isFinite(fiatAmount) || fiatAmount <= 0 || !Number.isFinite(solAmount) || solAmount <= 0) {
       return NextResponse.json({ error: "The verified payment could not be converted to a valid SOL amount." }, { status: 409 });
     }
