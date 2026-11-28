@@ -860,14 +860,25 @@ export default function Home() {
                       <option value={country.code} key={country.code}>{country.name} · {country.code}</option>
                     ))}
                   </select>
-                  <label className="field-label">SEARCH BANKS IN THIS COUNTRY</label>
-                  <input className="recipient-reference-input" value={recipientBankSearch} onChange={(event) => setRecipientBankSearch(event.target.value)} placeholder="Type a bank name…" aria-label="Search banks in selected country" disabled={recipientBanksLoading || recipientBanks.length === 0}/>
-                  <label className="field-label">AVAILABLE BANKS</label>
-                  <select value={recipientBank} onChange={(event) => setRecipientBank(event.target.value)} aria-label="Recipient bank" disabled={recipientBanksLoading || recipientBanks.length === 0}>
-                    <option value="">{recipientBanksLoading ? "Loading bank directory…" : recipientBanks.length ? "Select a bank" : "No provider-listed banks for this country"}</option>
-                    {recipientBanks.filter((bank) => bank.name.toLowerCase().includes(recipientBankSearch.trim().toLowerCase())).map((bank) => <option value={bank.code} key={bank.id}>{bank.name}</option>)}
-                  </select>
-                  <p className="recipient-lookup-status">{recipientBanksMessage} Bank availability is supplied by Flutterwave and varies by country; unavailable countries remain selectable but cannot proceed.</p>
+                  <label className="field-label">AVAILABLE BANKS · TYPE TO SEARCH</label>
+                  <input
+                    className="recipient-reference-input"
+                    list="myraven-country-banks"
+                    value={recipientBankSearch || recipientBanks.find((bank) => bank.code === recipientBank)?.name || ""}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setRecipientBankSearch(value);
+                      const match = recipientBanks.find((bank) => bank.name.toLowerCase() === value.trim().toLowerCase());
+                      setRecipientBank(match?.code ?? "");
+                    }}
+                    placeholder={recipientBanksLoading ? "Loading banks…" : recipientBanks.length ? "Type or choose a bank…" : "No bank records available"}
+                    aria-label="Search and choose recipient bank"
+                    disabled={recipientBanksLoading || recipientBanks.length === 0}
+                  />
+                  <datalist id="myraven-country-banks">
+                    {recipientBanks.map((bank) => <option value={bank.name} key={bank.id} />)}
+                  </datalist>
+                  <p className="recipient-lookup-status">{recipientBanksMessage} This is MYRAVEN's independent reference directory, not a list of payout-enabled banks. Bank payout connections will be added separately.</p>
                   {recipientBank ? <p className="recipient-lookup-status verified">Selected: {recipientBanks.find((bank) => bank.code === recipientBank)?.name}. Account details and payout steps will be added later.</p> : null}
                 </div> : <div className="recipient-lookup-row">
                   <input className="recipient-reference-input" value={recipientReference} onChange={(event) => { setRecipientReference(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); }} placeholder={recipientType === "myraven" ? "MRV-XXXXXXXXXX" : recipientType === "account" ? "MYRAVEN account number" : "Paste Solana address"} aria-label="Recipient identifier" />
