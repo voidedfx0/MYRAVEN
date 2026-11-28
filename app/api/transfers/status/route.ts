@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
   const admin = createSupabaseAdmin(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
   const { data: wallet, error: walletError } = await admin.from("user_solana_wallets")
-    .select("provider_wallet_reference,status,network,custody_provider")
+    .select("provider_wallet_reference,wallet_address,status,network,custody_provider")
     .eq("user_id", user.id).maybeSingle();
   if (walletError || !wallet?.provider_wallet_reference || wallet.status !== "provisioned" ||
       wallet.network !== "solana-devnet" || wallet.custody_provider !== "privy") {
@@ -42,12 +42,60 @@ export async function GET(request: Request) {
     const root = record(result);
     const data = record(root.data);
     const action = record(root.action ?? data.action ?? data ?? root);
+    const status = String(action.status ?? "pending").toLowerCase();
+    let autoTopUp: "not_needed" | "requested" | "unavailable" | "not_applicable" = "not_applicable";
+    let topUpSignature: string | null = null;
+
+    // Replenish the test wallet after a confirmed transfer when its Devnet
+    // balance is low. This is faucet-only test SOL and never uses user funds.
+    if (status === "succeeded" && process.env.MYRAVEN_MODE === "test" &&
+        (process.env.SOLANA_NETWORK ?? "devnet").toLowerCase() === "devnet") {
+      const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+      try {
+        const balanceResponse = await fetch(rpcUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: "myraven-auto-topup-balance", method: "getBalance", params: [String(wallet.wallet_address ?? ""), { commitment: "confirmed" }] }),
+          cache: "no-store",
+          signal: AbortSignal.timeout(10000),
+        });
+        const balancePayload = await balanceResponse.json();
+        const lamports = Number(balancePayload?.result?.value);
+        if (balanceResponse.ok && !balancePayload?.error && Number.isSafeInteger(lamports)) {
+          if (lamports >= 100_000_000) {
+            autoTopUp = "not_needed";
+          } else {
+            const airdropResponse = await fetch(rpcUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ jsonrpc: "2.0", id: "myraven-auto-topup", method: "requestAirdrop", params: [String(wallet.wallet_address ?? ""), 1_000_000_000, { commitment: "confirmed" }] }),
+              cache: "no-store",
+              signal: AbortSignal.timeout(15000),
+            });
+            const airdropPayload = await airdropResponse.json();
+            if (airdropResponse.ok && !airdropPayload?.error && typeof airdropPayload?.result === "string") {
+              topUpSignature = airdropPayload.result;
+              autoTopUp = "requested";
+            } else {
+              autoTopUp = "unavailable";
+            }
+          }
+        } else {
+          autoTopUp = "unavailable";
+        }
+      } catch {
+        autoTopUp = "unavailable";
+      }
+    }
+
     return NextResponse.json({
       actionId,
-      status: String(action.status ?? "pending"),
+      status,
       sourceAmount: action.source_amount ?? null,
       destinationAddress: action.destination_address ?? null,
       steps: Array.isArray(action.steps) ? action.steps : [],
+      autoTopUp,
+      topUpSignature,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (issue) {
     const message = issue instanceof Error ? issue.message : "Could not load transfer status.";
