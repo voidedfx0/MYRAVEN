@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import NotificationListener from "@/components/notification-listener";
 
 export const metadata: Metadata = {
   title: "MYRAVEN — Money moves. Intelligence connects.",
@@ -16,6 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
+        <NotificationListener />
       </body>
     </html>
   );
