@@ -205,8 +205,6 @@ export default function Home() {
   const [transferRequestId, setTransferRequestId] = useState("");
   const [paymentWindowActive, setPaymentWindowActive] = useState(false);
   const [paymentWindowSeconds, setPaymentWindowSeconds] = useState(60);
-  const [faucetLoading, setFaucetLoading] = useState(false);
-  const [faucetMessage, setFaucetMessage] = useState("");
   const [payAiOpen, setPayAiOpen] = useState(false);
   const [payAiPrompt, setPayAiPrompt] = useState("");
   const [payAiMessage, setPayAiMessage] = useState("");
@@ -385,35 +383,6 @@ export default function Home() {
     setTransferMessage("");
     setNotice("Recipient verified. Review the amount and recipient before sending.");
     setApprovalOpen(true);
-  }
-
-  async function requestDevnetSol() {
-    setFaucetLoading(true);
-    setFaucetMessage("Requesting 1 test SOL from the Solana Devnet faucet…");
-    try {
-      const response = await fetch("/api/account/wallet/faucet", { method: "POST", cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Devnet SOL request failed.");
-      setFaucetMessage("Airdrop requested. Waiting for Solana confirmation…");
-      let receivedBalance: number | null = null;
-      for (let attempt = 0; attempt < 12; attempt += 1) {
-        await new Promise((resolve) => window.setTimeout(resolve, 2500));
-        const balanceResponse = await fetch("/api/account/wallet/balance", { cache: "no-store" });
-        const balanceData = await balanceResponse.json();
-        if (balanceResponse.ok && Number.isFinite(Number(balanceData.availableSol)) && Number(balanceData.availableSol) > 0) {
-          receivedBalance = Number(balanceData.availableSol);
-          setAvailableSol(receivedBalance);
-          setBalanceError(false);
-          setFaucetMessage("Devnet SOL received · " + receivedBalance.toFixed(6) + " SOL available.");
-          break;
-        }
-      }
-      if (receivedBalance === null) setFaucetMessage("Airdrop requested, but the balance is not confirmed yet. Refresh shortly; do not request another airdrop immediately.");
-    } catch (error) {
-      setFaucetMessage(error instanceof Error ? error.message : "Could not request Devnet SOL.");
-    } finally {
-      setFaucetLoading(false);
-    }
   }
 
   function startPaymentSafetyWindow() {
@@ -716,7 +685,6 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
                 <label className="field-label">YOU SEND · SOL</label>
                 <div className="amount-field"><input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="0.000001" step="0.000001" required aria-label="Amount to send in SOL" /><span className="amount-currency">SOL</span></div>
                 <small className="wallet-card-foot">{balanceLoading ? "Checking available SOL…" : availableSol === null ? "Your SOL balance is unavailable." : `Available: ${availableSol.toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL`}</small>
-                {availableSol !== null && availableSol < 0.00002 ? <div className="wallet-message"><button type="button" className="connect-button" onClick={() => void requestDevnetSol()} disabled={faucetLoading}>{faucetLoading ? "Requesting test SOL…" : "Get 1 Devnet SOL"}</button>{faucetMessage ? <small>{faucetMessage}</small> : <small>Free test-network SOL for sending tests. No real value.</small>}</div> : null}
                 <div className="transfer-connector"><span><ArrowDownLeft size={15} /></span><i /></div>
                 <label className="field-label">SEND TO</label>
                 <select className="recipient-method-select" value={recipientType} onChange={(event) => { setRecipientType(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); setRecipientReference(""); setRecipientBank(""); setRecipientBankAccount(""); setRecipientLookupStatus(""); setDestination(event.target.value === "local-bank" ? "bank" : "solana"); }} aria-label="Recipient destination">
