@@ -475,3 +475,119 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     padding: 13px;
   }
 }
+
+
+/* Mobile layout repair: prevent clipped text, cramped controls and broken navigation */
+.app-frame,.main-area,.content-wrap,.panel,.settings-shell,.business-main{min-width:0;max-width:100%}
+html,body{width:100%;overflow-x:hidden}
+img,svg,video,canvas{max-width:100%}
+button,a,input,select,textarea{touch-action:manipulation}
+@media(max-width:760px){
+  .sidebar{width:min(88vw,310px);max-width:310px;padding:18px 14px 14px;overflow-y:auto;overscroll-behavior:contain}
+  .sidebar .brand{padding:0 5px}
+  .sidebar .workspace-label{margin-top:25px}
+  .sidebar .nav-caption{margin-top:22px}
+  .side-nav{gap:5px}
+  .side-nav a{min-height:43px;height:auto;padding:10px 11px;font-size:12px;line-height:1.35}
+  .side-nav a svg{flex:0 0 17px}
+  .sidebar-bottom{margin-top:24px}
+  .help-card{padding:12px}
+  .mobile-scrim{z-index:19;touch-action:manipulation}
+  .sidebar{z-index:20}
+  .top-header{min-width:0;padding-inline:12px;gap:9px}
+  .breadcrumb{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+  .header-actions{gap:8px;min-width:0}
+  .header-actions .environment-pill{display:none}
+  .header-actions .workspace-auth-actions{gap:5px}
+  .header-avatar{display:none}
+  .content-wrap{width:100%;padding:22px 12px 18px}
+  .welcome-row{gap:12px;margin-bottom:18px}
+  .welcome-row>div:first-child{min-width:0}
+  .welcome-row h1{font-size:clamp(23px,6vw,29px);line-height:1.15;overflow-wrap:anywhere}
+  .welcome-row p{font-size:12px;line-height:1.6}
+  .eyebrow{font-size:8px;line-height:1.5;letter-spacing:.1em;flex-wrap:wrap}
+  .metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .metric-card{min-width:0;min-height:100px;padding:11px}
+  .metric-top{gap:7px;font-size:10px;line-height:1.35}
+  .metric-card strong{font-size:clamp(18px,5vw,23px);overflow-wrap:anywhere}
+  .metric-card small{font-size:9px;line-height:1.45}
+  .work-grid,.bottom-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+  .panel{padding:14px;border-radius:11px}
+  .panel-heading{align-items:flex-start;gap:9px;margin-bottom:16px}
+  .panel-heading>div{min-width:0;flex:1}
+  .panel-heading h2{font-size:clamp(16px,4.5vw,19px);line-height:1.25;overflow-wrap:anywhere}
+  .panel-heading p{font-size:11px;line-height:1.55}
+  .panel-kicker{font-size:8px;letter-spacing:.11em;line-height:1.5}
+  .read-only-tag,.step-badge,.live-indicator{flex:0 0 auto;max-width:46%;white-space:normal;text-align:center;line-height:1.4;font-size:7px}
+  .field-label{font-size:9px;letter-spacing:.1em;line-height:1.4}
+  .amount-field input{font-size:22px;min-width:0}
+  .recipient-fields{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:7px}
+  .recipient-fields select,.amount-field select{min-width:0;max-width:100%;font-size:11px}
+  .preference-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .preference-options button{min-height:38px;font-size:10px;padding:8px 5px}
+  .primary-action,.secondary-action{min-height:44px;font-size:11px;line-height:1.35;white-space:normal}
+  .route-option{min-width:0;flex-wrap:wrap;gap:8px;padding:10px}
+  .route-info{min-width:0}
+  .route-info b{font-size:10px}
+  .route-info small,.route-output small{font-size:9px;line-height:1.4}
+  .route-output{margin-left:auto}
+  .route-score{flex:0 0 25px}
+  .empty-routes p{font-size:10px;line-height:1.6}
+  .wallet-connect-grid{grid-template-columns:minmax(0,1fr)}
+  .wallet-connect-card{min-width:0;flex-wrap:wrap;gap:9px}
+  .wallet-copy{flex:1 1 calc(100% - 55px)}
+  .wallet-copy b{font-size:11px}
+  .wallet-copy small{font-size:9px;overflow-wrap:anywhere}
+  .wallet-connect-card .connect-button{margin-left:43px;min-height:35px;font-size:10px}
+  .myraven-wallet-address-panel{min-width:0;display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px}
+  .myraven-wallet-address-panel>img{width:96px;height:96px;object-fit:contain;flex:0 0 96px}
+  .receive-address-value,.external-receive-address{min-width:0;max-width:100%;flex-wrap:wrap}
+  .receive-address-value code,.myraven-wallet-address-panel code{display:block;max-width:100%;font-size:10px;overflow-wrap:anywhere;word-break:break-word}
+  .wallet-address-actions{display:flex;flex-wrap:wrap;gap:7px}
+  .connected-wallet{min-width:0;flex-wrap:wrap;gap:8px}
+  .connected-wallet>span:nth-child(2){min-width:0;flex:1}
+  .connected-wallet small{overflow-wrap:anywhere}
+  .connected-wallet .connected-label{display:flex;margin-left:0}
+  .disconnect-button{min-height:34px;padding:6px 8px}
+  .wallet-balance-grid{grid-template-columns:minmax(0,1fr)}
+  .funding-country-row,.funding-checkout-controls{grid-template-columns:minmax(0,1fr)}
+  .funding-country-field,.funding-currency-card{min-width:0;padding:13px}
+  .funding-country-field select,.funding-checkout-controls input,.funding-checkout-controls select{font-size:16px;min-height:44px}
+  .funding-method-grid{grid-template-columns:minmax(0,1fr)}
+  .funding-method-card{min-width:0}
+  .funding-route-status{align-items:flex-start;flex-wrap:wrap}
+  .funding-route-status p,.funding-next-step p{font-size:10px;line-height:1.6;overflow-wrap:anywhere}
+  .funding-provider-status{margin-left:47px}
+  .funding-next-step{align-items:flex-start;flex-direction:column}
+  .funding-history-heading{align-items:flex-start;flex-direction:column}
+  .funding-history-actions{display:flex;flex-wrap:wrap;gap:7px;width:100%}
+  .funding-history-actions>*{min-height:36px}
+  .funding-history-item{min-width:0;align-items:flex-start;flex-wrap:wrap}
+  .funding-history-copy{min-width:0;flex:1}
+  .funding-history-copy b{white-space:normal;overflow-wrap:anywhere;font-size:11px}
+  .funding-history-copy small{font-size:9px;line-height:1.45}
+  .funding-history-status{margin-left:46px;text-align:left;font-size:10px;overflow-wrap:anywhere}
+  .funding-history-status small{font-size:9px}
+  .app-footer{font-size:9px;line-height:1.5}
+  .approval-modal{max-height:calc(100dvh - 28px);overflow:auto;padding:20px}
+}
+@media(max-width:420px){
+  .top-header{height:55px;padding-inline:9px}
+  .mobile-menu{padding:7px}
+  .header-actions .workspace-account-link{font-size:9px;padding:7px}
+  .header-actions .workspace-logout{font-size:0;padding:7px}
+  .content-wrap{padding-inline:10px}
+  .panel{padding:12px}
+  .panel-heading{gap:6px}
+  .read-only-tag{font-size:6px;padding:5px}
+  .metric-card{padding:9px}
+  .metric-top{font-size:9px}
+  .metric-card strong{font-size:18px}
+  .route-output b{font-size:9px}
+  .route-option{padding:8px}
+  .connected-wallet .connected-label{font-size:8px}
+  .receive-address-value{padding:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .sidebar{transition:none}
+}
