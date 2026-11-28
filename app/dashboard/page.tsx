@@ -16,7 +16,7 @@ type Quote = {
   recipientAmount: number; score: number; reasons: string[]; simulated: true;
 };
 type WalletConnection = { network: "Solana"; address: string; name: string };
-type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string; category?: "Sent" | "Received" | "Fund" | "Pending" };
+type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string; createdAt?: string; category?: "Sent" | "Received" | "Fund" | "Pending" };
 type RecipientProfile = { myravenId: string; accountNumber?: string; displayName: string | null; countryCode: string | null; solanaAddress?: string | null; walletStatus?: string | null };
 type FundingDeposit = {
   id: string; funding_method: string; input_kind: string; input_currency: string;
@@ -200,6 +200,8 @@ export default function Home() {
 
   const [walletMessage, setWalletMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("overview");
+  const [recentActivity, setRecentActivity] = useState<DemoActivity[]>([]);
   const [selectedRoute, setSelectedRoute] = useState("");
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approved, setApproved] = useState(false);
@@ -225,6 +227,25 @@ export default function Home() {
   const [ussdPhone, setUssdPhone] = useState("");
   const [ussdAmount, setUssdAmount] = useState("25");
   const [ussdResult, setUssdResult] = useState("");
+
+  useEffect(() => {
+    const section = new URLSearchParams(window.location.search).get("section") || "overview";
+    setActiveSection(["overview","payments","wallets","funding","ussd"].includes(section) ? section : "overview");
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    async function loadRecentActivity() {
+      try {
+        const response = await fetch("/api/activity/recent", { cache: "no-store" });
+        const data = await response.json();
+        if (active && response.ok && Array.isArray(data.activities)) setRecentActivity(data.activities);
+      } catch { /* Overview remains usable when activity is temporarily unavailable. */ }
+    }
+    void loadRecentActivity();
+    const interval = window.setInterval(loadRecentActivity, 20000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, []);
 
   useEffect(() => {
     try {
@@ -647,11 +668,15 @@ export default function Home() {
   }
 
   const nav = [
-    { label: "Overview", icon: LayoutDashboard },
-    { label: "Payments", icon: ArrowLeftRight },
-    { label: "Wallets", icon: Wallet },
-    { label: "Activity", icon: Activity },
-    { label: "USSD Preview", icon: Globe2 },
+    { label: "Overview", icon: LayoutDashboard, href: "/dashboard", key: "overview" },
+    { label: "Payments", icon: ArrowLeftRight, href: "/dashboard?section=payments", key: "payments" },
+    { label: "Wallets", icon: Wallet, href: "/dashboard?section=wallets", key: "wallets" },
+    { label: "Funding", icon: WalletCards, href: "/dashboard?section=funding", key: "funding" },
+    { label: "Activity", icon: Activity, href: "/dashboard/activity", key: "activity" },
+    { label: "Notifications", icon: Bell, href: "/notifications", key: "notifications" },
+    { label: "Account details", icon: Wallet, href: "/dashboard/account-details", key: "account" },
+    { label: "Settings", icon: Settings2, href: "/settings", key: "settings" },
+    { label: "USSD preview", icon: Smartphone, href: "/dashboard?section=ussd", key: "ussd" },
   ];
 
   return (
@@ -702,19 +727,9 @@ export default function Home() {
         </a>
         <div className="workspace-label">WORKSPACE <ChevronDown size={13} /></div>
         <div className="workspace-card"><span className="workspace-avatar">M</span><span><b>Personal workspace</b><small>MYRAVEN account</small></span><span className="online-dot" /></div>
-        <div className="nav-caption">PLATFORM</div>
+        <div className="nav-caption">MYRAVEN</div>
         <nav className="side-nav">
-          {nav.map(({ label, icon: Icon }, index) => <a className={index === 0 ? "active" : ""} href={index === 1 ? "#payment" : index === 2 ? "#wallets" : index === 3 ? "/dashboard/activity" : "#ussd"} key={label}><Icon size={17} />{label}{label === "Payments" ? <span className="nav-soon">NEW</span> : null}</a>)}
-        </nav>
-        <div className="nav-caption tools-caption">TOOLS</div>
-        <nav className="side-nav">
-          <a href="/dashboard/account-details"><Wallet size={17} />Account details</a>
-          <a href="#funding"><WalletCards size={17} />Funding</a>
-          <a href="#payment"><Globe2 size={17} />SmartRoute</a>
-          <a href="#safety"><ShieldCheck size={17} />Payment safety</a>
-          <a href="#ussd"><Globe2 size={17} />USSD simulator</a>
-          <a href="#activity"><Bell size={17} />Notifications</a>
-          <a href="/settings"><Settings2 size={17} />Settings</a>
+          {nav.map(({ label, icon: Icon, href, key }) => <a className={((key === "activity" && window.location.pathname === "/dashboard/activity") || (key === "notifications" && window.location.pathname === "/notifications") || (key === "account" && window.location.pathname.includes("account-details")) || (key === "settings" && window.location.pathname === "/settings") || (["overview","payments","wallets","funding","ussd"].includes(key) && activeSection === key)) ? "active" : ""} href={href} key={key}><Icon size={17} />{label}</a>)}
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><span className="help-icon"><CircleHelp size={16} /></span><b>Need a hand?</b><p>Explore how MYRAVEN connects payment methods.</p><a href="#how">Explore platform <ArrowUpRight size={13} /></a></div>
@@ -725,24 +740,21 @@ export default function Home() {
       <section className="main-area">
         <header className="top-header">
           <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen}><Menu size={19} /></button>
-          <div className="breadcrumb"><button className="icon-button" type="button" aria-label="Go back" title="Go back" onClick={() => { if (window.history.length > 1) window.history.back(); else window.location.assign("/dashboard"); }}><ArrowLeft size={16} /></button>Workspace <span>/</span> <b>Overview</b></div>
-          <div className="header-actions"><span className="environment-pill"><i /> PREVIEW MODE</span><AuthActions variant="workspace" /><a className="icon-button" href="/notifications" aria-label="Notifications" title="Notifications"><Bell size={17} /></a><span className="header-avatar">M</span></div>
+          <div className="breadcrumb"><button className="icon-button" type="button" aria-label="Go back" title="Go back" onClick={() => { if (window.history.length > 1) window.history.back(); else window.location.assign("/dashboard"); }}><ArrowLeft size={16} /></button>Workspace <span>/</span> <b>{activeSection === "ussd" ? "USSD preview" : activeSection[0].toUpperCase()+activeSection.slice(1)}</b></div>
+          <div className="header-actions"><span className="environment-pill"><i /> DEVNET TEST</span><AuthActions variant="workspace" /><a className="icon-button" href="/notifications" aria-label="Notifications" title="Notifications"><Bell size={17} /></a><span className="header-avatar">M</span></div>
         </header>
 
         <div className="content-wrap">
           <section className="welcome-row">
-            <div><div className="eyebrow"><Sparkles size={13} /> INTELLIGENT PAYMENT ORCHESTRATION</div><h1>Good to see you.</h1><p>Your money, your choices. MYRAVEN connects the routes in between.</p></div>
-            <div className="welcome-date"><span>PLATFORM STATUS</span><b><i /> Core preview online</b></div>
+            <div><div className="eyebrow"><Sparkles size={13} /> MYRAVEN WORKSPACE</div><h1>{activeSection === "overview" ? "Good to see you." : activeSection === "ussd" ? "USSD preview" : activeSection[0].toUpperCase()+activeSection.slice(1)}</h1><p>{activeSection === "overview" ? "Your balances, payments and latest activity at a glance." : activeSection === "payments" ? "Send SOL to verified MYRAVEN accounts and review payment routes." : activeSection === "wallets" ? "Manage your MYRAVEN wallet and connected external wallets." : activeSection === "funding" ? "Add funds through Flutterwave and track SOL settlement." : "Explore the USSD flow preview. No telecom or bank action is performed."}</p></div>
+            <div className="welcome-date"><span>NETWORK</span><b><i /> Solana Devnet · Test</b></div>
           </section>
+          {activeSection === "overview" ? <section className="metrics-grid">
+            <article className="metric-card balance-metric-card"><div className="metric-top"><span>Available balance</span><Wallet size={17} /></div><strong>{balanceLoading ? "Loading…" : availableSol === null ? "— SOL" : availableSol.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 8 }) + " SOL"}</strong><small>{balanceError ? "Live wallet balance unavailable" : "Confirmed SOL available to send · pending funds excluded"}</small><small className="balance-local-equivalent">{availableSol !== null && solPriceLocal !== null ? "≈ " + money(availableSol * solPriceLocal, preferredCurrency) + " " + preferredCurrency : "Local currency estimate loading…"}</small><div className="metric-line purple-line" /></article>
+            <article className="metric-card"><div className="metric-top"><span>Payments completed</span><Check size={17} /></div><strong>{(fundingHistory.filter((deposit) => deposit.status === "credited").length + recentActivity.filter((item) => item.category === "Sent" && item.status === "Successful").length).toString().padStart(2, "0")}</strong><small>Confirmed transfers and wallet funding</small><div className="metric-line green-line" /></article>
+          </section> : null}
 
-          <section className="metrics-grid">
-            <article className="metric-card balance-metric-card"><div className="metric-top"><span>Available to send</span><Wallet size={17} /></div><strong>{balanceLoading ? "Loading…" : availableSol === null ? "— SOL" : availableSol.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 8 }) + " SOL"}</strong><small>{balanceError ? "Sign in or refresh to load your live wallet balance" : "Confirmed SOL in your MYRAVEN wallet · excludes pending funds"}</small><small className="balance-local-equivalent">{availableSol !== null && solPriceLocal !== null ? "≈ " + money(availableSol * solPriceLocal, preferredCurrency) + " " + preferredCurrency : "Local currency estimate loading…"}</small><div className="metric-line purple-line" /></article>
-            <article className="metric-card"><div className="metric-top"><span>Routes compared</span><ArrowLeftRight size={17} /></div><strong>{quotes.length.toString().padStart(2, "0")}</strong><small>MYRAVEN Devnet transfers</small><div className="metric-line cyan-line" /></article>
-            <article className="metric-card"><div className="metric-top"><span>Payments completed</span><Check size={17} /></div><strong>{(fundingHistory.filter((deposit) => deposit.status === "credited" || deposit.metadata?.payment_state === "successful").length + activities.filter((item) => item.status.includes("Completed")).length).toString().padStart(2, "0")}</strong><small>Verified deposits and completed demo payments</small><div className="metric-line green-line" /></article>
-            <article className="metric-card"><div className="metric-top"><span>Safety status</span><LockKeyhole size={17} /></div><strong className="metric-word">Protected</strong><small>Approval required for every action</small><div className="metric-line silver-line" /></article>
-          </section>
-
-          <div className="work-grid">
+          {activeSection === "payments" ? <div className="work-grid">
             <section className="panel payment-panel" id="payment">
               <div className="panel-heading"><div><span className="panel-kicker">SMARTROUTE ENGINE</span><h2>Build a payment</h2><p>Send from your SOL balance to a MYRAVEN account, a bank, or a Solana address.</p></div><div className="payment-heading-actions"><button type="button" className={payAiOpen ? "pay-ai-trigger pay-ai-active" : "pay-ai-trigger"} onClick={() => setPayAiOpen((open) => !open)}><Sparkles size={13} /> Pay AI</button><span className="step-badge">01 / 03</span></div></div>
               {payAiOpen ? <div className="pay-ai-box">
@@ -812,9 +824,9 @@ export default function Home() {
               {quotes.length > 0 ? <button className="secondary-action" onClick={() => setApprovalOpen(true)}>Review payment details <ArrowUpRight size={15} /></button> : null}
               <p className="simulation-note">{notice}</p>
             </section>
-          </div>
+          </div> : null}
 
-          <section className="panel wallet-panel funding-hub-panel" id="funding">
+          {activeSection === "funding" ? <section className="panel wallet-panel funding-hub-panel" id="funding">
             <div className="panel-heading wallet-heading funding-heading">
               <div>
                 <span className="panel-kicker">MYRAVEN FUNDING · ONE WALLET</span>
@@ -934,8 +946,8 @@ export default function Home() {
               </div> : <p className="funding-history-empty">{fundingHistoryLoading ? "Loading funding activity…" : "Your verified funding requests will appear here."}</p>}
             </div>
             <p className="funding-disclaimer"><ShieldCheck size={13} /> Test mode: verified Flutterwave test payments are settled from MYRAVEN&apos;s shared Devnet treasury. SOL appears in your available balance only after the transfer is confirmed on Solana.</p>
-          </section>
-          <section className="panel wallet-panel" id="wallets">
+          </section> : null}
+          {activeSection === "wallets" ? <section className="panel wallet-panel" id="wallets">
             <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect Phantom on Solana Devnet to verify a public address and view test SOL. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
             <article className="wallet-connect-card myraven-embedded-wallet-card">
               <div className="wallet-network-logo solana-logo">M</div>
@@ -974,10 +986,13 @@ export default function Home() {
             <div className="wallet-security"><ShieldCheck size={15} /><span>External wallet balances are informational only. MYRAVEN does not receive signing permission, move funds, or access your seed phrase or private key.</span></div>
           </section>
 
-          <section className="bottom-grid" id="safety">
-            <article className="panel safety-panel"><div className="mini-panel-heading"><span className="safety-icon"><ShieldCheck size={17} /></span><span className="panel-kicker">PAYMENT SAFETY</span></div><h3>You stay in control.</h3><p>Every payment requires a clear review and explicit approval. A quote alone never authorizes a transaction.</p><div className="safety-points"><span><Check size={13} /> Fees shown before approval</span><span><Check size={13} /> Wallet credit waits for on-chain confirmation</span><span><Check size={13} /> No blind payment retries</span></div></article>
-            <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">ACTIVITY CENTER</span><a href="/dashboard/activity">View all <ArrowUpRight size={13} /></a></div><div className="activity-filter-row">{(["Sent", "Received", "Fund", "Pending"] as const).map((filter) => <button key={filter} type="button" className={activityFilter === filter ? "activity-filter active" : "activity-filter"} onClick={() => setActivityFilter(filter)}>{filter}</button>)}</div><div className="demo-activity-list">{activities.filter((item) => item.category === activityFilter).length ? activities.filter((item) => item.category === activityFilter).slice(0, 2).map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small>{item.id === "scheduled-" + transferRequestId && sendWindowActive ? <button className="cancel-review" type="button" onClick={cancelScheduledSend}>Cancel</button> : null}</span></div>) : <div className="activity-empty"><Activity size={17} /><span><b>No activity yet</b><small>Verified deposits and real transaction events will appear here. Preview approvals stay clearly labelled.</small></span></div>}</div></article>
-          </section>
+          </section> : null}
+
+          {activeSection === "payments" ? <section className="panel safety-panel" id="safety"><div className="mini-panel-heading"><span className="safety-icon"><ShieldCheck size={17} /></span><span className="panel-kicker">PAYMENT SAFETY</span></div><h3>You stay in control.</h3><p>Every payment requires a clear review and explicit approval. A quote alone never authorizes a transaction.</p><div className="safety-points"><span><Check size={13} /> Fees shown before approval</span><span><Check size={13} /> Wallet credit waits for on-chain confirmation</span><span><Check size={13} /> No blind payment retries</span></div></section> : null}
+
+          {activeSection === "overview" ? <section className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">LATEST ACTIVITY</span><a href="/dashboard/activity">View all activity <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{(() => { const seen = new Set<string>(); const rows = [...activities, ...recentActivity].filter((item) => { if (seen.has(item.id)) return false; seen.add(item.id); return true; }).slice(0, 2); return rows.length ? rows.map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small>{item.id === "scheduled-" + transferRequestId && sendWindowActive ? <button className="cancel-review" type="button" onClick={cancelScheduledSend}>Cancel</button> : null}</span></div>) : <div className="activity-empty"><Activity size={17} /><span><b>No activity yet</b><small>Your confirmed transfers and funding records will appear here.</small></span></div>; })()}</div></section> : null}
+
+          {activeSection === "ussd" ? <section className="panel funding-hub-panel ussd-preview-panel" id="ussd"><div className="panel-heading"><div><span className="panel-kicker">USSD · PREVIEW ONLY</span><h2>Explore a USSD payment flow</h2><p>Try the interaction preview. It does not contact a telecom provider, bank or wallet.</p></div><span className="read-only-tag">NO LIVE ACTION</span></div><div className="funding-checkout-controls"><label className="funding-country-field"><span className="field-label">PHONE NUMBER</span><input value={ussdPhone} onChange={(event) => setUssdPhone(event.target.value)} placeholder="+234 800 000 0000" /></label><label className="funding-country-field"><span className="field-label">AMOUNT · DEMO USD</span><input type="number" min="1" value={ussdAmount} onChange={(event) => setUssdAmount(event.target.value)} /></label><button type="button" className="primary-action" onClick={simulateUssd}><Smartphone size={16} /> Preview USSD request</button></div>{ussdResult ? <p className="funding-disclaimer" role="status">{ussdResult}</p> : null}</section> : null}
 
           <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>TEST MODE · SOLANA DEVNET ONLY</span></footer>
         </div>
