@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, ArrowUpRight, Bell, Building2, Check, ChevronRight, CircleHelp,
-  Download, Globe2, KeyRound, LockKeyhole, LogOut, MonitorSmartphone,
-  ShieldCheck, SlidersHorizontal, UserRound, Wallet, X,
+  Copy, Download, ExternalLink, Globe2, KeyRound, LockKeyhole, LogOut, MonitorSmartphone,
+  RefreshCw, ShieldCheck, SlidersHorizontal, UserRound, Wallet, X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type AccountKind = "personal" | "business";
 type Preferences = { displayName: string; currency: string; paymentAlerts: boolean; securityAlerts: boolean; productUpdates: boolean };
+type WalletInfo = { address: string; status: string; network: string } | null;
 
 const defaults: Preferences = { displayName: "", currency: "USD", paymentAlerts: true, securityAlerts: true, productUpdates: false };
 
@@ -39,6 +40,10 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [activeSection, setActiveSection] = useState("profile");
+  const [wallet, setWallet] = useState<WalletInfo>(null);
+  const [walletLoading, setWalletLoading] = useState(true);
+  const [walletError, setWalletError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -59,6 +64,14 @@ export default function SettingsPage() {
         productUpdates: meta.product_updates === true,
       });
       setLoading(false);
+      try {
+        const walletResponse = await fetch("/api/account/wallet", { method: "POST", cache: "no-store" });
+        const walletData = await walletResponse.json();
+        if (!walletResponse.ok) throw new Error(walletData.error ?? "Wallet provisioning is unavailable.");
+        if (alive) setWallet({ address: walletData.address, status: walletData.status, network: walletData.network });
+      } catch (walletIssue) {
+        if (alive) setWalletError(walletIssue instanceof Error ? walletIssue.message : "Could not load your wallet.");
+      } finally { if (alive) setWalletLoading(false); }
     }
     void load();
     return () => { alive = false; };
@@ -171,7 +184,16 @@ export default function SettingsPage() {
 
         <section className="settings-card" id="wallets">
           <div className="settings-card-title"><span className="settings-icon violet"><Wallet size={18}/></span><div><h3>Wallets & connected services</h3><p>Manage external connections and permissions.</p></div></div>
-          <div className="settings-feature-row"><Wallet size={17}/><span><b>Solana wallet connection</b><small>Wallet connections are currently session-level previews; no transaction signing is enabled.</small></span><span className="settings-status pending">PREVIEW</span></div>
+          <div className="settings-feature-row"><Wallet size={17}/><span><b>MYRAVEN embedded Solana wallet</b><small>One personal wallet is provisioned automatically and linked to your MYRAVEN account. No separate wallet connection is required.</small></span><span className={wallet?.address ? "settings-status active" : "settings-status pending"}>{wallet?.address ? "CREATED · DEVNET" : walletLoading ? "SETTING UP" : "NEEDS ATTENTION"}</span></div>
+          <div className="settings-wallet-panel">
+            {walletLoading ? <div className="settings-note"><RefreshCw size={15}/> Checking your MYRAVEN wallet…</div> : wallet?.address ? <>
+              <div className="settings-wallet-details">
+                <img className="settings-wallet-qr" src={"https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data="+encodeURIComponent(wallet.address)} alt="QR code for your Solana wallet address"/>
+                <div className="settings-wallet-address"><span>YOUR SOLANA RECEIVE ADDRESS</span><code>{wallet.address}</code><small>Solana Devnet · Privy embedded wallet</small><div className="settings-wallet-actions"><button type="button" className="settings-secondary" onClick={async()=>{await navigator.clipboard.writeText(wallet.address);setCopied(true);}}><Copy size={14}/>{copied?"Copied":"Copy address"}</button><a className="settings-secondary" href={"https://explorer.solana.com/address/"+wallet.address+"?cluster=devnet"} target="_blank" rel="noreferrer">View on Explorer <ExternalLink size={14}/></a></div></div>
+              </div>
+              <p className="settings-footnote">This is your unique MYRAVEN wallet address. Only send Devnet SOL to it while MYRAVEN is in test mode. Mainnet deposits are not enabled.</p>
+            </> : <div className="settings-wallet-error" role="status">{walletError || "Your wallet has not been provisioned yet."}<button type="button" className="settings-secondary" onClick={async()=>{setWalletLoading(true);setWalletError("");try{const r=await fetch("/api/account/wallet",{method:"POST",cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error??"Wallet setup failed.");setWallet({address:d.address,status:d.status,network:d.network});}catch(e){setWalletError(e instanceof Error?e.message:"Wallet setup failed.");}finally{setWalletLoading(false);}}}><RefreshCw size={14}/> Generate wallet</button></div>}
+          </div>
           <div className="settings-feature-row"><Building2 size={17}/><span><b>Connected financial providers</b><small>Cards, banks and payout providers will appear here after secure integration.</small></span><span className="settings-status pending">NOT CONNECTED</span></div>
         </section>
 
