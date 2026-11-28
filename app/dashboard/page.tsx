@@ -300,6 +300,7 @@ export default function Home() {
 
   useEffect(() => {
     void loadFundingHistory();
+    const fundingRefresh = window.setInterval(() => { void loadFundingHistory(); }, 12000);
 
     // Flutterwave returns status, tx_ref and transaction_id after checkout.
     // Never trust the browser status: reconcile the reference server-side.
@@ -322,6 +323,7 @@ export default function Home() {
         setFundingMessage("Payment return received. Verification is still processing; refresh your funding activity shortly.");
       });
     }
+    return () => window.clearInterval(fundingRefresh);
   }, []);
 
   async function startFundingCheckout() {
