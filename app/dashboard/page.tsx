@@ -76,6 +76,7 @@ export default function Home() {
   const [fundingCountry, setFundingCountry] = useState("NG");
   const [fundingCurrency, setFundingCurrency] = useState("NGN");
   const [fundingMethod, setFundingMethod] = useState("bank");
+  const [fundingProvider, setFundingProvider] = useState("flutterwave");
   const [fundingAmount, setFundingAmount] = useState("100");
   const [fundingTargetAsset, setFundingTargetAsset] = useState("USDC");
   const [fundingCheckoutLoading, setFundingCheckoutLoading] = useState(false);
@@ -159,6 +160,13 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const returnedStatus = params.get("status");
     const txRef = params.get("tx_ref");
+    if (params.get("funding") === "stripe-return") {
+      setFundingMessage("Stripe returned you to MYRAVEN. Payment confirmation is handled securely by the webhook; refresh funding activity to see the updated status.");
+      void loadFundingHistory();
+    } else if (params.get("funding") === "stripe-cancelled") {
+      setFundingMessage("Stripe checkout was cancelled. No wallet balance was credited.");
+      void loadFundingHistory();
+    }
     if (returnedStatus === "successful" && txRef) {
       void fetch("/api/funding/reconcile", {
         method: "POST",
@@ -191,10 +199,14 @@ export default function Home() {
     }
     const method = fundingMethod === "bank" ? "bank_transfer"
       : fundingMethod === "card" ? "card" : "local_payment";
+    if (fundingProvider === "stripe" && fundingMethod !== "card") {
+      setFundingMessage("Stripe is available here for card checkout only.");
+      return;
+    }
     setFundingCheckoutLoading(true);
     setFundingMessage("Creating a secure hosted checkout…");
     try {
-      const response = await fetch("/api/funding/checkout", {
+      const response = await fetch(fundingProvider === "stripe" ? "/api/funding/stripe/checkout" : "/api/funding/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -207,7 +219,7 @@ export default function Home() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Funding checkout could not be started.");
-      setFundingMessage("Opening Flutterwave secure checkout…");
+      setFundingMessage(fundingProvider === "stripe" ? "Opening Stripe test checkout…" : "Opening Flutterwave secure checkout…");
       window.location.assign(data.checkoutUrl);
     } catch (error) {
       setFundingMessage(error instanceof Error ? error.message : "Funding checkout is unavailable.");
@@ -563,12 +575,12 @@ export default function Home() {
                 { id: "bank", title: "Bank transfer", detail: "Local or international bank transfer", note: "Bank partner required", icon: Landmark },
                 { id: "local", title: "Local payment", detail: "Country-specific bank and payment rails", note: "Live country options not connected", icon: Globe2 },
                 { id: "mobile", title: "Mobile money", detail: "Supported mobile-money providers", note: "Provider connection required", icon: Smartphone },
-                { id: "card", title: "Debit or credit card", detail: "Add funds using an eligible card", note: "Card processor not connected", icon: CreditCard },
+                { id: "card", title: "Debit or credit card", detail: "Flutterwave or Stripe test checkout", note: "Stripe is sandbox-only pending approval", icon: CreditCard },
                 { id: "solana", title: "Solana funding", detail: "Fund with supported SOL or SPL assets", note: "On-chain deposit monitoring not connected", icon: WalletCards },
               ].map((method) => {
                 const Icon = method.icon;
                 return (
-                  <button type="button" key={method.id} onClick={() => setFundingMethod(method.id)} className={`funding-method-card ${fundingMethod === method.id ? "funding-method-selected" : ""}`}>
+                  <button type="button" key={method.id} onClick={() => { setFundingMethod(method.id); if (method.id !== "card") setFundingProvider("flutterwave"); }} className={`funding-method-card ${fundingMethod === method.id ? "funding-method-selected" : ""}`}>
                     <span className="funding-method-icon"><Icon size={18} /></span>
                     <span className="funding-method-copy"><b>{method.title}</b><small>{method.detail}</small><em>{method.note}</em></span>
                     <span className="funding-method-radio">{fundingMethod === method.id ? <Check size={13} /> : null}</span>
@@ -591,10 +603,19 @@ export default function Home() {
               <div>
                 <span className="panel-kicker">SELECTED METHOD</span>
                 <b>{({ bank: "Bank transfer", local: "Local payment", mobile: "Mobile money", card: "Debit or credit card", solana: "Solana funding" } as Record<string, string>)[fundingMethod]}</b>
-                <p>Fiat checkout is routed through Flutterwave. The exact methods shown at checkout depend on your country, currency and merchant account configuration.</p>
+                <p>{fundingMethod === "card" ? "Choose a card processor. Stripe is currently restricted to test-mode integration; live wallet funding requires Stripe approval." : "Fiat checkout is routed through Flutterwave. The exact methods shown at checkout depend on your country, currency and merchant account configuration."}</p>
               </div>
               <span className="read-only-tag"><LockKeyhole size={11} /> TEST SETUP</span>
             </div>
+            {fundingMethod === "card" ? (
+              <label className="funding-country-field">
+                <span className="field-label">CARD PROCESSOR</span>
+                <select value={fundingProvider} onChange={(event) => setFundingProvider(event.target.value)}>
+                  <option value="flutterwave">Flutterwave</option>
+                  <option value="stripe">Stripe · Test mode only</option>
+                </select>
+              </label>
+            ) : null}
             <div className="funding-checkout-controls">
               <label className="funding-country-field">
                 <span className="field-label">AMOUNT TO ADD</span>
