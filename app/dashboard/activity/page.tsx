@@ -20,7 +20,9 @@ function statusLabel(status: string) {
   return status.replaceAll("_", " ");
 }
 
-export default async function FundingActivityPage() {
+export default async function FundingActivityPage({ searchParams }: { searchParams?: Promise<{ view?: string }> }) {
+  const params = await searchParams;
+  const view = ["sent", "received", "fund", "pending"].includes(params?.view ?? "") ? params!.view! : "pending";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -46,6 +48,10 @@ export default async function FundingActivityPage() {
       && !["credited", "failed", "cancelled", "expired", "recovery_pending"].includes(deposit.status)
       && metadata.payment_state !== "successful";
   }).map((deposit) => deposit.provider_reference as string);
+  const sentTransactions = transactions.filter((item) => item.source_type === "transfer" && (item.description ?? "").startsWith("Sent "));
+  const receivedTransactions = transactions.filter((item) => item.source_type === "transfer" && (item.description ?? "").startsWith("Received "));
+  const pendingTransactions = transactions.filter((item) => item.status === "pending");
+  const pendingDeposits = deposits.filter((item) => ["awaiting_payment", "converting", "submitted_onchain", "confirming"].includes(item.status));
   const error = depositResult.error || transactionResult.error;
 
   return (
@@ -65,65 +71,39 @@ export default async function FundingActivityPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}><div className="welcome-date"><span>RECORDS</span><b>{deposits.length + transactions.length} transactions</b></div><ReconcileActivity references={referencesToVerify} /></div>
           </section>
 
-          <section className="panel funding-hub-panel">
-            <div className="panel-heading">
-              <div><span className="panel-kicker">ALL TRANSACTIONS</span><h2>Funding activity</h2><p>Latest first · Up to 100 recent records</p></div>
-            </div>
-            {error ? <p className="funding-disclaimer">Transaction history is temporarily unavailable. Please refresh and try again.</p>
-              : deposits?.length ? (
-                <div className="funding-history-list">
-                  {deposits.map((deposit) => {
-                    const metadata = deposit.metadata && typeof deposit.metadata === "object"
-                      ? deposit.metadata as Record<string, unknown> : {};
-                    const country = typeof metadata.country_code === "string" ? metadata.country_code : "—";
-                    return (
-                      <article className="funding-history-item" key={deposit.id}>
-                        <span className="funding-history-mark"><span aria-hidden="true">↔</span></span>
-                        <span className="funding-history-copy">
-                          <b>{money(deposit.input_amount, deposit.input_currency)} · {deposit.target_asset} wallet funding</b>
-                          <small>Method: {String(deposit.funding_method).replaceAll("_", " ")} · Provider: {deposit.provider_code ?? "—"} · Country: {country}</small>
-                          <small>Reference: {deposit.provider_reference ?? "Not assigned"} · Network: {deposit.chain_code ?? "—"}</small>
-                          <small>Created: {new Date(deposit.created_at).toLocaleString()} · Updated: {new Date(deposit.updated_at ?? deposit.created_at).toLocaleString()}</small>
-                          {deposit.failure_code ? <small>Review code: {deposit.failure_code}</small> : null}
-                        </span>
-                        <span className={`funding-history-status status-${deposit.status}`}>
-                          <b>{statusLabel(deposit.status)}</b>
-                          {deposit.credited_output_amount !== null && deposit.credited_output_amount !== undefined
-                            ? <small>{deposit.credited_output_amount} {deposit.target_asset} credited</small>
-                            : deposit.status === "converting"
-                              ? <small>Fiat payment verified · crypto not yet settled</small>
-                              : <small>{deposit.status.replaceAll("_", " ")}</small>}
-                        </span>
-                      </article>
-                    );
-                  })}
-                </div>
-              ) : <p className="funding-history-empty">No funding transactions yet. Your verified payments will appear here.</p>}
-          </section>
-          <section className="panel funding-hub-panel">
-            <div className="panel-heading">
-              <div><span className="panel-kicker">PAYMENTS & TRANSFERS</span><h2>Wallet activity</h2><p>Ledger-recorded transactions, latest first.</p></div>
-            </div>
-            {transactions.length ? (
-              <div className="funding-history-list">
-                {transactions.map((transaction) => (
-                  <article className="funding-history-item" key={transaction.id}>
-                    <span className="funding-history-mark"><span aria-hidden="true">↗</span></span>
-                    <span className="funding-history-copy">
-                      <b>{transaction.description || String(transaction.source_type).replaceAll("_", " ")}</b>
-                      <small>Type: {transaction.source_type} · Reference: {transaction.source_reference ?? "—"}</small>
-                      <small>Recorded: {new Date(transaction.created_at).toLocaleString()}</small>
-                    </span>
-                    <span className={`funding-history-status status-${transaction.status}`}>
-                      <b>{String(transaction.status).replaceAll("_", " ")}</b>
-                      <small>Ledger transaction</small>
-                    </span>
-                  </article>
-                ))}
-              </div>
-            ) : <p className="funding-history-empty">No wallet transfers have been recorded yet.</p>}
-          </section>
-          <p className="funding-disclaimer">A Flutterwave payment is marked completed only after server-side verification. SOL appears in your spendable balance only after conversion and Solana settlement have both been confirmed.</p>
+          <nav aria-label="Activity categories" style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
+            {(["sent","received","fund","pending"] as const).map((item) => (
+              <Link key={item} href={"/dashboard/activity?view="+item} className={view===item?"activity-filter active":"activity-filter"}>{item==="fund"?"Fund":item[0].toUpperCase()+item.slice(1)}</Link>
+            ))}
+          </nav>
+          {view === "fund" ? (
+            <section className="panel funding-hub-panel">
+              <div className="panel-heading"><div><span className="panel-kicker">FUND</span><h2>Wallet funding</h2><p>Verified funding and conversion records</p></div></div>
+              {error ? <p className="funding-disclaimer">Activity is temporarily unavailable.</p> : deposits.length ? <div className="funding-history-list">{deposits.map((deposit) => (
+                <article className="funding-history-item" key={deposit.id}>
+                  <span className="funding-history-mark">↓</span>
+                  <span className="funding-history-copy"><b>{money(deposit.input_amount,deposit.input_currency)} · {deposit.target_asset} funding</b><small>{deposit.provider_code ?? "Payment provider"} · {new Date(deposit.created_at).toLocaleString()}</small></span>
+                  <span className={"funding-history-status status-"+deposit.status}><b>{statusLabel(deposit.status)}</b>{deposit.credited_output_amount != null ? <small>{deposit.credited_output_amount} {deposit.target_asset} credited</small> : null}</span>
+                </article>
+              ))}</div> : <p className="funding-history-empty">No funding yet.</p>}
+            </section>
+          ) : view === "sent" || view === "received" ? (
+            <section className="panel funding-hub-panel">
+              <div className="panel-heading"><div><span className="panel-kicker">{view.toUpperCase()}</span><h2>{view === "sent" ? "Money sent" : "Money received"}</h2></div></div>
+              {(() => { const rows = view === "sent" ? sentTransactions : receivedTransactions; return rows.length ? <div className="funding-history-list">{rows.map((item) => (
+                <article className="funding-history-item" key={item.id}><span className="funding-history-mark">{view==="sent"?"↗":"↙"}</span><span className="funding-history-copy"><b>{item.description}</b><small>{new Date(item.created_at).toLocaleString()}</small></span><span className={"funding-history-status status-"+item.status}><b>{item.status==="posted"?"Successful":item.status}</b><small>Solana Devnet</small></span></article>
+              ))}</div> : <p className="funding-history-empty">No {view} transfers yet.</p>; })()}
+            </section>
+          ) : (
+            <section className="panel funding-hub-panel">
+              <div className="panel-heading"><div><span className="panel-kicker">PENDING</span><h2>Awaiting completion</h2><p>Transfers and funding still processing</p></div></div>
+              {pendingTransactions.length || pendingDeposits.length ? <div className="funding-history-list">
+                {pendingTransactions.map((item)=><article className="funding-history-item" key={item.id}><span className="funding-history-mark">◷</span><span className="funding-history-copy"><b>{item.description}</b><small>{new Date(item.created_at).toLocaleString()}</small></span><span className="funding-history-status status-pending"><b>Pending</b></span></article>)}
+                {pendingDeposits.map((item)=><article className="funding-history-item" key={item.id}><span className="funding-history-mark">◷</span><span className="funding-history-copy"><b>{money(item.input_amount,item.input_currency)} funding · {item.target_asset}</b><small>{new Date(item.created_at).toLocaleString()}</small></span><span className="funding-history-status status-pending"><b>{statusLabel(item.status)}</b></span></article>)}
+              </div> : <p className="funding-history-empty">Nothing pending.</p>}
+            </section>
+          )}
+          <p className="funding-disclaimer">Transfers appear as successful only after Solana confirms them. Recipients are notified and their available wallet balance refreshes after confirmation.</p>
         </div>
       </section>
     </main>
