@@ -24,12 +24,21 @@ export default async function FundingActivityPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: deposits, error } = await supabase
-    .from("funding_deposits")
-    .select("id,funding_method,input_currency,input_amount,target_asset,credited_output_amount,status,failure_code,provider_code,provider_reference,chain_code,metadata,created_at,updated_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1000);
+  const [depositResult, transactionResult] = await Promise.all([
+    supabase.from("funding_deposits")
+      .select("id,funding_method,input_currency,input_amount,target_asset,credited_output_amount,status,failure_code,provider_code,provider_reference,chain_code,metadata,created_at,updated_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1000),
+    supabase.from("ledger_transactions")
+      .select("id,source_type,source_reference,status,description,created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1000),
+  ]);
+  const deposits = depositResult.data ?? [];
+  const transactions = transactionResult.data ?? [];
+  const error = depositResult.error || transactionResult.error;
 
   return (
     <main className="app-frame">
@@ -45,7 +54,7 @@ export default async function FundingActivityPage() {
               <h1>Activity</h1>
               <p>Your complete funding history and payment verification details.</p>
             </div>
-            <div className="welcome-date"><span>RECORDS</span><b>{deposits?.length ?? 0} transactions</b></div>
+            <div className="welcome-date"><span>RECORDS</span><b>{deposits.length + transactions.length} transactions</b></div>
           </section>
 
           <section className="panel funding-hub-panel">
@@ -82,6 +91,29 @@ export default async function FundingActivityPage() {
                   })}
                 </div>
               ) : <p className="funding-history-empty">No funding transactions yet. Your verified payments will appear here.</p>}
+          </section>
+          <section className="panel funding-hub-panel">
+            <div className="panel-heading">
+              <div><span className="panel-kicker">PAYMENTS & TRANSFERS</span><h2>Wallet activity</h2><p>Ledger-recorded transactions, latest first.</p></div>
+            </div>
+            {transactions.length ? (
+              <div className="funding-history-list">
+                {transactions.map((transaction) => (
+                  <article className="funding-history-item" key={transaction.id}>
+                    <span className="funding-history-mark"><span aria-hidden="true">↗</span></span>
+                    <span className="funding-history-copy">
+                      <b>{transaction.description || String(transaction.source_type).replaceAll("_", " ")}</b>
+                      <small>Type: {transaction.source_type} · Reference: {transaction.source_reference ?? "—"}</small>
+                      <small>Recorded: {new Date(transaction.created_at).toLocaleString()}</small>
+                    </span>
+                    <span className={`funding-history-status status-${transaction.status}`}>
+                      <b>{String(transaction.status).replaceAll("_", " ")}</b>
+                      <small>Ledger transaction</small>
+                    </span>
+                  </article>
+                ))}
+              </div>
+            ) : <p className="funding-history-empty">No wallet transfers have been recorded yet.</p>}
           </section>
           <p className="funding-disclaimer">A Flutterwave payment is marked completed only after server-side verification. SOL appears in your spendable balance only after conversion and Solana settlement have both been confirmed.</p>
         </div>
