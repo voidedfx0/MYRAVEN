@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 "use client";
 import {useEffect,useState} from "react";
 import {Activity,ArrowDownLeft,ArrowLeftRight,ArrowUpRight,Bell,Copy,CreditCard,Globe2,Landmark,LayoutDashboard,Menu,Plus,RefreshCw,Send,ShieldCheck,Wallet} from "lucide-react";
