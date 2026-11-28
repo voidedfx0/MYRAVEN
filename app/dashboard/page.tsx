@@ -358,32 +358,18 @@ export default function Home() {
     event.preventDefault();
     const solAmount = Number(amount);
     if (!Number.isFinite(solAmount) || solAmount <= 0) { setNotice("Enter a valid SOL amount."); return; }
-    if (availableSol === null || solAmount > availableSol) { setNotice("Insufficient available SOL balance or balance unavailable."); return; }
-    if (solPriceUsd === null || solPriceUsd <= 0) { setNotice("Live SOL price is unavailable. Try again shortly."); return; }
-    setLoading(true);
-    setNotice("Comparing eligible routes…");
-    setApproved(false);
-    try {
-      const response = await fetch("/api/quotes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: Number(amount) * Number(solPriceUsd), sourceCurrency: "USD",
-          destinationCurrency: recipientType === "local-bank" ? destinationCurrency : "USD",
-          destination: recipientType === "local-bank" ? "bank" : "solana", preference,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Could not calculate routes.");
-      setQuotes(data.quotes);
-      setSelectedRoute(data.quotes[0]?.id ?? "");
-      setNotice(data.notice);
-    } catch (error) {
-      setQuotes([]);
-      setNotice(error instanceof Error ? error.message : "Something went wrong.");
-    } finally {
-      setLoading(false);
+    if (availableSol === null) { setNotice("Your live Devnet SOL balance is still unavailable. Refresh and try again."); return; }
+    if (solAmount + 0.00001 > availableSol) { setNotice("Insufficient SOL. Keep 0.00001 SOL available for network fees."); return; }
+    if (!recipientProfile || !["myraven", "account"].includes(recipientType)) {
+      setNotice("Verify the MYRAVEN recipient first, then review your transfer.");
+      return;
     }
+    setQuotes([]);
+    setSelectedRoute("myraven-devnet");
+    setApproved(false);
+    setTransferMessage("");
+    setNotice("Recipient verified. Review the amount and recipient before sending.");
+    setApprovalOpen(true);
   }
 
   async function connectSolana() {
@@ -640,7 +626,7 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
 
           <section className="metrics-grid">
             <article className="metric-card balance-metric-card"><div className="metric-top"><span>{demoSolBalance > 0 ? "Converted SOL balance · demo" : "Available to send"}</span><Wallet size={17} /></div><strong>{balanceLoading && demoSolBalance <= 0 ? "Loading…" : demoSolBalance > 0 ? demoSolBalance.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 8 }) + " SOL" : availableSol === null ? "— SOL" : availableSol.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 6 }) + " SOL"}</strong><small>{demoSolBalance > 0 ? solPriceLocal !== null ? "≈ " + money(demoSolBalance * solPriceLocal, preferredCurrency) + " · deposit value at live SOL price · simulated, not spendable" : "Deposit converted in demo mode · local equivalent unavailable · not spendable" : balanceError ? "Sign in or refresh to load your ledger balance" : "Verified, available SOL · excludes pending funds"}</small><div className="metric-line purple-line" /></article>
-            <article className="metric-card"><div className="metric-top"><span>Routes compared</span><ArrowLeftRight size={17} /></div><strong>{quotes.length.toString().padStart(2, "0")}</strong><small>Illustrative route options</small><div className="metric-line cyan-line" /></article>
+            <article className="metric-card"><div className="metric-top"><span>Routes compared</span><ArrowLeftRight size={17} /></div><strong>{quotes.length.toString().padStart(2, "0")}</strong><small>MYRAVEN Devnet transfers</small><div className="metric-line cyan-line" /></article>
             <article className="metric-card"><div className="metric-top"><span>Payments completed</span><Check size={17} /></div><strong>{(fundingHistory.filter((deposit) => deposit.status === "credited" || deposit.metadata?.payment_state === "successful").length + activities.filter((item) => item.status.includes("Completed")).length).toString().padStart(2, "0")}</strong><small>Verified deposits and completed demo payments</small><div className="metric-line green-line" /></article>
             <article className="metric-card"><div className="metric-top"><span>Safety status</span><LockKeyhole size={17} /></div><strong className="metric-word">Protected</strong><small>Approval required for every action</small><div className="metric-line silver-line" /></article>
           </section>
@@ -705,12 +691,12 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
                 <div className="preference-options">{[{id:"balanced",label:"Balanced"},{id:"lowest-cost",label:"Lowest cost"},{id:"fastest",label:"Fastest"},{id:"most-reliable",label:"Reliability"}].map((option) => <button type="button" className={preference === option.id ? "preference-active" : ""} onClick={() => setPreference(option.id)} key={option.id}>{option.label}</button>)}</div>
                 <button className="primary-action" type="submit" disabled={loading}>{loading ? <RefreshCw size={16} className="spin" /> : <Sparkles size={16} />}{loading ? "Comparing routes…" : "Find best route"}<ArrowUpRight size={16} /></button>
               </form>
-              <div className="notice-line"><ShieldCheck size={14} /> No funds move during route comparison.</div>
+              <div className="notice-line"><ShieldCheck size={14} /> No funds move until you confirm the transfer.</div>
             </section>
 
             <section className="panel route-panel">
-              <div className="panel-heading"><div><span className="panel-kicker">INTELLIGENCE OUTPUT</span><h2>Route recommendations</h2><p>Ranked by your selected priorities.</p></div><span className="live-indicator"><i /> PREVIEW</span></div>
-              {quotes.length === 0 ? <div className="empty-routes"><div className="empty-orbit"><ArrowLeftRight size={23} /></div><b>Your route options will appear here</b><p>Enter a payment amount and select “Find best route” to see a comparison.</p></div> : <div className="route-list">{quotes.map((quote, index) => <button className={`route-option ${selectedRoute === quote.id ? "route-selected" : ""}`} onClick={() => setSelectedRoute(quote.id)} key={quote.id}><span className={`route-icon ${quote.rail}`}>{quote.rail === "solana" ? "S" : "↗"}</span><span className="route-info"><b>{quote.label}{index === 0 ? <em>BEST MATCH</em> : null}</b><small>{quote.estimatedMinutes} min · {quote.reliability}% illustrative reliability</small></span><span className="route-output"><b>{recipientType === "local-bank" ? money(quote.recipientAmount, destinationCurrency) : solPriceUsd ? (quote.recipientAmount / solPriceUsd).toFixed(6) + " SOL" : "—"}</b><small>Fee {solPriceUsd ? (quote.estimatedFee / solPriceUsd).toFixed(6) + " SOL" : "—"}</small></span><span className="route-score">{quote.score}</span></button>)}</div>}
+              <div className="panel-heading"><div><span className="panel-kicker">TRANSFER STATUS</span><h2>Ready to send</h2><p>MYRAVEN-to-MYRAVEN SOL transfers use your verified Devnet wallets.</p></div><span className="live-indicator"><i /> PREVIEW</span></div>
+              {quotes.length === 0 ? <div className="empty-routes"><div className="empty-orbit"><ArrowLeftRight size={23} /></div><b>Compare routes is not needed here</b><p>Verify the recipient, enter your SOL amount, then select “Review transfer”. You will approve the actual Devnet send on the next step.</p></div> : <div className="route-list">{quotes.map((quote, index) => <button className={`route-option ${selectedRoute === quote.id ? "route-selected" : ""}`} onClick={() => setSelectedRoute(quote.id)} key={quote.id}><span className={`route-icon ${quote.rail}`}>{quote.rail === "solana" ? "S" : "↗"}</span><span className="route-info"><b>{quote.label}{index === 0 ? <em>BEST MATCH</em> : null}</b><small>{quote.estimatedMinutes} min · {quote.reliability}% illustrative reliability</small></span><span className="route-output"><b>{recipientType === "local-bank" ? money(quote.recipientAmount, destinationCurrency) : solPriceUsd ? (quote.recipientAmount / solPriceUsd).toFixed(6) + " SOL" : "—"}</b><small>Fee {solPriceUsd ? (quote.estimatedFee / solPriceUsd).toFixed(6) + " SOL" : "—"}</small></span><span className="route-score">{quote.score}</span></button>)}</div>}
               {quotes.length > 0 ? <div className="route-explanation"><Sparkles size={15} /><span><b>Why this route?</b> {bestQuote?.reasons.join(" · ")}</span></div> : <div className="route-footnote"><span><span className="legend-dot purple" /> Cost</span><span><span className="legend-dot cyan" /> Speed</span><span><span className="legend-dot green" /> Reliability</span></div>}
               {quotes.length > 0 ? <button className="secondary-action" onClick={() => setApprovalOpen(true)}>Review payment details <ArrowUpRight size={15} /></button> : null}
               <p className="simulation-note">{notice}</p>
