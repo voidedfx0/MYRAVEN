@@ -53,7 +53,8 @@ async function getPriceAndFx(currency: string) {
   return { solPriceUsd, fiatUsdRate };
 }
 
-async function ensureTreasury(admin: ReturnType<typeof createSupabaseAdmin>, appId: string, appSecret: string, quorumId: string) {
+async function ensureTreasury(adminInput: unknown, appId: string, appSecret: string, quorumId: string) {
+  const admin = adminInput as ReturnType<typeof createSupabaseAdmin>;
   // The generated Supabase client types do not yet include this existing private table.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const treasuryTable = admin.from("myraven_treasury_wallets") as any;
