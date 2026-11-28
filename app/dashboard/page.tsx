@@ -533,6 +533,14 @@ export default function Home() {
   useEffect(() => {
     if (!sendWindowActive) return;
     if (sendWindowSeconds <= 0) {
+      if (balanceLoading) return;
+      if (availableSol === null) {
+        window.localStorage.removeItem(SCHEDULED_SEND_KEY);
+        setSendWindowActive(false);
+        setTransferMessage("Wallet balance could not be verified. No SOL was sent.");
+        setToast({ title: "Transfer paused", message: "Your wallet balance could not be verified, so nothing was sent.", kind: "warning" });
+        return;
+      }
       window.localStorage.removeItem(SCHEDULED_SEND_KEY);
       setSendWindowActive(false);
       setActivities((current) => current.filter((item) => item.id !== "scheduled-" + transferRequestId));
@@ -544,7 +552,7 @@ export default function Home() {
       : item));
     const timer = window.setTimeout(() => setSendWindowSeconds((seconds) => seconds - 1), 1000);
     return () => window.clearTimeout(timer);
-  }, [sendWindowActive, sendWindowSeconds, transferRequestId]);
+  }, [sendWindowActive, sendWindowSeconds, transferRequestId, balanceLoading, availableSol]);
 
   async function confirmDemoPayment() {
     if (!recipientProfile || !["myraven", "account"].includes(recipientType)) {
