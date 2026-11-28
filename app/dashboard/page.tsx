@@ -75,15 +75,16 @@ export default function Home() {
   const [externalBalanceError, setExternalBalanceError] = useState("");
   const [fundingCountry, setFundingCountry] = useState("NG");
   const [fundingCurrency, setFundingCurrency] = useState("NGN");
-  const [fundingMethod, setFundingMethod] = useState("bank");
+  const [fundingMethod, setFundingMethod] = useState("card");
   const [fundingAmount, setFundingAmount] = useState("100");
-  const [fundingTargetAsset, setFundingTargetAsset] = useState("USDC");
+  const [fundingTargetAsset, setFundingTargetAsset] = useState("SOL");
   const [fundingCheckoutLoading, setFundingCheckoutLoading] = useState(false);
   const [fundingMessage, setFundingMessage] = useState("");
   const [fundingHistory, setFundingHistory] = useState<Array<{
     id: string; funding_method: string; input_kind: string; input_currency: string;
     input_amount: number | string; target_asset: string; credited_output_amount: number | string | null;
-    status: string; failure_code: string | null; created_at: string;
+    status: string; failure_code: string | null; provider_code: string | null; provider_reference: string | null;
+    created_at: string; updated_at: string;
   }>>([]);
   const [fundingHistoryLoading, setFundingHistoryLoading] = useState(false);
   const [fundingHistoryMessage, setFundingHistoryMessage] = useState("");
@@ -143,7 +144,24 @@ export default function Home() {
       const response = await fetch("/api/funding/deposits", { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Funding history could not be loaded.");
-      setFundingHistory(Array.isArray(data.deposits) ? data.deposits : []);
+      const deposits = Array.isArray(data.deposits) ? data.deposits : [];
+      setFundingHistory(deposits);
+      // Re-check pending references whenever the dashboard loads or is refreshed.
+      const pending = deposits.filter((deposit: { status: string; provider_reference?: string | null }) =>
+        deposit.status === "awaiting_payment" && Boolean(deposit.provider_reference)
+      );
+      if (pending.length) {
+        await Promise.all(pending.map((deposit: { provider_reference: string }) =>
+          fetch("/api/funding/reconcile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tx_ref: deposit.provider_reference }),
+          }).catch(() => null)
+        ));
+        const refreshed = await fetch("/api/funding/deposits", { cache: "no-store" });
+        const refreshedData = await refreshed.json();
+        if (refreshed.ok && Array.isArray(refreshedData.deposits)) setFundingHistory(refreshedData.deposits);
+      }
     } catch (error) {
       setFundingHistoryMessage(error instanceof Error ? error.message : "Funding history is unavailable.");
     } finally {
@@ -185,12 +203,7 @@ export default function Home() {
       setFundingMessage("Choose a country and enter a valid funding amount.");
       return;
     }
-    if (fundingMethod === "solana") {
-      setFundingMessage("On-chain Solana deposits are a separate route and are not enabled yet.");
-      return;
-    }
-    const method = fundingMethod === "bank" ? "bank_transfer"
-      : fundingMethod === "card" ? "card" : "local_payment";
+        const method = "card";
     setFundingCheckoutLoading(true);
     setFundingMessage("Creating a secure hosted checkout…");
     try {
@@ -556,15 +569,11 @@ export default function Home() {
 
             <div className="funding-section-label">
               <div><span className="panel-kicker">FUNDING METHODS</span><h3>Choose how to add money</h3></div>
-              <span className="funding-method-count">5 METHOD TYPES</span>
+              <span className="funding-method-count">ONE PAYMENT PARTNER</span>
             </div>
             <div className="funding-method-grid">
               {[
-                { id: "bank", title: "Bank transfer", detail: "Local or international bank transfer", note: "Bank partner required", icon: Landmark },
-                { id: "local", title: "Local payment", detail: "Country-specific bank and payment rails", note: "Live country options not connected", icon: Globe2 },
-                { id: "mobile", title: "Mobile money", detail: "Supported mobile-money providers", note: "Provider connection required", icon: Smartphone },
-                { id: "card", title: "Debit or credit card", detail: "Add funds using an eligible card", note: "Card processor not connected", icon: CreditCard },
-                { id: "solana", title: "Solana funding", detail: "Fund with supported SOL or SPL assets", note: "On-chain deposit monitoring not connected", icon: WalletCards },
+                { id: "card", title: "Flutterwave", detail: "Secure card checkout · local methods where supported", note: "One checkout for supported countries", icon: CreditCard },
               ].map((method) => {
                 const Icon = method.icon;
                 return (
@@ -584,14 +593,14 @@ export default function Home() {
                 <b>{fundingCountry ? `Funding route for ${fundingCountriesData.countries.find((country) => country.code === fundingCountry)?.name || fundingCountry}` : "Choose your country to check funding routes"}</b>
                 <p>{fundingCountry ? "Your country and currency are identified. MYRAVEN will only display banks, payment providers or account details after a connected funding partner confirms they are available for this country and your account." : "Select a country above. MYRAVEN will use it to determine the local currency and check eligible funding methods."}</p>
               </div>
-              <span className="funding-provider-status">NO LIVE PROVIDER</span>
+              <span className="funding-provider-status">FLUTTERWAVE</span>
             </div>
 
             <div className="funding-next-step">
               <div>
                 <span className="panel-kicker">SELECTED METHOD</span>
-                <b>{({ bank: "Bank transfer", local: "Local payment", mobile: "Mobile money", card: "Debit or credit card", solana: "Solana funding" } as Record<string, string>)[fundingMethod]}</b>
-                <p>Fiat checkout is routed through Flutterwave. The exact methods shown at checkout depend on your country, currency and merchant account configuration.</p>
+                <b>Flutterwave secure checkout</b>
+                <p>Flutterwave handles card funding. Available payment methods and country coverage depend on location and merchant approval. MYRAVEN does not offer standalone bank transfer.</p>
               </div>
               <span className="read-only-tag"><LockKeyhole size={11} /> TEST SETUP</span>
             </div>
@@ -609,11 +618,10 @@ export default function Home() {
               <label className="funding-country-field">
                 <span className="field-label">WALLET ASSET</span>
                 <select value={fundingTargetAsset} onChange={(event) => setFundingTargetAsset(event.target.value)}>
-                  <option value="USDC">USDC · Solana</option>
                   <option value="SOL">SOL · Solana</option>
                 </select>
               </label>
-              <button type="button" className="primary-action funding-checkout-button" onClick={startFundingCheckout} disabled={fundingCheckoutLoading || fundingMethod === "solana"}>
+              <button type="button" className="primary-action funding-checkout-button" onClick={startFundingCheckout} disabled={fundingCheckoutLoading}>
                 {fundingCheckoutLoading ? <RefreshCw size={16} className="spin" /> : <ArrowUpRight size={16} />}
                 Continue to secure checkout
               </button>
@@ -622,13 +630,16 @@ export default function Home() {
             <div className="funding-history">
               <div className="funding-history-heading">
                 <div><span className="panel-kicker">YOUR WALLET FUNDING</span><h3>Recent funding activity</h3></div>
-                <button type="button" className="connect-button" onClick={() => void loadFundingHistory()} disabled={fundingHistoryLoading}>
-                  <RefreshCw size={13} className={fundingHistoryLoading ? "spin" : ""} /> Refresh
-                </button>
+                <div className="funding-history-actions">
+                  <a className="connect-button" href="/dashboard/activity">View all activity <ArrowUpRight size={13} /></a>
+                  <button type="button" className="connect-button" onClick={() => void loadFundingHistory()} disabled={fundingHistoryLoading}>
+                    <RefreshCw size={13} className={fundingHistoryLoading ? "spin" : ""} /> Refresh
+                  </button>
+                </div>
               </div>
               {fundingHistoryMessage ? <p className="funding-disclaimer" role="status">{fundingHistoryMessage}</p> : null}
               {fundingHistory.length ? <div className="funding-history-list">
-                {fundingHistory.map((deposit) => <div className="funding-history-item" key={deposit.id}>
+                {fundingHistory.slice(0, 2).map((deposit) => <div className="funding-history-item" key={deposit.id}>
                   <span className="funding-history-mark"><WalletCards size={15} /></span>
                   <span className="funding-history-copy">
                     <b>{money(Number(deposit.input_amount), deposit.input_currency)} · {deposit.target_asset} requested</b>
@@ -646,7 +657,7 @@ export default function Home() {
                 </div>)}
               </div> : <p className="funding-history-empty">{fundingHistoryLoading ? "Loading funding activity…" : "Your verified funding requests will appear here."}</p>}
             </div>
-            <p className="funding-disclaimer"><ShieldCheck size={13} /> Test integration only. A successful fiat payment is verified server-side and held for conversion; MYRAVEN will not show SOL or USDC as available until the conversion and settlement provider is connected.</p>
+            <p className="funding-disclaimer"><ShieldCheck size={13} /> Test integration only. A successful Flutterwave payment is verified server-side. SOL is added to your available balance only after real conversion and Solana settlement are confirmed.</p>
           </section>
           <section className="panel wallet-panel" id="wallets">
             <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect Phantom on Solana Devnet to verify a public address and view test SOL. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
@@ -687,7 +698,7 @@ export default function Home() {
 
           <section className="bottom-grid" id="safety">
             <article className="panel safety-panel"><div className="mini-panel-heading"><span className="safety-icon"><ShieldCheck size={17} /></span><span className="panel-kicker">PAYMENT SAFETY</span></div><h3>You stay in control.</h3><p>Every payment requires a clear review and explicit approval. A quote alone never authorizes a transaction.</p><div className="safety-points"><span><Check size={13} /> Fees shown before approval</span><span><Check size={13} /> No automatic fund movement</span><span><Check size={13} /> No blind payment retries</span></div></article>
-            <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="#activity">View all <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{activities.length ? activities.map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small></span></div>) : <div className="activity-empty"><Activity size={17} /><span><b>No activity yet</b><small>Verified deposits and real transaction events will appear here. Preview approvals stay clearly labelled.</small></span></div>}</div></article>
+            <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="/dashboard/activity">View all <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{activities.length ? activities.map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small></span></div>) : <div className="activity-empty"><Activity size={17} /><span><b>No activity yet</b><small>Verified deposits and real transaction events will appear here. Preview approvals stay clearly labelled.</small></span></div>}</div></article>
           </section>
 
           <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>TEST MODE · SOLANA DEVNET ONLY</span></footer>
