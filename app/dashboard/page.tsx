@@ -395,18 +395,20 @@ export default function Home() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Devnet SOL request failed.");
       setFaucetMessage("Airdrop requested. Waiting for Solana confirmation…");
+      let receivedBalance: number | null = null;
       for (let attempt = 0; attempt < 12; attempt += 1) {
         await new Promise((resolve) => window.setTimeout(resolve, 2500));
         const balanceResponse = await fetch("/api/account/wallet/balance", { cache: "no-store" });
         const balanceData = await balanceResponse.json();
         if (balanceResponse.ok && Number.isFinite(Number(balanceData.availableSol)) && Number(balanceData.availableSol) > 0) {
-          setAvailableSol(Number(balanceData.availableSol));
+          receivedBalance = Number(balanceData.availableSol);
+          setAvailableSol(receivedBalance);
           setBalanceError(false);
-          setFaucetMessage("Devnet SOL received · " + Number(balanceData.availableSol).toFixed(6) + " SOL available.");
+          setFaucetMessage("Devnet SOL received · " + receivedBalance.toFixed(6) + " SOL available.");
           break;
         }
       }
-      if (availableSol === 0) setFaucetMessage("Airdrop requested. The faucet may take a little longer; refresh the balance shortly.");
+      if (receivedBalance === null) setFaucetMessage("Airdrop requested, but the balance is not confirmed yet. Refresh shortly; do not request another airdrop immediately.");
     } catch (error) {
       setFaucetMessage(error instanceof Error ? error.message : "Could not request Devnet SOL.");
     } finally {
