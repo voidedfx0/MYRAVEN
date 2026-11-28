@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     .select("id,funding_method,input_kind,input_currency,input_amount,target_asset,credited_output_amount,status,failure_code,provider_code,provider_reference,chain_code,created_at,updated_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
-    .limit(new URL(request.url).searchParams.get("all") === "1" ? 100 : 10);
+    .limit(new URL(request.url).searchParams.get("all") === "1" ? 1000 : 10);
 
   if (error) {
     return NextResponse.json({ error: "Funding history is temporarily unavailable." }, { status: 500 });
