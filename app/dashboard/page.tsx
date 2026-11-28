@@ -16,7 +16,7 @@ type Quote = {
   recipientAmount: number; score: number; reasons: string[]; simulated: true;
 };
 type WalletConnection = { network: "Solana"; address: string; name: string };
-type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string };
+type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string; category?: "Sent" | "Received" | "Fund" | "Pending" };
 type RecipientProfile = { myravenId: string; accountNumber?: string; displayName: string | null; countryCode: string | null; solanaAddress?: string | null; walletStatus?: string | null };
 type FundingDeposit = {
   id: string; funding_method: string; input_kind: string; input_currency: string;
@@ -216,6 +216,7 @@ export default function Home() {
   const [recipientLookupStatus, setRecipientLookupStatus] = useState("");
   const [recipientLookupLoading, setRecipientLookupLoading] = useState(false);
   const [activities, setActivities] = useState<DemoActivity[]>([]);
+  const [activityFilter, setActivityFilter] = useState<"All" | "Sent" | "Received" | "Fund" | "Pending">("All");
   const [ussdPhone, setUssdPhone] = useState("");
   const [ussdAmount, setUssdAmount] = useState("25");
   const [ussdResult, setUssdResult] = useState("");
@@ -495,9 +496,11 @@ export default function Home() {
         detail: recipientProfile.displayName || recipientReference,
         amount: "-" + String(amount) + " SOL",
         status: "Pending",
+        category: "Pending",
         time: "Just now",
       }, ...current]);
       setApproved(true);
+      setApprovalOpen(false);
       setTransferRequestId("");
       let finalStatus = String(data.status || "pending").toLowerCase();
       for (let attempt = 0; attempt < 8 && !["succeeded", "failed", "cancelled", "reverted"].includes(finalStatus); attempt += 1) {
@@ -509,7 +512,7 @@ export default function Home() {
       }
       if (finalStatus === "succeeded") {
         setTransferMessage("Transfer confirmed on Solana Devnet. Action " + String(data.actionId) + ".");
-        setActivities((current) => current.map((item) => item.id === String(data.actionId) ? { ...item, status: "Sent" } : item));
+        setActivities((current) => current.map((item) => item.id === String(data.actionId) ? { ...item, status: "Sent", category: "Sent" } : item));
         const balanceResponse = await fetch("/api/account/wallet/balance", { cache: "no-store" });
         const balanceData = await balanceResponse.json();
         if (balanceResponse.ok && Number.isFinite(Number(balanceData.availableSol))) setAvailableSol(Number(balanceData.availableSol));
@@ -883,7 +886,7 @@ export default function Home() {
 
           <section className="bottom-grid" id="safety">
             <article className="panel safety-panel"><div className="mini-panel-heading"><span className="safety-icon"><ShieldCheck size={17} /></span><span className="panel-kicker">PAYMENT SAFETY</span></div><h3>You stay in control.</h3><p>Every payment requires a clear review and explicit approval. A quote alone never authorizes a transaction.</p><div className="safety-points"><span><Check size={13} /> Fees shown before approval</span><span><Check size={13} /> Wallet credit waits for on-chain confirmation</span><span><Check size={13} /> No blind payment retries</span></div></article>
-            <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="/dashboard/activity">View all <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{activities.length ? activities.slice(0, 2).map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small></span></div>) : <div className="activity-empty"><Activity size={17} /><span><b>No activity yet</b><small>Verified deposits and real transaction events will appear here. Preview approvals stay clearly labelled.</small></span></div>}</div></article>
+            <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">ACTIVITY CENTER</span><a href="/dashboard/activity">View all <ArrowUpRight size={13} /></a></div><div className="activity-filter-row">{(["All", "Sent", "Received", "Fund", "Pending"] as const).map((filter) => <button key={filter} type="button" className={activityFilter === filter ? "activity-filter active" : "activity-filter"} onClick={() => setActivityFilter(filter)}>{filter}</button>)}</div><div className="demo-activity-list">{activities.filter((item) => activityFilter === "All" || item.category === activityFilter).length ? activities.filter((item) => activityFilter === "All" || item.category === activityFilter).slice(0, 2).map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small></span></div>) : <div className="activity-empty"><Activity size={17} /><span><b>No activity yet</b><small>Verified deposits and real transaction events will appear here. Preview approvals stay clearly labelled.</small></span></div>}</div></article>
           </section>
 
           <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>TEST MODE · SOLANA DEVNET ONLY</span></footer>
