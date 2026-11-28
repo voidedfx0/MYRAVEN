@@ -12,6 +12,8 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 async function reconcilePendingTransfers(admin: ReturnType<typeof createSupabaseAdmin>, currentUserId: string) {
+  // The service-role client is dynamically typed because this project has no generated Database type.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminDb = admin as any;
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
   const appSecret = process.env.PRIVY_APP_SECRET;
