@@ -199,12 +199,16 @@ export async function POST(request: Request) {
     const treasury = await ensureTreasury(admin, appId, appSecret, quorumId);
     const treasuryAddress = String(treasury.wallet_address);
     const treasuryWalletId = String(treasury.provider_wallet_reference);
-    const treasuryBalance = await requestTreasuryLiquidity(treasuryAddress, lamports);
     const privy = new PrivyClient({ appId, appSecret });
 
     let actionId = typeof prior.action_id === "string" ? prior.action_id : "";
     let actionStatus = "pending";
     let action: RecordValue = {};
+    let destinationBalanceBeforeLamports = Number(prior.destination_balance_before_lamports);
+    if (!actionId) {
+      await requestTreasuryLiquidity(treasuryAddress, lamports);
+      destinationBalanceBeforeLamports = await getBalance(String(customerWallet.wallet_address));
+    }
     if (actionId) {
       const current = await privy.wallets().actions.get(actionId, { wallet_id: treasuryWalletId, include: "steps" });
       const root = record(current);
@@ -212,7 +216,6 @@ export async function POST(request: Request) {
       action = record(root.action ?? data.action ?? data ?? root);
       actionStatus = String(action.status ?? "pending").toLowerCase();
     } else {
-      const destinationLamportsBefore = await getBalance(String(customerWallet.wallet_address));
       const submitted = await privy.wallets().transfer(treasuryWalletId, {
         source: { asset: "sol", chain: "solana_devnet" },
         amount: solAmount.toFixed(8),
@@ -237,7 +240,7 @@ export async function POST(request: Request) {
         sol_price_usd: solPriceUsd,
         sol_amount: solAmount,
         action_id: actionId,
-        destination_balance_before_lamports: destinationLamportsBefore,
+        destination_balance_before_lamports: destinationBalanceBeforeLamports,
         transfer_status: actionStatus,
         wallet_credited: false,
         created_at: new Date().toISOString(),
@@ -246,6 +249,15 @@ export async function POST(request: Request) {
         .update({ metadata: { ...(deposit.metadata ?? {}), treasury_settlement: settlement } })
         .eq("id", deposit.id).eq("user_id", user.id).eq("status", "converting");
       if (savePendingError) throw new Error("Transfer was submitted but its status could not be saved. Refresh funding activity to reconcile it.");
+    }
+
+    if (["failed", "cancelled", "canceled", "reverted"].includes(actionStatus)) {
+      await admin.from("funding_deposits").update({
+        status: "recovery_pending",
+        failure_code: "treasury_transfer_failed",
+        metadata: { ...(deposit.metadata ?? {}), treasury_settlement: { ...prior, action_id: actionId, transfer_status: actionStatus, wallet_credited: false, failed_at: new Date().toISOString() } },
+      }).eq("id", deposit.id).eq("user_id", user.id).eq("status", "converting");
+      return NextResponse.json({ status: "recovery_pending", error: "The payment was verified, but the treasury transfer failed. Funds were not marked as available." }, { status: 409 });
     }
 
     if (!["succeeded", "success", "confirmed"].includes(actionStatus)) {
@@ -262,7 +274,7 @@ export async function POST(request: Request) {
         sol_price_usd: solPriceUsd,
         sol_amount: solAmount,
         action_id: actionId,
-        treasury_balance_lamports: treasuryBalance,
+        destination_balance_before_lamports: destinationBalanceBeforeLamports,
         transfer_status: actionStatus,
         wallet_credited: false,
         updated_at: new Date().toISOString(),
@@ -282,8 +294,8 @@ export async function POST(request: Request) {
     }
 
     const destinationBalance = await getBalance(String(customerWallet.wallet_address));
-    const before = Number(prior.destination_balance_before_lamports ?? action.destination_balance_before_lamports ?? 0);
-    if (before > 0 && destinationBalance < before + lamports) {
+    const before = destinationBalanceBeforeLamports;
+    if (Number.isSafeInteger(before) && destinationBalance < before + lamports) {
       return NextResponse.json({ status: "settlement_pending", actionId, solAmount, message: "Transfer is processing; the receiving wallet balance has not updated yet." }, { status: 202 });
     }
 
