@@ -59,7 +59,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Only a successfully verified Flutterwave test payment can enter mock settlement." }, { status: 409 });
   }
 
-  if (deposit.metadata?.mock_settlement?.transfer_status === "simulated_success") {
+  if (deposit.metadata?.mock_settlement?.transfer_status === "simulated_success"
+    && Number(deposit.metadata?.mock_settlement?.sol_price_usd) > 0
+    && Number(deposit.metadata?.mock_settlement?.fiat_usd_rate) > 0) {
     return NextResponse.json({ status: "simulated_success", settlement: deposit.metadata.mock_settlement, already_settled: true });
   }
 
