@@ -29,7 +29,7 @@ export default async function FundingActivityPage() {
     .select("id,funding_method,input_currency,input_amount,target_asset,credited_output_amount,status,failure_code,provider_code,provider_reference,chain_code,metadata,created_at,updated_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(1000);
 
   return (
     <main className="app-frame">
