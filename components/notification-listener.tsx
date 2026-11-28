@@ -6,11 +6,10 @@ import { Bell, X } from "lucide-react";
 
 type Notice = { id: string; title: string; body: string; category?: string };
 
-function playChime() {
+function playChime(context: AudioContext | null) {
   try {
-    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const context = new AudioContextClass();
+    if (!context) return;
+    if (context.state === "suspended") void context.resume();
     const now = context.currentTime;
     [659.25, 880].forEach((frequency, index) => {
       const oscillator = context.createOscillator();
@@ -25,7 +24,6 @@ function playChime() {
       oscillator.start(now + index * 0.12);
       oscillator.stop(now + index * 0.12 + 0.45);
     });
-    window.setTimeout(() => { void context.close(); }, 900);
   } catch { /* Browser audio may be blocked until the user interacts with the page. */ }
 }
 
@@ -34,8 +32,18 @@ export default function NotificationListener() {
   const pathname = usePathname();
   const [notice, setNotice] = useState<Notice | null>(null);
   const seen = useRef(new Set<string>());
+  const audioContext = useRef<AudioContext | null>(null);
   useEffect(() => {
     let active = true;
+    function unlockAudio() {
+      if (audioContext.current) return;
+      const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      audioContext.current = new AudioContextClass();
+      void audioContext.current.resume();
+    }
+    window.addEventListener("pointerdown", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
     async function poll() {
       try {
         const response = await fetch("/api/notifications/latest", { cache: "no-store" });
@@ -48,13 +56,13 @@ export default function NotificationListener() {
         if (!fresh.length) return;
         const latest = fresh[0];
         setNotice(latest);
-        playChime();
+        playChime(audioContext.current);
         if (pathname === "/notifications") router.refresh();
       } catch { /* Keep the workspace usable while notifications reconnect. */ }
     }
     void poll();
     const timer = window.setInterval(() => { void poll(); }, 5000);
-    return () => { active = false; window.clearInterval(timer); };
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener("pointerdown", unlockAudio); window.removeEventListener("keydown", unlockAudio); };
   }, [pathname, router]);
   useEffect(() => {
     if (!notice) return;
