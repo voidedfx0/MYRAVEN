@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AuthActions from "@/components/auth-actions";
 import fundingCountriesData from "../../src/data/funding-countries.json";
 import {
@@ -29,6 +29,7 @@ type FundingDeposit = {
       transfer_status?: string; sol_amount?: number | string; action_id?: string;
       blockchain_signature?: string; wallet_credited?: boolean; completed_at?: string;
     };
+    settlement_diagnostics?: { stage?: string; last_error?: string; occurred_at?: string };
   } | null;
 };
 
@@ -103,6 +104,7 @@ export default function Home() {
   const [fundingHistory, setFundingHistory] = useState<FundingDeposit[]>([]);
   const [fundingHistoryLoading, setFundingHistoryLoading] = useState(false);
   const [fundingHistoryMessage, setFundingHistoryMessage] = useState("");
+  const fundingHistoryInFlight = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -245,8 +247,9 @@ export default function Home() {
   }, []);
 
   async function loadFundingHistory() {
+    if (fundingHistoryInFlight.current) return;
+    fundingHistoryInFlight.current = true;
     setFundingHistoryLoading(true);
-    setFundingHistoryMessage("");
     try {
       const response = await fetch("/api/funding/deposits", { cache: "no-store" });
       const data = await response.json();
@@ -307,11 +310,17 @@ export default function Home() {
       }
       const finalResponse = await fetch("/api/funding/deposits", { cache: "no-store" });
       const finalData = await finalResponse.json();
-      if (finalResponse.ok && Array.isArray(finalData.deposits)) setFundingHistory(finalData.deposits);
-      if (settlementErrors.length) setFundingHistoryMessage(settlementErrors[0]);
+      if (finalResponse.ok && Array.isArray(finalData.deposits)) {
+        setFundingHistory(finalData.deposits);
+        const diagnostic = (finalData.deposits as FundingDeposit[]).find((item) => item.metadata?.settlement_diagnostics?.last_error)?.metadata?.settlement_diagnostics;
+        if (settlementErrors.length) setFundingHistoryMessage(settlementErrors[0]);
+        else if (diagnostic?.last_error) setFundingHistoryMessage("Settlement " + (diagnostic.stage ?? "error") + ": " + diagnostic.last_error);
+        else if ((finalData.deposits as FundingDeposit[]).some((item) => item.status === "credited")) setFundingHistoryMessage("");
+      } else if (settlementErrors.length) setFundingHistoryMessage(settlementErrors[0]);
     } catch (error) {
       setFundingHistoryMessage(error instanceof Error ? error.message : "Funding history is unavailable.");
     } finally {
+      fundingHistoryInFlight.current = false;
       setFundingHistoryLoading(false);
     }
   }
