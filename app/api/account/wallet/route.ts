@@ -107,10 +107,16 @@ export async function POST() {
     }
 
     if (!providerWallet) {
+      const keyQuorumId = process.env.NEXT_PUBLIC_PRIVY_KEY_QUORUM_ID;
+      if (!keyQuorumId) {
+        return NextResponse.json({ error: "Privy wallet ownership is not configured. Add the MYRAVEN key quorum ID in Vercel and redeploy." }, { status: 503 });
+      }
+
       const created = await privyRequest("/wallets", "POST", appId, appSecret, {
         chain_type: "solana",
         display_name: "MYRAVEN " + (profile?.myraven_id ?? "Wallet"),
         external_id: externalId,
+        owner_id: keyQuorumId,
       }, idempotencyKey);
       const payload = await created.json().catch(() => ({}));
       if (!created.ok) {
