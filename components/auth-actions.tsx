@@ -48,7 +48,7 @@ export default function AuthActions({ variant = "marketing" }: Props) {
   if (variant === "workspace") {
     return (
       <div className="workspace-auth-actions">
-        {signedIn ? <Link className="workspace-account-link" href="/settings"><UserRound size={14}/> Account settings <ArrowUpRight size={13}/></Link> : <Link className="workspace-account-link" href="/account?mode=signin">Sign in <ArrowUpRight size={13}/></Link>}
+        {signedIn ? <Link className="workspace-account-link" href="/settings"><UserRound size={14}/> Account details <ArrowUpRight size={13}/></Link> : <Link className="workspace-account-link" href="/account?mode=signin">Sign in <ArrowUpRight size={13}/></Link>}
         {signedIn ? <button className="workspace-logout" type="button" onClick={logout} disabled={busy}><LogOut size={14}/> {busy ? "Signing out…" : "Log out"}</button> : <Link className="workspace-logout" href="/account">Sign up</Link>}
       </div>
     );
