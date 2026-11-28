@@ -68,6 +68,11 @@ export async function POST(request: Request) {
   if (lookupError || !recipient.solana_address || recipient.wallet_status !== "provisioned") {
     return NextResponse.json({ error: "No transfer-ready MYRAVEN recipient matched those details." }, { status: 404 });
   }
+  const { data: recipientProfile, error: recipientProfileError } = await admin
+    .from("profiles").select("id,display_name").or("myraven_id.eq." + identifier + ",account_number.eq." + identifier).maybeSingle();
+  if (recipientProfileError || !recipientProfile?.id) {
+    return NextResponse.json({ error: "Recipient account could not be resolved securely." }, { status: 404 });
+  }
   const destination = String(recipient.solana_address);
   if (!ADDRESS.test(destination)) return NextResponse.json({ error: "Recipient wallet address is invalid." }, { status: 409 });
   if (destination === senderWallet.wallet_address) return NextResponse.json({ error: "You cannot send SOL to your own MYRAVEN wallet." }, { status: 400 });
@@ -130,6 +135,24 @@ export async function POST(request: Request) {
       idempotency_key: idempotencyKey,
       authorization_context: { authorization_private_keys: [authorizationPrivateKey] },
     });
+    const descriptionBase = amountText + " SOL";
+    const senderDescription = "Sent " + descriptionBase + " to " + String(recipient.display_name ?? recipient.myraven_id ?? identifier);
+    const receiverDescription = "Received " + descriptionBase + " from MYRAVEN user";
+    const { error: senderLedgerError } = await admin.from("ledger_transactions").upsert({
+      user_id: user.id, idempotency_key: idempotencyKey, source_type: "transfer",
+      source_reference: String(action.id),
+      status: String(action.status).toLowerCase() === "succeeded" ? "posted" : "pending",
+      description: senderDescription,
+    }, { onConflict: "user_id,idempotency_key" });
+    const { error: receiverLedgerError } = await admin.from("ledger_transactions").upsert({
+      user_id: String(recipientProfile.id), idempotency_key: idempotencyKey + ":received",
+      source_type: "transfer", source_reference: String(action.id),
+      status: String(action.status).toLowerCase() === "succeeded" ? "posted" : "pending",
+      description: receiverDescription,
+    }, { onConflict: "user_id,idempotency_key" });
+    if (senderLedgerError || receiverLedgerError) {
+      return NextResponse.json({ error: "Transfer was submitted, but activity records could not be saved. Keep this reference: " + String(action.id) }, { status: 503 });
+    }
     return NextResponse.json({
       actionId: action.id,
       status: action.status,
