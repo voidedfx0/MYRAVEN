@@ -638,3 +638,19 @@ button,a,input,select,textarea{touch-action:manipulation}
   .account-detail-item{padding:11px!important}
   .account-detail-item .panel-kicker{font-size:7px;letter-spacing:.08em}
 }
+
+
+/* Mobile card copy: prevent long labels and descriptions from pushing layouts wider */
+@media(max-width:560px){
+  .panel,.panel-heading,.panel-heading>div,.funding-route-status,.funding-route-status>div,
+  .funding-next-step,.funding-next-step>div,.funding-method-card,.funding-method-card>span{
+    min-width:0;max-width:100%;box-sizing:border-box;
+  }
+  .panel h2,.panel h3,.panel p,.funding-route-status b,.funding-next-step b,
+  .funding-route-status p,.funding-next-step p,.funding-method-card b,
+  .funding-method-card small,.funding-method-card em{
+    overflow-wrap:anywhere;word-break:normal;
+  }
+  .funding-route-status,.funding-next-step{align-items:flex-start;gap:9px;flex-wrap:wrap}
+  .funding-provider-status,.funding-next-step .read-only-tag{flex:0 0 auto;max-width:100%;white-space:normal}
+}
