@@ -39,6 +39,8 @@ declare global {
   }
 }
 
+const SCHEDULED_SEND_KEY = "myraven:scheduled-send";
+
 const money = (value: number, currency: string) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(value);
 
@@ -224,6 +226,17 @@ export default function Home() {
   const [ussdAmount, setUssdAmount] = useState("25");
   const [ussdResult, setUssdResult] = useState("");
 
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(SCHEDULED_SEND_KEY);
+      if (!raw) return;
+      const scheduled = JSON.parse(raw) as { requestId:string; amount:string; recipientProfile:RecipientProfile; recipientReference:string; recipientType:string; expiresAt:number };
+      if (!scheduled?.requestId || !scheduled.recipientProfile || !Number.isFinite(scheduled.expiresAt)) { window.localStorage.removeItem(SCHEDULED_SEND_KEY); return; }
+      setTransferRequestId(scheduled.requestId); setAmount(scheduled.amount); setRecipientProfile(scheduled.recipientProfile);
+      setRecipientReference(scheduled.recipientReference); setRecipientType(scheduled.recipientType);
+      setSendWindowSeconds(Math.max(0, Math.ceil((scheduled.expiresAt - Date.now()) / 1000))); setSendWindowActive(true);
+    } catch { window.localStorage.removeItem(SCHEDULED_SEND_KEY); }
+  }, []);
   const bestQuote = useMemo(() => quotes.find((quote) => quote.id === selectedRoute) ?? quotes[0], [quotes, selectedRoute]);
 
   useEffect(() => {
@@ -482,6 +495,7 @@ export default function Home() {
     }
     const requestId = crypto.randomUUID();
     setTransferRequestId(requestId);
+    window.localStorage.setItem(SCHEDULED_SEND_KEY, JSON.stringify({ requestId, amount, recipientProfile, recipientReference, recipientType, expiresAt: Date.now() + 60000 }));
     setSendWindowSeconds(60);
     setSendWindowActive(true);
     setActivities((current) => [{
@@ -503,6 +517,7 @@ export default function Home() {
     const scheduledId = "scheduled-" + transferRequestId;
     setSendWindowActive(false);
     setSendWindowSeconds(0);
+    window.localStorage.removeItem(SCHEDULED_SEND_KEY);
     setActivities((current) => current.map((item) => item.id === scheduledId ? { ...item, title: "Transfer cancelled", status: "Cancelled · Not sent" } : item));
     setTransferRequestId("");
     setTransferMessage("Transfer cancelled. No SOL was sent.");
@@ -518,6 +533,7 @@ export default function Home() {
   useEffect(() => {
     if (!sendWindowActive) return;
     if (sendWindowSeconds <= 0) {
+      window.localStorage.removeItem(SCHEDULED_SEND_KEY);
       setSendWindowActive(false);
       setActivities((current) => current.filter((item) => item.id !== "scheduled-" + transferRequestId));
       void confirmDemoPayment();
