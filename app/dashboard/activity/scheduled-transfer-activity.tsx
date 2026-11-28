@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const STORAGE_KEY = "myraven:scheduled-send";
@@ -10,6 +10,7 @@ export default function ScheduledTransferActivity() {
   const router = useRouter();
   const [scheduled, setScheduled] = useState<ScheduledSend | null>(null);
   const [seconds, setSeconds] = useState(0);
+  const redirected = useRef(false);
   useEffect(() => {
     const read = () => {
       try {
@@ -26,7 +27,8 @@ export default function ScheduledTransferActivity() {
     return () => window.clearInterval(interval);
   }, []);
   useEffect(() => {
-    if (!scheduled || seconds > 0) return;
+    if (!scheduled || seconds > 0 || redirected.current) return;
+    redirected.current = true;
     router.replace("/dashboard?resumeScheduledSend=1");
   }, [scheduled, seconds, router]);
   if (!scheduled) return null;
