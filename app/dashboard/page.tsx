@@ -199,6 +199,7 @@ export default function Home() {
   }, []);
 
   const [walletMessage, setWalletMessage] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
   const [recentActivity, setRecentActivity] = useState<DemoActivity[]>([]);
@@ -227,6 +228,12 @@ export default function Home() {
   const [ussdPhone, setUssdPhone] = useState("");
   const [ussdAmount, setUssdAmount] = useState("25");
   const [ussdResult, setUssdResult] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/account/summary", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (active) setDisplayName(String(data?.profile?.display_name ?? "").trim()); }).catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const section = new URLSearchParams(window.location.search).get("section") || "overview";
@@ -746,7 +753,7 @@ export default function Home() {
 
         <div className="content-wrap">
           <section className="welcome-row">
-            <div><div className="eyebrow"><Sparkles size={13} /> MYRAVEN WORKSPACE</div><h1>{activeSection === "overview" ? "Good to see you." : activeSection === "ussd" ? "USSD preview" : activeSection[0].toUpperCase()+activeSection.slice(1)}</h1><p>{activeSection === "overview" ? "Your balances, payments and latest activity at a glance." : activeSection === "payments" ? "Send SOL to verified MYRAVEN accounts and review payment routes." : activeSection === "wallets" ? "Manage your MYRAVEN wallet and connected external wallets." : activeSection === "funding" ? "Add funds through Flutterwave and track SOL settlement." : "Explore the USSD flow preview. No telecom or bank action is performed."}</p></div>
+            <div><div className="eyebrow"><Sparkles size={13} /> MYRAVEN WORKSPACE</div><h1>{activeSection === "overview" ? (displayName ? "Good to see you, " + displayName + "." : "Good to see you.") : activeSection === "ussd" ? "USSD preview" : activeSection[0].toUpperCase()+activeSection.slice(1)}</h1><p>{activeSection === "overview" ? "Your balances, payments and latest activity at a glance." : activeSection === "payments" ? "Send SOL to verified MYRAVEN accounts and review payment routes." : activeSection === "wallets" ? "Manage your MYRAVEN wallet and connected external wallets." : activeSection === "funding" ? "Add funds through Flutterwave and track SOL settlement." : "Explore the USSD flow preview. No telecom or bank action is performed."}</p></div>
             <div className="welcome-date"><span>NETWORK</span><b><i /> Solana Devnet · Test</b></div>
           </section>
           {activeSection === "overview" ? <section className="metrics-grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
