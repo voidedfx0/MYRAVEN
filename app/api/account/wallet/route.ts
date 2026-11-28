@@ -68,36 +68,21 @@ export async function POST() {
   if (existingError) {
     return NextResponse.json({ error: "Your wallet record could not be loaded." }, { status: 503 });
   }
+  // Existing wallet records must never block authentication. Quorum migration is
+  // deliberately decoupled from login until the owner update is signed correctly.
+  if (existing?.wallet_address && existing.status === "provisioned" && existing.network === "solana-devnet") {
+    return NextResponse.json({
+      address: existing.wallet_address,
+      status: "provisioned",
+      network: "devnet",
+      reused: true,
+      authorization: "migration_pending",
+    });
+  }
+
   const keyQuorumId = process.env.NEXT_PUBLIC_PRIVY_KEY_QUORUM_ID;
   if (!keyQuorumId) {
     return NextResponse.json({ error: "Privy wallet ownership is not configured. Add the MYRAVEN key quorum ID in Vercel and redeploy." }, { status: 503 });
-  }
-
-  if (existing?.wallet_address && existing.status === "provisioned" && existing.network === "solana-devnet") {
-    const walletId = existing.provider_wallet_reference;
-    if (!walletId || walletId.startsWith("pending:")) {
-      return NextResponse.json({ error: "Your existing Privy wallet reference is incomplete. Contact MYRAVEN support." }, { status: 503 });
-    }
-    try {
-      const walletLookup = await privyRequest("/wallets/" + encodeURIComponent(walletId), "GET", appId, appSecret);
-      if (!walletLookup.ok) {
-        return NextResponse.json({ error: `Existing Privy wallet could not be verified (HTTP ${walletLookup.status}).` }, { status: 502 });
-      }
-      const walletDetails = asRecord(await walletLookup.json());
-      const currentOwnerId = typeof walletDetails.owner_id === "string" ? walletDetails.owner_id : null;
-      if (currentOwnerId && currentOwnerId !== keyQuorumId) {
-        return NextResponse.json({ error: "This wallet is already assigned to a different Privy owner. It was left unchanged." }, { status: 409 });
-      }
-      if (!currentOwnerId) {
-        const ownerUpdate = await privyRequest("/wallets/" + encodeURIComponent(walletId), "PATCH", appId, appSecret, { owner_id: keyQuorumId });
-        if (!ownerUpdate.ok) {
-          return NextResponse.json({ error: `Privy could not attach the MYRAVEN authorization quorum (HTTP ${ownerUpdate.status}). Existing wallet and funds are unchanged.` }, { status: 502 });
-        }
-      }
-      return NextResponse.json({ address: existing.wallet_address, status: "provisioned", network: "devnet", reused: true, authorization: "quorum_attached" });
-    } catch {
-      return NextResponse.json({ error: "The existing Privy wallet could not be updated. Your wallet and funds are unchanged." }, { status: 502 });
-    }
   }
 
   const externalId = "myraven-" + user.id;
