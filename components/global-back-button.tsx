@@ -8,11 +8,12 @@ export default function GlobalBackButton() {
   const router = useRouter();
 
   function goBack() {
-    if (typeof window !== "undefined" && window.history.length > 1) {
+    if (typeof window !== "undefined" && window.history.length > 1 &&
+        document.referrer.startsWith(window.location.origin)) {
       router.back();
-    } else {
-      router.push("/dashboard");
+      return;
     }
+    router.push("/dashboard");
   }
 
   return (
