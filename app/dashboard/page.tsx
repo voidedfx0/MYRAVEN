@@ -329,6 +329,10 @@ export default function Home() {
 
   async function calculateRoutes(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const solAmount = Number(amount);
+    if (!Number.isFinite(solAmount) || solAmount <= 0) { setNotice("Enter a valid SOL amount."); return; }
+    if (availableSol === null || solAmount > availableSol) { setNotice("Insufficient available SOL balance or balance unavailable."); return; }
+    if (solPriceLocal === null || solPriceLocal <= 0) { setNotice("Live SOL price is unavailable. Try again shortly."); return; }
     setLoading(true);
     setNotice("Comparing eligible routes…");
     setApproved(false);
@@ -337,8 +341,9 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: Number(amount), sourceCurrency, destinationCurrency,
-          destination, preference,
+          amount: Number(amount) * Number(solPriceLocal), sourceCurrency: "USD",
+          destinationCurrency: recipientType === "local-bank" ? destinationCurrency : "USD",
+          destination: recipientType === "local-bank" ? "bank" : "solana", preference,
         }),
       });
       const data = await response.json();
@@ -589,15 +594,16 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
                 <small className="pay-ai-disclaimer">Assisted form parsing only. Live AI, recipient lookup and payment execution are not connected yet.</small>
               </div> : null}
               <form onSubmit={calculateRoutes}>
-                <label className="field-label">YOU SEND</label>
-                <div className="amount-field"><input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="0.01" step="0.01" required aria-label="Amount to send" /><select value={sourceCurrency} onChange={(event) => setSourceCurrency(event.target.value)} aria-label="Source currency">{["USD","EUR","GBP","CHF","NGN","KES","GHS"].map((currency) => <option key={currency}>{currency}</option>)}</select></div>
+                <label className="field-label">YOU SEND · SOL</label>
+                <div className="amount-field"><input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="0.000001" step="0.000001" required aria-label="Amount to send in SOL" /><span className="amount-currency">SOL</span></div>
+                <small className="wallet-card-foot">{balanceLoading ? "Checking available SOL…" : availableSol === null ? "Your SOL balance is unavailable." : `Available: ${availableSol.toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL`}</small>
                 <div className="transfer-connector"><span><ArrowDownLeft size={15} /></span><i /></div>
-                <label className="field-label">RECIPIENT GETS</label>
+                <label className="field-label">SEND TO</label>
                 <select className="recipient-method-select" value={recipientType} onChange={(event) => { setRecipientType(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); setRecipientReference(""); setRecipientBank(""); setRecipientBankAccount(""); setRecipientLookupStatus(""); setDestination(event.target.value === "local-bank" ? "bank" : "solana"); }} aria-label="Recipient destination">
-                  <option value="solana">SOL address</option>
-                  <option value="myraven">MYRAVEN ID</option>
-                  <option value="account">MYRAVEN account number</option>
-                  <option value="local-bank">Local bank / payment</option>
+                  <option value="solana">Solana address · receive SOL</option>
+                  <option value="myraven">MYRAVEN ID · receive SOL</option>
+                  <option value="account">MYRAVEN account · receive SOL</option>
+                  <option value="local-bank">Local bank · receive local currency</option>
                 </select>
                 <label className="field-label preference-label">RECIPIENT IDENTIFIER</label>
                 {recipientType === "local-bank" ? <div className="local-bank-fields">
@@ -824,7 +830,7 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
       </section>
 
       {menuOpen ? <button className="mobile-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" /> : null}
-      {approvalOpen && bestQuote ? <div className="modal-backdrop" role="presentation" onClick={() => setApprovalOpen(false)}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setApprovalOpen(false)} aria-label="Close"><X size={18} /></button><span className="panel-kicker">PAYMENT REVIEW · SIMULATION</span><h2 id="approval-title">Review before you approve</h2><p>This is a preview only. No provider has been contacted and no funds can move.</p><div className="review-rows"><span>Recipient <b>{recipientProfile?.displayName ?? (recipientType === "solana" ? "External Solana wallet" : "Not verified")}</b></span><span>Recipient check <b>{recipientProfile ? "MYRAVEN profile matched" : recipientLookupStatus || "Not checked"}</b></span><span>Identifier <b>{recipientReference || "Not provided"}</b></span><span>You send <b>{money(Number(amount), sourceCurrency)}</b></span><span>Route <b>{bestQuote.label}</b></span><span>Estimated fee <b>{money(bestQuote.estimatedFee, sourceCurrency)}</b></span><span>Recipient receives <b>{money(bestQuote.recipientAmount, destinationCurrency)}</b></span></div>{approved ? <div className="approval-result"><Check size={16} /> Demo approval recorded locally. No transaction was submitted.</div> : <button className="primary-action" onClick={confirmDemoPayment}>Confirm demo approval <Check size={16} /></button>}<button className="cancel-review" onClick={() => setApprovalOpen(false)}>Go back</button></section></div> : null}
+      {approvalOpen && bestQuote ? <div className="modal-backdrop" role="presentation" onClick={() => setApprovalOpen(false)}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setApprovalOpen(false)} aria-label="Close"><X size={18} /></button><span className="panel-kicker">PAYMENT REVIEW · SIMULATION</span><h2 id="approval-title">Review before you approve</h2><p>Review only. SOL is the source balance; the selected destination determines what the recipient receives.</p><div className="review-rows"><span>Recipient <b>{recipientProfile?.displayName ?? (recipientType === "solana" ? "External Solana wallet" : recipientType === "local-bank" ? "Local bank payout" : "Not verified")}</b></span><span>Recipient check <b>{recipientProfile ? "MYRAVEN profile matched" : recipientLookupStatus || "Not checked"}</b></span><span>Identifier <b>{recipientReference || "Not provided"}</b></span><span>You send <b>{Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL</b></span><span>Route <b>{bestQuote.label}</b></span><span>Estimated fee <b>{solPriceLocal ? (bestQuote.estimatedFee / solPriceLocal).toFixed(6) + " SOL" : "—"}</b></span><span>Recipient receives <b>{recipientType === "local-bank" ? money(bestQuote.recipientAmount, destinationCurrency) : (solPriceLocal ? (bestQuote.recipientAmount / solPriceLocal).toFixed(6) + " SOL" : "—")}</b></span></div>{approved ? <div className="approval-result"><Check size={16} /> Demo approval recorded locally. No transaction was submitted.</div> : <div className="approval-result"><LockKeyhole size={16} /> Transfer execution is not connected yet. No SOL has been moved or reserved.</div>}<button className="cancel-review" onClick={() => setApprovalOpen(false)}>Go back</button></section></div> : null}
     </main>
   );
 }
