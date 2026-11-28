@@ -127,7 +127,7 @@ export default function SettlementTestPage() {
 
           <div style={{ display: "grid", gap: 10, marginTop: 24 }}>
             {steps.map((step, index) => {
-              const done = stage === "success" || (stage === "converting" && index === 0) || (stage === "success" && index < 3);
+              const done = (stage as Stage) === "success" || (stage === "converting" && index === 0);
               const isActive = active === index;
               return <div key={step.key} className={`step-card ${done ? "done" : isActive ? "active" : ""}`} style={{ display: "flex", gap: 14, alignItems: "center", padding: 15, border: "1px solid #302d3d", borderRadius: 14, background: "#12121c" }}>
                 <div style={{ width: 38, height: 38, flex: "0 0 38px", borderRadius: "50%", display: "grid", placeItems: "center", background: done ? "#174b3b" : isActive ? "#49347b" : "#252333", color: done ? "#80f0bd" : "#c9b9ff", fontSize: 18, animation: isActive ? "pulse 1.5s infinite" : "none" }}>{done ? "✓" : index + 1}</div>
