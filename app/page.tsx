@@ -47,7 +47,7 @@ export default function Home() {
     <header className="marketing-nav">
       <Link href="/" className="marketing-brand"><span className="marketing-brand-mark"><i/><b/></span>MYRAVEN</Link>
       <nav><a href="#platform">Platform</a><a href="#journey">How it works</a><a href="#intelligence">Intelligence</a><a href="#capabilities">Features</a><a href="#audience">For business</a></nav>
-      <AuthActions />
+      <Link href="/demo" className="button-secondary">Try interactive demo <ArrowUpRight size={14}/></Link><AuthActions />
     </header>
 
     <section className="marketing-hero">
