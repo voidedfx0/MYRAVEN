@@ -224,6 +224,7 @@ export default function Home() {
   const [recipientBanks, setRecipientBanks] = useState<PayoutBank[]>([]);
   const [recipientBanksLoading, setRecipientBanksLoading] = useState(false);
   const [recipientBanksMessage, setRecipientBanksMessage] = useState("");
+  const [recipientBankSearch, setRecipientBankSearch] = useState("");
   const [recipientBankAccount, setRecipientBankAccount] = useState("");
   const [recipientProfile, setRecipientProfile] = useState<RecipientProfile | null>(null);
   const [recipientLookupStatus, setRecipientLookupStatus] = useState("");
@@ -854,17 +855,19 @@ export default function Home() {
                 <label className="field-label preference-label">RECIPIENT IDENTIFIER</label>
                 {recipientType === "local-bank" ? <div className="local-bank-fields">
                   <label className="field-label">RECIPIENT COUNTRY</label>
-                  <select value={recipientCountry} onChange={(event) => { setRecipientCountry(event.target.value); setRecipientBank(""); setRecipientLookupStatus(""); }} aria-label="Recipient country">
+                  <select value={recipientCountry} onChange={(event) => { setRecipientCountry(event.target.value); setRecipientBank(""); setRecipientBankSearch(""); setRecipientLookupStatus(""); }} aria-label="Recipient country">
                     {fundingCountriesData.countries.filter((country) => country.independent).map((country) => (
                       <option value={country.code} key={country.code}>{country.name} · {country.code}</option>
                     ))}
                   </select>
-                  <label className="field-label">CHOOSE RECIPIENT BANK</label>
+                  <label className="field-label">SEARCH BANKS IN THIS COUNTRY</label>
+                  <input className="recipient-reference-input" value={recipientBankSearch} onChange={(event) => setRecipientBankSearch(event.target.value)} placeholder="Type a bank name…" aria-label="Search banks in selected country" disabled={recipientBanksLoading || recipientBanks.length === 0}/>
+                  <label className="field-label">AVAILABLE BANKS</label>
                   <select value={recipientBank} onChange={(event) => setRecipientBank(event.target.value)} aria-label="Recipient bank" disabled={recipientBanksLoading || recipientBanks.length === 0}>
-                    <option value="">{recipientBanksLoading ? "Loading bank directory…" : recipientBanks.length ? "Select a bank" : "No banks available for this country"}</option>
-                    {recipientBanks.map((bank) => <option value={bank.code} key={bank.id}>{bank.name}</option>)}
+                    <option value="">{recipientBanksLoading ? "Loading bank directory…" : recipientBanks.length ? "Select a bank" : "No provider-listed banks for this country"}</option>
+                    {recipientBanks.filter((bank) => bank.name.toLowerCase().includes(recipientBankSearch.trim().toLowerCase())).map((bank) => <option value={bank.code} key={bank.id}>{bank.name}</option>)}
                   </select>
-                  <p className="recipient-lookup-status">{recipientBanksMessage}</p>
+                  <p className="recipient-lookup-status">{recipientBanksMessage} Bank availability is supplied by Flutterwave and varies by country; unavailable countries remain selectable but cannot proceed.</p>
                   {recipientBank ? <p className="recipient-lookup-status verified">Selected: {recipientBanks.find((bank) => bank.code === recipientBank)?.name}. Account details and payout steps will be added later.</p> : null}
                 </div> : <div className="recipient-lookup-row">
                   <input className="recipient-reference-input" value={recipientReference} onChange={(event) => { setRecipientReference(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); }} placeholder={recipientType === "myraven" ? "MRV-XXXXXXXXXX" : recipientType === "account" ? "MYRAVEN account number" : "Paste Solana address"} aria-label="Recipient identifier" />
