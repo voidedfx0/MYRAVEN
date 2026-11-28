@@ -17,29 +17,32 @@ async function reconcilePendingTransfers(admin: ReturnType<typeof createSupabase
   if (!appId || !appSecret) return;
 
   const privy = new PrivyClient({ appId, appSecret });
-  const { data: pendingRows } = await admin.from("ledger_transactions")
+  const { data: pendingData } = await admin.from("ledger_transactions")
     .select("user_id,source_reference,description")
     .eq("user_id", currentUserId)
     .eq("source_type", "transfer")
     .eq("status", "pending")
     .order("created_at", { ascending: false })
     .limit(3);
+  const pendingRows = (pendingData ?? []) as Array<{ user_id: string; source_reference: string | null; description: string | null }>;
 
-  for (const pending of pendingRows ?? []) {
+  for (const pending of pendingRows) {
     const actionId = String(pending.source_reference ?? "");
     if (!/^[a-zA-Z0-9_-]{8,100}$/.test(actionId)) continue;
 
-    const { data: pairRows } = await admin.from("ledger_transactions")
+    const { data: pairData } = await admin.from("ledger_transactions")
       .select("user_id,description")
       .eq("source_type", "transfer")
       .eq("source_reference", actionId);
-    const senderRow = (pairRows ?? []).find((row) => String(row.description ?? "").startsWith("Sent "));
+    const pairRows = (pairData ?? []) as Array<{ user_id: string; description: string | null }>;
+    const senderRow = pairRows.find((row) => String(row.description ?? "").startsWith("Sent "));
     if (!senderRow) continue;
 
-    const { data: senderWallet } = await admin.from("user_solana_wallets")
+    const { data: senderWalletData } = await admin.from("user_solana_wallets")
       .select("provider_wallet_reference,status,network,custody_provider")
       .eq("user_id", senderRow.user_id)
       .maybeSingle();
+    const senderWallet = senderWalletData as { provider_wallet_reference: string | null; status: string; network: string; custody_provider: string | null } | null;
     if (!senderWallet?.provider_wallet_reference || senderWallet.status !== "provisioned" ||
         senderWallet.network !== "solana-devnet" || senderWallet.custody_provider !== "privy") continue;
 
@@ -56,7 +59,7 @@ async function reconcilePendingTransfers(admin: ReturnType<typeof createSupabase
       if (status === "succeeded") {
         await admin.from("ledger_transactions").update({ status: "posted" })
           .eq("source_type", "transfer").eq("source_reference", actionId);
-        for (const row of pairRows ?? []) {
+        for (const row of pairRows) {
           const { data: existing } = await admin.from("notifications").select("id")
             .eq("user_id", row.user_id).contains("data", { action_id: actionId }).limit(1);
           if (existing?.length) continue;
