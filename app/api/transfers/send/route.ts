@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Your MYRAVEN Devnet wallet is not ready for sending." }, { status: 409 });
   }
 
-  const { data: matches, error: lookupError } = await admin.rpc("lookup_myraven_recipient", { p_identifier: identifier });
+  const { data: matches, error: lookupError } = await supabase.rpc("lookup_myraven_recipient", { p_identifier: identifier });
   const recipient = Array.isArray(matches) ? record(matches[0]) : {};
   if (lookupError || !recipient.solana_address || recipient.wallet_status !== "provisioned") {
     return NextResponse.json({ error: "No transfer-ready MYRAVEN recipient matched those details." }, { status: 404 });
