@@ -36,7 +36,7 @@ export default function AccountPage() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "Could not set up your workspace.");
     return data;
-  }, [firstName, lastName, legalFullName, countryCode, countryName]);
+  }, [firstName, lastName, nickname, legalFullName, countryCode, countryName]);
 
   const provisionWallet = useCallback(async () => {
     const response = await fetch("/api/account/wallet", { method: "POST" });
