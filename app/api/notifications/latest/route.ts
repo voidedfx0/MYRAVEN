@@ -24,9 +24,9 @@ async function reconcilePendingTransfers(admin: unknown, currentUserId: string) 
     .select("user_id,source_reference,description")
     .eq("user_id", currentUserId)
     .eq("source_type", "transfer")
-    .eq("status", "pending")
+    .in("status", ["pending", "posted"])
     .order("created_at", { ascending: false })
-    .limit(3);
+    .limit(20);
   const pendingRows = (pendingData ?? []) as Array<{ user_id: string; source_reference: string | null; description: string | null }>;
 
   for (const pending of pendingRows) {
