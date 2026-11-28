@@ -43,6 +43,32 @@ export async function GET(request: Request) {
     const data = record(root.data);
     const action = record(root.action ?? data.action ?? data ?? root);
     const status = String(action.status ?? "pending").toLowerCase();
+    if (["succeeded", "failed", "cancelled", "reverted"].includes(status)) {
+      const { data: activityRows } = await admin.from("ledger_transactions")
+        .select("id,user_id,description,status")
+        .eq("source_reference", actionId)
+        .eq("source_type", "transfer");
+      if (activityRows?.length) {
+        const finalLedgerStatus = status === "succeeded" ? "posted" : "failed";
+        await admin.from("ledger_transactions").update({ status: finalLedgerStatus }).eq("source_reference", actionId).eq("source_type", "transfer");
+        if (status === "succeeded") {
+          for (const row of activityRows) {
+            const { data: existing } = await admin.from("notifications").select("id")
+              .eq("user_id", row.user_id).contains("data", { action_id: actionId }).limit(1);
+            if (!existing?.length) {
+              const isSender = String(row.description ?? "").startsWith("Sent ");
+              await admin.from("notifications").insert({
+                user_id: row.user_id,
+                category: "payment",
+                title: isSender ? "Transfer sent" : "Money received",
+                body: isSender ? String(row.description) + " successfully." : String(row.description) + ". Your wallet balance has been updated.",
+                data: { action_id: actionId, type: isSender ? "sent" : "received", asset: "SOL", network: "solana-devnet" },
+              });
+            }
+          }
+        }
+      }
+    }
     return NextResponse.json({
       actionId,
       status,
