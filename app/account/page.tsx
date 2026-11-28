@@ -82,7 +82,7 @@ export default function AccountPage() {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(), password,
           options: {
-            data: { first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName, legal_full_name: legalFullName.trim(), account_type: accountType, business_name: businessName.trim(), country_code: countryCode, country_name: countryName, solana_wallet_address: walletAddress || null },
+            data: { first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName, legal_full_name: legalFullName.trim(), account_type: accountType, business_name: businessName.trim(), country_code: countryCode, country_name: countryName },
             emailRedirectTo: window.location.origin + "/auth/callback?next=/account?type=" + accountType + "%26complete=1",
           },
         });
