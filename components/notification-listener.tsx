@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, Check, X } from "lucide-react";
+import { Bell, X } from "lucide-react";
 
 type Notice = { id: string; title: string; body: string; category?: string };
 
@@ -33,21 +33,19 @@ export default function NotificationListener() {
   const seen = useRef(new Set<string>());
   useEffect(() => {
     let active = true;
-    let firstLoad = true;
     async function poll() {
       try {
         const response = await fetch("/api/notifications/latest", { cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json();
         const incoming: Notice[] = Array.isArray(data.notifications) ? data.notifications : [];
-        if (!active || !incoming.length) { firstLoad = false; return; }
+        if (!active || !incoming.length) return;
         const fresh = incoming.filter((item) => !seen.current.has(item.id));
         incoming.forEach((item) => seen.current.add(item.id));
-        if (!fresh.length) { firstLoad = false; return; }
+        if (!fresh.length) return;
         const latest = fresh[0];
         setNotice(latest);
         playChime();
-        firstLoad = false;
       } catch { /* Keep the workspace usable while notifications reconnect. */ }
     }
     void poll();
