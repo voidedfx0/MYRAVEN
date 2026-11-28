@@ -878,7 +878,7 @@ export default function Home() {
                   <datalist id="myraven-country-banks">
                     {recipientBanks.map((bank) => <option value={bank.name} key={bank.id} />)}
                   </datalist>
-                  <p className="recipient-lookup-status">{recipientBanksMessage} This is MYRAVEN's independent reference directory, not a list of payout-enabled banks. Bank payout connections will be added separately.</p>
+                  <p className="recipient-lookup-status">{recipientBanksMessage} This is MYRAVEN&apos;s independent reference directory, not a list of payout-enabled banks. Bank payout connections will be added separately.</p>
                   {recipientBank ? <p className="recipient-lookup-status verified">Selected: {recipientBanks.find((bank) => bank.code === recipientBank)?.name}. Account details and payout steps will be added later.</p> : null}
                 </div> : <div className="recipient-lookup-row">
                   <input className="recipient-reference-input" value={recipientReference} onChange={(event) => { setRecipientReference(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); }} placeholder={recipientType === "myraven" ? "MRV-XXXXXXXXXX" : recipientType === "account" ? "MYRAVEN account number" : "Paste Solana address"} aria-label="Recipient identifier" />
