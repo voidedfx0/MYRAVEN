@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import GlobalBackButton from "@/components/global-back-button";
 
 export default async function PersonalDashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -10,7 +9,6 @@ export default async function PersonalDashboardLayout({ children }: { children: 
   if (profile?.account_type === "business") redirect("/business");
   return (
     <>
-      <GlobalBackButton />
       {children}
     </>
   );
