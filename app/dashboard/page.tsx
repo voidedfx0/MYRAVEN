@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import AuthActions from "@/components/auth-actions";
 import fundingCountriesData from "../../src/data/funding-countries.json";
 import {
-  Activity, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Bell, Check, CreditCard, Landmark, Smartphone,
+  Activity, ArrowDownLeft, ArrowLeft, ArrowLeftRight, ArrowUpRight, Bell, Check, CreditCard, Landmark, Smartphone,
   ChevronDown, CircleHelp, Globe2, LayoutDashboard, LockKeyhole,
   Menu, Plus, RefreshCw,
   Settings2, ShieldCheck, Sparkles, Wallet, WalletCards, X,
@@ -229,6 +229,9 @@ export default function Home() {
       void confirmDemoPayment();
       return;
     }
+    setActivities((current) => current.map((item) => item.id === transferRequestId
+      ? { ...item, status: "Cancels in " + String(Math.floor(paymentWindowSeconds / 60)).padStart(2, "0") + ":" + String(paymentWindowSeconds % 60).padStart(2, "0") }
+      : item));
     const timer = window.setTimeout(() => setPaymentWindowSeconds((seconds) => seconds - 1), 1000);
     return () => window.clearTimeout(timer);
   }, [paymentWindowActive, paymentWindowSeconds]);
@@ -417,9 +420,31 @@ export default function Home() {
     }
     setApproved(false);
     setTransferRequestId("");
+    const requestId = crypto.randomUUID();
+    setTransferRequestId(requestId);
     setPaymentWindowSeconds(60);
     setPaymentWindowActive(true);
-    setTransferMessage("Payment authorized for the 60-second safety window. Review the details; cancel any time before submission.");
+    setTransferMessage("Your transfer is queued. You can cancel it from Recent Activity before it is submitted.");
+    setActivities((current) => [{
+      id: requestId,
+      title: "SOL transfer scheduled",
+      detail: recipientProfile.displayName || recipientReference,
+      amount: "-" + String(amount) + " SOL",
+      status: "Cancels in 01:00",
+      time: "Just now",
+    }, ...current]);
+    setApprovalOpen(false);
+  }
+
+  function cancelScheduledTransfer() {
+    if (!paymentWindowActive || !transferRequestId) return;
+    setPaymentWindowActive(false);
+    setPaymentWindowSeconds(60);
+    setActivities((current) => current.map((item) => item.id === transferRequestId
+      ? { ...item, title: "SOL transfer cancelled", status: "Cancelled · Not sent" }
+      : item));
+    setTransferRequestId("");
+    setTransferMessage("Transfer cancelled before submission. No SOL was sent.");
   }
 
   async function connectSolana() {
@@ -662,7 +687,7 @@ export default function Home() {
       <section className="main-area">
         <header className="top-header">
           <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen}><Menu size={19} /></button>
-          <div className="breadcrumb">Workspace <span>/</span> <b>Overview</b></div>
+          <div className="breadcrumb"><button className="icon-button" type="button" aria-label="Go back" title="Go back" onClick={() => { if (window.history.length > 1) window.history.back(); else window.location.assign("/dashboard"); }}><ArrowLeft size={16} /></button>Workspace <span>/</span> <b>Overview</b></div>
           <div className="header-actions"><span className="environment-pill"><i /> PREVIEW MODE</span><AuthActions variant="workspace" /><button className="icon-button" aria-label="Notifications"><Bell size={17} /></button><span className="header-avatar">M</span></div>
         </header>
 
@@ -913,7 +938,7 @@ export default function Home() {
 
           <section className="bottom-grid" id="safety">
             <article className="panel safety-panel"><div className="mini-panel-heading"><span className="safety-icon"><ShieldCheck size={17} /></span><span className="panel-kicker">PAYMENT SAFETY</span></div><h3>You stay in control.</h3><p>Every payment requires a clear review and explicit approval. A quote alone never authorizes a transaction.</p><div className="safety-points"><span><Check size={13} /> Fees shown before approval</span><span><Check size={13} /> Wallet credit waits for on-chain confirmation</span><span><Check size={13} /> No blind payment retries</span></div></article>
-            <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="/dashboard/activity">View all <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{activities.length ? activities.slice(0, 2).map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small></span></div>) : <div className="activity-empty"><Activity size={17} /><span><b>No activity yet</b><small>Verified deposits and real transaction events will appear here. Preview approvals stay clearly labelled.</small></span></div>}</div></article>
+            <article className="panel activity-panel" id="activity"><div className="mini-panel-heading"><span className="panel-kicker">RECENT ACTIVITY</span><a href="/dashboard/activity">View all <ArrowUpRight size={13} /></a></div><div className="demo-activity-list">{activities.length ? activities.slice(0, 2).map((item) => <div className="demo-activity-item" key={item.id}><span className="activity-mark"><ArrowLeftRight size={14} /></span><span className="activity-description"><b>{item.title}</b><small>{item.detail} · {item.time}</small></span><span className="activity-amount"><b>{item.amount}</b><small>{item.status}</small>{paymentWindowActive && item.id === transferRequestId ? <button type="button" className="cancel-review" onClick={cancelScheduledTransfer}>Cancel</button> : null}</span></div>) : <div className="activity-empty"><Activity size={17} /><span><b>No activity yet</b><small>Verified deposits and real transaction events will appear here. Preview approvals stay clearly labelled.</small></span></div>}</div></article>
           </section>
 
           <footer className="app-footer"><span>© {new Date().getFullYear()} MYRAVEN</span><span>Money moves. Intelligence connects.</span><span>TEST MODE · SOLANA DEVNET ONLY</span></footer>
@@ -921,7 +946,7 @@ export default function Home() {
       </section>
 
       {menuOpen ? <button className="mobile-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" /> : null}
-      {approvalOpen ? <div className="modal-backdrop" role="presentation" onClick={() => { setPaymentWindowActive(false); setApprovalOpen(false); }}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => { setPaymentWindowActive(false); setApprovalOpen(false); }} aria-label="Close"><X size={18} /></button><span className="panel-kicker">DEVNET TRANSFER REVIEW</span><h2 id="approval-title">Review before you send</h2><p>Real SOL will move on Solana Devnet after you confirm. This is test-network SOL, not mainnet funds.</p><div className="review-rows"><span>Recipient <b>{recipientProfile?.displayName ?? (recipientType === "solana" ? "External Solana wallet" : recipientType === "local-bank" ? "Local bank payout" : "Not verified")}</b></span><span>Recipient check <b>{recipientProfile ? "MYRAVEN profile matched" : recipientLookupStatus || "Not checked"}</b></span><span>Identifier <b>{recipientReference || "Not provided"}</b></span><span>You send <b>{Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL</b></span><span>Route <b>MYRAVEN internal transfer · Solana Devnet</b></span><span>Network fee <b>Deducted by Solana at confirmation</b></span><span>Recipient receives <b>{Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL</b></span></div>{transferMessage ? <div className="approval-result"><Check size={16} /> {transferMessage}</div> : <div className="approval-result"><LockKeyhole size={16} /> Ready to submit a real Devnet SOL transfer to the verified MYRAVEN wallet.</div>}{paymentWindowActive ? <div className="approval-result"><LockKeyhole size={16} /> Payment will be submitted in <b>{String(Math.floor(paymentWindowSeconds / 60)).padStart(2, "0")}:{String(paymentWindowSeconds % 60).padStart(2, "0")}</b>. Review the details or cancel below.</div> : null}<button className="primary-action" type="button" onClick={() => paymentWindowActive ? undefined : startPaymentSafetyWindow()} disabled={transferSending || approved || !recipientProfile || paymentWindowActive}>{transferSending ? "Submitting…" : approved ? "Transfer submitted" : paymentWindowActive ? "Safety window active…" : "Authorize · start 60-second window"} <ArrowUpRight size={15} /></button>{paymentWindowActive ? <button className="cancel-review" type="button" onClick={() => { setPaymentWindowActive(false); setPaymentWindowSeconds(60); setTransferMessage("Payment cancelled during the safety window. No funds were sent."); }}>Cancel payment</button> : <button className="cancel-review" type="button" onClick={() => setApprovalOpen(false)}>Go back</button>}</section></div> : null}
+      {approvalOpen ? <div className="modal-backdrop" role="presentation" onClick={() => { setPaymentWindowActive(false); setApprovalOpen(false); }}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => { setPaymentWindowActive(false); setApprovalOpen(false); }} aria-label="Close"><X size={18} /></button><span className="panel-kicker">DEVNET TRANSFER REVIEW</span><h2 id="approval-title">Review before you send</h2><p>Real SOL will move on Solana Devnet after you confirm. This is test-network SOL, not mainnet funds.</p><div className="review-rows"><span>Recipient <b>{recipientProfile?.displayName ?? (recipientType === "solana" ? "External Solana wallet" : recipientType === "local-bank" ? "Local bank payout" : "Not verified")}</b></span><span>Recipient check <b>{recipientProfile ? "MYRAVEN profile matched" : recipientLookupStatus || "Not checked"}</b></span><span>Identifier <b>{recipientReference || "Not provided"}</b></span><span>You send <b>{Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL</b></span><span>Route <b>MYRAVEN internal transfer · Solana Devnet</b></span><span>Network fee <b>Deducted by Solana at confirmation</b></span><span>Recipient receives <b>{Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL</b></span></div>{transferMessage ? <div className="approval-result"><Check size={16} /> {transferMessage}</div> : <div className="approval-result"><LockKeyhole size={16} /> Ready to submit a real Devnet SOL transfer to the verified MYRAVEN wallet.</div>}<button className="primary-action" type="button" onClick={startPaymentSafetyWindow} disabled={transferSending || approved || !recipientProfile}>{transferSending ? "Submitting…" : approved ? "Transfer submitted" : "Send SOL"} <ArrowUpRight size={15} /></button><button className="cancel-review" type="button" onClick={() => setApprovalOpen(false)}>Go back</button></section></div> : null}
     </main>
   );
 }
