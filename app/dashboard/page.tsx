@@ -17,7 +17,7 @@ type Quote = {
 };
 type WalletConnection = { network: "Solana"; address: string; name: string };
 type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string };
-type RecipientProfile = { myravenId: string; displayName: string | null; countryCode: string | null };
+type RecipientProfile = { myravenId: string; accountNumber?: string; displayName: string | null; countryCode: string | null; solanaAddress?: string | null; walletStatus?: string | null };
 type FundingDeposit = {
   id: string; funding_method: string; input_kind: string; input_currency: string;
   input_amount: number | string; target_asset: string; credited_output_amount: number | string | null;
@@ -172,6 +172,17 @@ export default function Home() {
   const [ussdResult, setUssdResult] = useState("");
 
   const bestQuote = useMemo(() => quotes.find((quote) => quote.id === selectedRoute) ?? quotes[0], [quotes, selectedRoute]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const qrRecipient = params.get("to") || params.get("recipient");
+    if (qrRecipient) {
+      setRecipientType(/^\\d{10}$/.test(qrRecipient) ? "account" : "myraven");
+      setRecipientReference(qrRecipient);
+      setDestination("solana");
+      setNotice("MYRAVEN recipient details imported from QR. Verify the recipient before continuing.");
+    }
+  }, []);
 
   async function loadFundingHistory() {
     setFundingHistoryLoading(true);
@@ -366,7 +377,7 @@ export default function Home() {
       return;
     }
 
-    if (recipientType === "myraven") {
+    if (recipientType === "myraven" || recipientType === "account") {
       setRecipientLookupLoading(true);
       try {
         const response = await fetch("/api/recipients/lookup", {
@@ -502,7 +513,7 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
         </nav>
         <div className="nav-caption tools-caption">TOOLS</div>
         <nav className="side-nav">
-          <a href="#funding"><WalletCards size={17} />Funding</a>
+          <a href="/dashboard/account-details"><Wallet size={17} />Account details</a>\n          <a href="#funding"><WalletCards size={17} />Funding</a>
           <a href="#payment"><Globe2 size={17} />SmartRoute</a>
           <a href="#safety"><ShieldCheck size={17} />Payment safety</a>
           <a href="#ussd"><Globe2 size={17} />USSD simulator</a>
