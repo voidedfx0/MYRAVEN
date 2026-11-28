@@ -843,7 +843,7 @@ export default function Home() {
                 </div>)}
               </div> : <p className="funding-history-empty">{fundingHistoryLoading ? "Loading funding activity…" : "Your verified funding requests will appear here."}</p>}
             </div>
-            <p className="funding-disclaimer"><ShieldCheck size={13} /> Test mode: verified Flutterwave test payments are settled from MYRAVEN's shared Devnet treasury. SOL appears in your available balance only after the transfer is confirmed on Solana.</p>
+            <p className="funding-disclaimer"><ShieldCheck size={13} /> Test mode: verified Flutterwave test payments are settled from MYRAVEN&apos;s shared Devnet treasury. SOL appears in your available balance only after the transfer is confirmed on Solana.</p>
           </section>
           <section className="panel wallet-panel" id="wallets">
             <div className="panel-heading wallet-heading"><div><span className="panel-kicker">CONNECTED ASSETS</span><h2>Wallet connections</h2><p>Connect Phantom on Solana Devnet to verify a public address and view test SOL. MYRAVEN never asks for your seed phrase.</p></div><span className="read-only-tag"><ShieldCheck size={12} /> ADDRESS ONLY</span></div>
