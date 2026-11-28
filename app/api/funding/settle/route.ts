@@ -54,6 +54,8 @@ async function getPriceAndFx(currency: string) {
 }
 
 async function ensureTreasury(admin: ReturnType<typeof createSupabaseAdmin>, appId: string, appSecret: string, quorumId: string) {
+  // The generated Supabase client types do not yet include this existing private table.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const treasuryTable = admin.from("myraven_treasury_wallets") as any;
   const { data: existing, error } = await treasuryTable
     .select("wallet_address,provider_wallet_reference,status,network")
