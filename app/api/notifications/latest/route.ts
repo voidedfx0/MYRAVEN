@@ -21,7 +21,6 @@ async function reconcilePendingTransfers(admin: ReturnType<typeof createSupabase
     .eq("user_id", currentUserId)
     .eq("source_type", "transfer")
     .eq("status", "pending")
-    .not("source_reference", "is", null)
     .order("created_at", { ascending: false })
     .limit(8);
 
