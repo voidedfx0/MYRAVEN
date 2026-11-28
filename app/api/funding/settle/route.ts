@@ -211,8 +211,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Your MYRAVEN Solana wallet is not ready to receive this funding." }, { status: 409 });
   }
 
+  let settlementStage = "starting";
+  const lockToken = crypto.randomUUID();
+  let lockAcquired = false;
   try {
     const prior = record(deposit.metadata?.treasury_settlement);
+    settlementStage = "price_and_fx";
     const fiatAmount = Number(deposit.metadata?.verified_amount ?? deposit.input_amount);
     let solPriceUsd = Number(prior.sol_price_usd) || 0;
     let fiatUsdRate = Number(prior.fiat_usd_rate) || 0;
@@ -228,7 +232,18 @@ export async function POST(request: Request) {
     const lamports = Math.round(solAmount * 1_000_000_000);
     if (!Number.isSafeInteger(lamports) || lamports <= 0) return NextResponse.json({ error: "The SOL conversion amount is outside supported precision." }, { status: 409 });
 
+    settlementStage = "treasury_lookup";
     const treasury = await ensureTreasury(admin, appId, appSecret, quorumId);
+    settlementStage = "treasury_lock";
+    const lockNow = new Date().toISOString();
+    const { data: lockRow, error: lockError } = await admin.from("myraven_treasury_wallets")
+      .update({ settlement_lock_token: lockToken, settlement_lock_until: new Date(Date.now() + 90_000).toISOString() })
+      .eq("network", "solana-devnet").eq("status", "provisioned")
+      .or("settlement_lock_until.is.null,settlement_lock_until.lt." + lockNow)
+      .select("network").maybeSingle();
+    if (lockError) throw new Error("Could not reserve the shared treasury for this transfer.");
+    if (!lockRow) return NextResponse.json({ status: "settlement_pending", message: "Another SOL transfer is using the shared treasury. This deposit will retry shortly." }, { status: 202 });
+    lockAcquired = true;
     const treasuryAddress = String(treasury.wallet_address);
     const treasuryWalletId = String(treasury.provider_wallet_reference);
     const privy = new PrivyClient({ appId, appSecret });
@@ -238,16 +253,19 @@ export async function POST(request: Request) {
     let action: RecordValue = {};
     let destinationBalanceBeforeLamports = Number(prior.destination_balance_before_lamports);
     if (!actionId) {
+      settlementStage = "treasury_liquidity";
       await requestTreasuryLiquidity(treasuryAddress, lamports);
       destinationBalanceBeforeLamports = await getBalance(String(customerWallet.wallet_address));
     }
     if (actionId) {
+      settlementStage = "privy_action_status";
       const current = await privy.wallets().actions.get(actionId, { wallet_id: treasuryWalletId, include: "steps" });
       const root = record(current);
       const data = record(root.data);
       action = record(root.action ?? data.action ?? data ?? root);
       actionStatus = String(action.status ?? "pending").toLowerCase();
     } else {
+      settlementStage = "privy_transfer_submit";
       const submitted = await privy.wallets().transfer(treasuryWalletId, {
         source: { asset: "sol", chain: "solana_devnet" },
         amount: solAmount.toFixed(8),
@@ -315,6 +333,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "settlement_pending", actionId, solAmount, message: "Treasury transfer submitted. Waiting for Solana confirmation." }, { status: 202 });
     }
 
+    settlementStage = "solana_confirmation";
     const signature = findSignature(action);
     if (signature) {
       const statuses = await rpc("getSignatureStatuses", [[signature], { searchTransactionHistory: true }]);
@@ -361,6 +380,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ status: "credited", solAmount, signature, destinationBalanceSol: destinationBalance / 1_000_000_000 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Treasury settlement failed.";
-    return NextResponse.json({ error: message.slice(0, 240), status: "settlement_error" }, { status: 502 });
+    console.error("[MYRAVEN funding settlement]", { depositId, stage: settlementStage, error: message });
+    await admin.from("funding_deposits").update({
+      metadata: {
+        ...(deposit.metadata ?? {}),
+        settlement_diagnostics: { stage: settlementStage, last_error: message.slice(0, 240), occurred_at: new Date().toISOString() },
+      },
+    }).eq("id", deposit.id).eq("user_id", user.id).eq("status", "converting");
+    return NextResponse.json({ error: message.slice(0, 240), stage: settlementStage, status: "settlement_error" }, { status: 502 });
+  } finally {
+    if (lockAcquired) {
+      await admin.from("myraven_treasury_wallets").update({ settlement_lock_token: null, settlement_lock_until: null })
+        .eq("network", "solana-devnet").eq("settlement_lock_token", lockToken);
+    }
   }
 }
