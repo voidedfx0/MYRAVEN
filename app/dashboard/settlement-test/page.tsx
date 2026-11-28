@@ -9,7 +9,7 @@ type Deposit = {
   status: string;
   provider_reference: string | null;
   created_at: string;
-  metadata?: { mock_settlement?: { transfer_status?: string; sol_amount?: number } };
+  metadata?: { payment_state?: string; environment?: string; mock_settlement?: { transfer_status?: string; sol_amount?: number; demo_balance_credit?: number } };
 };
 
 type Stage = "idle" | "payment" | "converting" | "success" | "failed";
