@@ -580,7 +580,7 @@ export default function Home() {
               ].map((method) => {
                 const Icon = method.icon;
                 return (
-                  <button type="button" key={method.id} onClick={() => setFundingMethod(method.id)} className={`funding-method-card ${fundingMethod === method.id ? "funding-method-selected" : ""}`}>
+                  <button type="button" key={method.id} onClick={() => { setFundingMethod(method.id); if (method.id !== "card") setFundingProvider("flutterwave"); }} className={`funding-method-card ${fundingMethod === method.id ? "funding-method-selected" : ""}`}>
                     <span className="funding-method-icon"><Icon size={18} /></span>
                     <span className="funding-method-copy"><b>{method.title}</b><small>{method.detail}</small><em>{method.note}</em></span>
                     <span className="funding-method-radio">{fundingMethod === method.id ? <Check size={13} /> : null}</span>
