@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ReconcileActivity from "./reconcile-activity";
 import ScheduledTransferActivity from "./scheduled-transfer-activity";
-import ActivityBackButton from "./activity-back-button";
 
 function money(amount: number | string, currency: string) {
   const value = Number(amount);
@@ -62,7 +61,6 @@ export default async function FundingActivityPage({ searchParams }: { searchPara
       <section className="main-area">
         <header className="top-header">
           <div className="breadcrumb"><Link href="/dashboard">Workspace</Link> <span>/</span> <b>Activity</b></div>
-          <ActivityBackButton />
         </header>
         <div className="content-wrap">
           <section className="welcome-row">
@@ -74,7 +72,7 @@ export default async function FundingActivityPage({ searchParams }: { searchPara
             <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}><div className="welcome-date"><span>RECORDS</span><b>{deposits.length + transactions.length} transactions</b></div><ReconcileActivity references={referencesToVerify} /></div>
           </section>
 
-          <nav aria-label="Activity categories" style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
+          <nav aria-label="Activity categories" className="activity-category-box">
             {(["sent","received","fund","pending"] as const).map((item) => (
               <Link key={item} href={"/dashboard/activity?view="+item} className={view===item?"activity-filter active":"activity-filter"}>{item==="fund"?"Fund":item[0].toUpperCase()+item.slice(1)}</Link>
             ))}
