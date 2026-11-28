@@ -48,3 +48,10 @@ Suggested endpoints:
 - Keep provider secrets, Supabase service-role keys, and signing credentials server-side.
 - Maintain idempotency, webhook signature verification, reconciliation, fraud controls, transaction limits, and a double-entry ledger.
 - Clearly distinguish unavailable, simulated, pending, expired, failed, and completed states.
+
+
+## Stripe card checkout (test-only)
+
+The repository includes a sandbox-only Stripe Checkout route at `POST /api/funding/stripe/checkout` and a signed webhook at `POST /api/webhooks/stripe`. Configure `MYRAVEN_MODE=test`, `STRIPE_SECRET_KEY` with an `sk_test_` key, and `STRIPE_WEBHOOK_SECRET` from a Stripe test webhook endpoint. Subscribe to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, and `charge.refunded`.
+
+A verified Stripe test payment moves its funding deposit to `converting`; it does not credit SOL or USDC. MYRAVEN has no approved fiat-to-Solana conversion/custody provider in this repository, so the asset balance must not be credited until that separate conversion and settlement is completed and independently verified. Stripe lists digital wallets, cryptocurrency-related activity, money transmission, bank-account funding, and certain stored-value services as restricted or unsupported. Do not enable live Stripe processing for MYRAVEN unless Stripe has explicitly approved the exact business model and use case.
