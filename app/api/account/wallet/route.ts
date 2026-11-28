@@ -49,7 +49,24 @@ export async function POST() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const idempotencyKey = "myraven-" + user.id;
+  const idempotencyKey = existing?.provider_wallet_reference?.startsWith("pending:")
+    ? existing.provider_wallet_reference.slice("pending:".length)
+    : "myraven-" + user.id + "-" + crypto.randomUUID();
+
+  const { error: pendingSaveError } = await admin.from("user_solana_wallets").upsert({
+    user_id: user.id,
+    network: "solana-devnet",
+    wallet_address: null,
+    custody_provider: null,
+    provider_wallet_reference: "pending:" + idempotencyKey,
+    status: "awaiting_provider",
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id" });
+
+  if (pendingSaveError) {
+    return NextResponse.json({ error: "Your wallet setup could not be prepared. Please retry." }, { status: 503 });
+  }
+
   let providerResponse: Response;
   try {
     providerResponse = await fetch("https://api.privy.io/v1/wallets", {
@@ -73,6 +90,9 @@ export async function POST() {
 
   const providerData = await providerResponse.json().catch(() => ({}));
   if (!providerResponse.ok) {
+    await admin.from("user_solana_wallets")
+      .update({ provider_wallet_reference: null, updated_at: new Date().toISOString() })
+      .eq("user_id", user.id);
     return NextResponse.json({
       error: providerResponse.status === 401 || providerResponse.status === 403
         ? "Privy rejected the wallet credentials or permissions. Check the Privy app configuration."
