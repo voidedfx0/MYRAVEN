@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import NotificationListener from "@/components/notification-listener";
+import GlobalBackButton from "@/components/global-back-button";
 
 export const metadata: Metadata = {
   title: "MYRAVEN — Money moves. Intelligence connects.",
@@ -18,6 +19,7 @@ export default function RootLayout({
       <body>
         {children}
         <NotificationListener />
+        <GlobalBackButton />
       </body>
     </html>
   );
