@@ -3,7 +3,8 @@ export function toStripeMinorUnits(amount: number, currency: string): number {
     "BIF", "CLP", "DJF", "GNF", "JPY", "KMF", "KRW", "MGA", "PYG",
     "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF",
   ]);
-  const exponent = zeroDecimalCurrencies.has(currency.toUpperCase()) ? 0 : 2;
+  const threeDecimalCurrencies = new Set(["BHD", "JOD", "KWD", "OMR", "TND"]);
+  const exponent = zeroDecimalCurrencies.has(currency.toUpperCase()) ? 0 : threeDecimalCurrencies.has(currency.toUpperCase()) ? 3 : 2;
   const value = Math.round(amount * (10 ** exponent));
   if (!Number.isSafeInteger(value) || value <= 0) {
     throw new Error("The funding amount is outside the supported range.");
