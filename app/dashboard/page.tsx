@@ -729,7 +729,7 @@ export default function Home() {
         <div className="workspace-card"><span className="workspace-avatar">M</span><span><b>Personal workspace</b><small>MYRAVEN account</small></span><span className="online-dot" /></div>
         <div className="nav-caption">MYRAVEN</div>
         <nav className="side-nav">
-          {nav.map(({ label, icon: Icon, href, key }) => <a className={((key === "activity" && window.location.pathname === "/dashboard/activity") || (key === "notifications" && window.location.pathname === "/notifications") || (key === "account" && window.location.pathname.includes("account-details")) || (key === "settings" && window.location.pathname === "/settings") || (["overview","payments","wallets","funding","ussd"].includes(key) && activeSection === key)) ? "active" : ""} href={href} key={key}><Icon size={17} />{label}</a>)}
+          {nav.map(({ label, icon: Icon, href, key }) => <a className={activeSection === key ? "active" : ""} href={href} key={key}><Icon size={17} />{label}</a>)}
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><span className="help-icon"><CircleHelp size={16} /></span><b>Need a hand?</b><p>Explore how MYRAVEN connects payment methods.</p><a href="#how">Explore platform <ArrowUpRight size={13} /></a></div>
