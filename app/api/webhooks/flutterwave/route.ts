@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     // Fiat collection is confirmed. Do not credit SOL/USDC until an approved conversion and custody rail is connected.
     await admin.from("funding_deposits").update({
       status: "converting",
-      metadata: { ...(deposit.metadata ?? {}), flutterwave_transaction_id: String(transactionId), verified_currency: tx.currency, verified_amount: paidAmount, conversion_state: "awaiting_conversion_provider", environment: "test" },
+      metadata: { ...(deposit.metadata ?? {}), flutterwave_transaction_id: String(transactionId), verified_currency: tx.currency, verified_amount: paidAmount, payment_state: "successful", conversion_state: "simulation_pending", environment: "test" },
     }).eq("id", deposit.id);
 
     return NextResponse.json({ received: true, verified: true });
