@@ -58,7 +58,8 @@ async function ensureTreasury(admin: ReturnType<typeof createSupabaseAdmin>, app
     .select("wallet_address,provider_wallet_reference,status,network")
     .eq("network", "solana-devnet").maybeSingle();
   if (error) throw new Error("Could not load the MYRAVEN treasury record.");
-  if (existing?.wallet_address && existing.provider_wallet_reference && existing.status === "provisioned") return existing;
+  const existingRow = existing as unknown as { wallet_address: string; provider_wallet_reference: string; status: string; network: string } | null;
+  if (existingRow?.wallet_address && existingRow.provider_wallet_reference && existingRow.status === "provisioned") return existingRow;
 
   const headers = {
     "privy-app-id": appId,
@@ -109,8 +110,9 @@ async function ensureTreasury(admin: ReturnType<typeof createSupabaseAdmin>, app
   const { data: saved, error: reloadError } = await admin.from("myraven_treasury_wallets")
     .select("wallet_address,provider_wallet_reference,status,network")
     .eq("network", "solana-devnet").single();
-  if (reloadError || !saved) throw new Error("Treasury setup is still being reconciled. Retry shortly.");
-  return saved;
+  const savedRow = saved as unknown as { wallet_address: string; provider_wallet_reference: string; status: string; network: string } | null;
+  if (reloadError || !savedRow) throw new Error("Treasury setup is still being reconciled. Retry shortly.");
+  return savedRow;
 }
 
 async function requestTreasuryLiquidity(address: string, requiredLamports: number) {
