@@ -20,7 +20,7 @@ export default function GlobalBackButton() {
       onClick={goBack}
       aria-label="Go back"
       title="Go back"
-      className="fixed left-4 top-4 z-[100] flex h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-white/95 text-gray-700 shadow-sm backdrop-blur transition hover:bg-gray-100 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/15 dark:bg-neutral-900/95 dark:text-gray-200 dark:hover:bg-neutral-800"
+      className="fixed left-4 top-4 z-[100] flex h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-white/95 text-gray-700 shadow-sm backdrop-blur transition hover:bg-gray-100 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/15 dark:bg-neutral-900/95 dark:text-gray-200 dark:hover:bg-neutral-800 md:left-36"
     >
       <ArrowLeft size={17} strokeWidth={2} aria-hidden="true" />
     </button>
