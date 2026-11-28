@@ -84,7 +84,7 @@ export default function Home() {
   const [availableSol, setAvailableSol] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(true);
   const [balanceError, setBalanceError] = useState(false);
-  const [preferredCurrency, setPreferredCurrency] = useState("NGN");
+  const [preferredCurrency, setPreferredCurrency] = useState("USD");
   const [solPriceLocal, setSolPriceLocal] = useState<number | null>(null);
   const [solPriceUpdatedAt, setSolPriceUpdatedAt] = useState<string | null>(null);
   const [externalSolBalance, setExternalSolBalance] = useState<number | null>(null);
@@ -208,7 +208,9 @@ export default function Home() {
         deposit.status === "converting"
         && deposit.metadata?.payment_state === "successful"
         && deposit.metadata?.environment === "test"
-        && deposit.metadata?.mock_settlement?.transfer_status !== "simulated_success"
+        && (deposit.metadata?.mock_settlement?.transfer_status !== "simulated_success"
+          || !deposit.metadata?.mock_settlement?.sol_price_usd
+          || !deposit.metadata?.mock_settlement?.fiat_usd_rate)
       );
       await Promise.all(readyForDemo.map((deposit) => {
         const sourceAmount = Number(deposit.input_amount);
