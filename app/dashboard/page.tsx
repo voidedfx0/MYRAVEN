@@ -281,16 +281,28 @@ export default function Home() {
         && deposit.target_asset === "SOL"
         && deposit.metadata?.treasury_settlement?.transfer_status !== "confirmed"
       );
-      await Promise.all(readyForSettlement.map((deposit) =>
-        fetch("/api/funding/settle", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deposit_id: deposit.id }),
-        }).catch(() => null)
-      ));
+      // A single treasury wallet must process transfers sequentially. Parallel
+      // Privy actions can race for the same treasury wallet and leave deposits pending.
+      const settlementErrors: string[] = [];
+      for (const deposit of readyForSettlement) {
+        try {
+          const settlementResponse = await fetch("/api/funding/settle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ deposit_id: deposit.id }),
+          });
+          const settlementResult = await settlementResponse.json().catch(() => ({}));
+          if (!settlementResponse.ok && settlementResponse.status !== 202) {
+            settlementErrors.push(String(settlementResult.error ?? "SOL settlement could not be completed."));
+          }
+        } catch {
+          settlementErrors.push("Could not reach the SOL settlement service. It will retry automatically.");
+        }
+      }
       const finalResponse = await fetch("/api/funding/deposits", { cache: "no-store" });
       const finalData = await finalResponse.json();
       if (finalResponse.ok && Array.isArray(finalData.deposits)) setFundingHistory(finalData.deposits);
+      if (settlementErrors.length) setFundingHistoryMessage(settlementErrors[0]);
     } catch (error) {
       setFundingHistoryMessage(error instanceof Error ? error.message : "Funding history is unavailable.");
     } finally {
