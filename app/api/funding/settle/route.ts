@@ -54,7 +54,8 @@ async function getPriceAndFx(currency: string) {
 }
 
 async function ensureTreasury(admin: ReturnType<typeof createSupabaseAdmin>, appId: string, appSecret: string, quorumId: string) {
-  const { data: existing, error } = await admin.from("myraven_treasury_wallets")
+  const treasuryTable = admin.from("myraven_treasury_wallets") as any;
+  const { data: existing, error } = await treasuryTable
     .select("wallet_address,provider_wallet_reference,status,network")
     .eq("network", "solana-devnet").maybeSingle();
   if (error) throw new Error("Could not load the MYRAVEN treasury record.");
@@ -97,7 +98,7 @@ async function ensureTreasury(admin: ReturnType<typeof createSupabaseAdmin>, app
   const walletId = String(wallet.id ?? wallet.wallet_id ?? wallet.walletId ?? "");
   if (!walletId || !ADDRESS.test(address)) throw new Error("Privy returned an incomplete treasury wallet.");
 
-  const { error: saveError } = await admin.from("myraven_treasury_wallets").upsert({
+  const { error: saveError } = await treasuryTable.upsert({
     network: "solana-devnet",
     custody_provider: "privy",
     wallet_address: address,
@@ -107,7 +108,7 @@ async function ensureTreasury(admin: ReturnType<typeof createSupabaseAdmin>, app
   }, { onConflict: "network", ignoreDuplicates: true });
   if (saveError) throw new Error("Treasury was created but its database record could not be saved.");
 
-  const { data: saved, error: reloadError } = await admin.from("myraven_treasury_wallets")
+  const { data: saved, error: reloadError } = await treasuryTable
     .select("wallet_address,provider_wallet_reference,status,network")
     .eq("network", "solana-devnet").single();
   const savedRow = saved as unknown as { wallet_address: string; provider_wallet_reference: string; status: string; network: string } | null;
