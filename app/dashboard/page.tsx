@@ -122,7 +122,7 @@ export default function Home() {
           const summary = await summaryResponse.json();
           const countryCode = String(summary.profile?.country_code ?? "").toUpperCase();
           const profileCountry = fundingCountriesData.countries.find((country) => country.code === countryCode);
-          const profileCurrency = profileCountry?.currency?.[0];
+          const profileCurrency = String(summary.preferredCurrency ?? profileCountry?.currency?.[0] ?? "");
           if (active && profileCurrency && /^[A-Z]{3}$/.test(profileCurrency)) setPreferredCurrency(profileCurrency);
         }
         const balance = await balanceResponse.json();
