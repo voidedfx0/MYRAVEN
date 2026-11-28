@@ -18,6 +18,7 @@ type Quote = {
 type WalletConnection = { network: "Solana"; address: string; name: string };
 type DemoActivity = { id: string; title: string; detail: string; amount: string; status: string; time: string; createdAt?: string; category?: "Sent" | "Received" | "Fund" | "Pending" };
 type RecipientProfile = { myravenId: string; accountNumber?: string; displayName: string | null; countryCode: string | null; solanaAddress?: string | null; walletStatus?: string | null };
+type PayoutBank = { id: string; code: string; name: string };
 type FundingDeposit = {
   id: string; funding_method: string; input_kind: string; input_currency: string;
   input_amount: number | string; target_asset: string; credited_output_amount: number | string | null;
@@ -75,6 +76,7 @@ function shortAddress(address: string) {
 
 export default function Home() {
   const [amount, setAmount] = useState("0.001");
+  const [amountEntryMode, setAmountEntryMode] = useState<"SOL" | "LOCAL">("SOL");
   const [sourceCurrency, setSourceCurrency] = useState("USD");
   const [destinationCurrency, setDestinationCurrency] = useState("NGN");
   const [destination, setDestination] = useState("bank");
@@ -219,6 +221,9 @@ export default function Home() {
   const [recipientType, setRecipientType] = useState("myraven");
   const [recipientCountry, setRecipientCountry] = useState("NG");
   const [recipientBank, setRecipientBank] = useState("");
+  const [recipientBanks, setRecipientBanks] = useState<PayoutBank[]>([]);
+  const [recipientBanksLoading, setRecipientBanksLoading] = useState(false);
+  const [recipientBanksMessage, setRecipientBanksMessage] = useState("");
   const [recipientBankAccount, setRecipientBankAccount] = useState("");
   const [recipientProfile, setRecipientProfile] = useState<RecipientProfile | null>(null);
   const [recipientLookupStatus, setRecipientLookupStatus] = useState("");
@@ -234,6 +239,29 @@ export default function Home() {
     fetch("/api/account/summary", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (active) setDisplayName(String(data?.profile?.display_name ?? "").trim()); }).catch(() => {});
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (recipientType !== "local-bank") return;
+    let active = true;
+    setRecipientBanks([]);
+    setRecipientBank("");
+    setRecipientBanksLoading(true);
+    setRecipientBanksMessage("Loading banks for the selected country…");
+    fetch("/api/payout/banks?country=" + encodeURIComponent(recipientCountry), { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? "Bank list could not be loaded.");
+        if (!active) return;
+        const banks: PayoutBank[] = Array.isArray(data.banks) ? data.banks : [];
+        setRecipientBanks(banks);
+        setRecipientBanksMessage(String(data.message ?? (banks.length ? "Choose a bank." : "No bank directory available.")));
+      })
+      .catch((error) => {
+        if (active) setRecipientBanksMessage(error instanceof Error ? error.message : "Bank list could not be loaded.");
+      })
+      .finally(() => { if (active) setRecipientBanksLoading(false); });
+    return () => { active = false; };
+  }, [recipientType, recipientCountry]);
 
   useEffect(() => {
     const section = new URLSearchParams(window.location.search).get("section") || "overview";
@@ -421,6 +449,12 @@ export default function Home() {
 
   async function calculateRoutes(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (recipientType === "local-bank") {
+      setNotice(recipientBank
+        ? "Bank selected. Account details and payout execution are not part of this stage yet."
+        : "Choose a country and a bank to complete this bank-selection stage.");
+      return;
+    }
     const solAmount = Number(amount);
     if (!Number.isFinite(solAmount) || solAmount <= 0) { setNotice("Enter a valid SOL amount."); return; }
     if (availableSol === null) { setNotice("Your live Devnet SOL balance is still unavailable. Refresh and try again."); return; }
@@ -761,11 +795,11 @@ export default function Home() {
             <article className="metric-card"><div className="metric-top"><span>Local currency value</span><WalletCards size={17} /></div><strong>{availableSol !== null && solPriceLocal !== null ? money(availableSol * solPriceLocal, preferredCurrency) : "— " + preferredCurrency}</strong><small>{solPriceLocal !== null ? "Estimated value of your available SOL balance" : "Live local-currency estimate loading"}</small><div className="metric-line cyan-line" /></article>
           </section> : null}
 
-          {activeSection === "overview" ? <section className="panel overview-payments-panel"><div className="mini-panel-heading"><span className="panel-kicker">PAYMENTS</span><a href="/dashboard?section=payments">Open payments <ArrowUpRight size={13} /></a></div><div className="funding-history-actions"><a className="connect-button" href="/dashboard?section=payments"><ArrowLeftRight size={13} /> Send SOL</a><a className="connect-button" href="/dashboard?section=funding"><WalletCards size={13} /> Add funds</a><a className="connect-button" href="/dashboard/account-details"><ArrowDownLeft size={13} /> Receive</a></div></section> : null}
+          {activeSection === "overview" ? <section className="panel overview-payments-panel"><div className="mini-panel-heading"><span className="panel-kicker">PAYMENTS</span><a href="/dashboard?section=payments">Open payments <ArrowUpRight size={13} /></a></div><div className="funding-history-actions"><a className="connect-button" href="/dashboard?section=payments"><ArrowLeftRight size={13} /> Send funds</a><a className="connect-button" href="/dashboard?section=funding"><WalletCards size={13} /> Add funds</a><a className="connect-button" href="/dashboard/account-details"><ArrowDownLeft size={13} /> Receive</a></div></section> : null}
 
           {activeSection === "payments" ? <div className="work-grid">
             <section className="panel payment-panel" id="payment">
-              <div className="panel-heading"><div><span className="panel-kicker">SMARTROUTE ENGINE</span><h2>Build a payment</h2><p>Send from your SOL balance to a MYRAVEN account, a bank, or a Solana address.</p></div><div className="payment-heading-actions"><button type="button" className={payAiOpen ? "pay-ai-trigger pay-ai-active" : "pay-ai-trigger"} onClick={() => setPayAiOpen((open) => !open)}><Sparkles size={13} /> Pay AI</button><span className="step-badge">01 / 03</span></div></div>
+              <div className="panel-heading"><div><span className="panel-kicker">SMARTROUTE ENGINE</span><h2>Send funds</h2><p>Send from your SOL balance to a MYRAVEN account or choose a local bank destination.</p></div><div className="payment-heading-actions"><button type="button" className={payAiOpen ? "pay-ai-trigger pay-ai-active" : "pay-ai-trigger"} onClick={() => setPayAiOpen((open) => !open)}><Sparkles size={13} /> Pay AI</button><span className="step-badge">01 / 03</span></div></div>
               {payAiOpen ? <div className="pay-ai-box">
                 <div className="pay-ai-title"><span className="pay-ai-orb"><Sparkles size={13} /></span><span><b>Pay AI</b><small>Transfer assistant · Preview</small></span></div>
                 <p>Describe the SOL amount and where it should go. Review all details before continuing.</p>
@@ -784,32 +818,60 @@ export default function Home() {
                 <small className="pay-ai-disclaimer">Assisted form parsing only. Live AI, recipient lookup and payment execution are not connected yet.</small>
               </div> : null}
               <form onSubmit={calculateRoutes}>
-                <label className="field-label">YOU SEND · SOL</label>
-                <div className="amount-field"><input value={amount} onChange={(event) => setAmount(event.target.value)} type="number" min="0.000001" step="0.000001" required aria-label="Amount to send in SOL" /><span className="amount-currency">SOL</span></div>
+                <label className="field-label">SEND FUNDS · {amountEntryMode === "SOL" ? "SOL" : preferredCurrency}</label>
+                <div className="amount-field amount-field-local-toggle">
+                  <input
+                    value={amountEntryMode === "SOL" ? amount : solPriceLocal !== null && amount !== "" ? (Number(amount) * solPriceLocal).toFixed(2) : ""}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (amountEntryMode === "SOL") setAmount(value);
+                      else if (value === "") setAmount("");
+                      else if (solPriceLocal !== null && solPriceLocal > 0) setAmount(String(Number((Number(value) / solPriceLocal).toFixed(9))));
+                    }}
+                    type="number"
+                    min={amountEntryMode === "SOL" ? "0.000001" : "0.01"}
+                    step={amountEntryMode === "SOL" ? "0.000000001" : "0.01"}
+                    required
+                    disabled={amountEntryMode === "LOCAL" && (solPriceLocal === null || solPriceLocal <= 0)}
+                    aria-label={amountEntryMode === "SOL" ? "Amount to send in SOL" : "Amount to send in local currency"}
+                  />
+                  <div className="amount-unit-switch" aria-label="Amount currency">
+                    <button type="button" className={amountEntryMode === "SOL" ? "selected" : ""} onClick={() => setAmountEntryMode("SOL")}>SOL</button>
+                    <button type="button" className={amountEntryMode === "LOCAL" ? "selected" : ""} onClick={() => setAmountEntryMode("LOCAL")} disabled={solPriceLocal === null || solPriceLocal <= 0}>{preferredCurrency}</button>
+                  </div>
+                </div>
+                <small className="wallet-card-foot">{amountEntryMode === "SOL"
+                  ? solPriceLocal !== null && Number(amount) > 0 ? "≈ " + money(Number(amount) * solPriceLocal, preferredCurrency) + " · estimated local value" : "Switch to " + preferredCurrency + " to enter a local amount"
+                  : "≈ " + (Number(amount) > 0 ? Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 }) : "—") + " SOL · live market estimate"}</small>
                 <small className="wallet-card-foot">{balanceLoading ? "Checking available SOL…" : availableSol === null ? "Your SOL balance is unavailable." : `Available: ${availableSol.toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL`}</small>
                 <div className="transfer-connector"><span><ArrowDownLeft size={15} /></span><i /></div>
                 <label className="field-label">SEND TO</label>
                 <select className="recipient-method-select" value={recipientType} onChange={(event) => { setRecipientType(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); setRecipientReference(""); setRecipientBank(""); setRecipientBankAccount(""); setRecipientLookupStatus(""); setDestination(event.target.value === "local-bank" ? "bank" : "solana"); }} aria-label="Recipient destination">
                   <option value="myraven">MYRAVEN ID · receive SOL</option>
                   <option value="account">MYRAVEN account · receive SOL</option>
+                  <option value="local-bank">Local bank · receive local currency</option>
                 </select>
                 <label className="field-label preference-label">RECIPIENT IDENTIFIER</label>
                 {recipientType === "local-bank" ? <div className="local-bank-fields">
                   <label className="field-label">RECIPIENT COUNTRY</label>
                   <select value={recipientCountry} onChange={(event) => { setRecipientCountry(event.target.value); setRecipientBank(""); setRecipientLookupStatus(""); }} aria-label="Recipient country">
-                    <option value="NG">Nigeria</option><option value="GH">Ghana</option><option value="KE">Kenya</option><option value="ZA">South Africa</option><option value="GB">United Kingdom</option><option value="US">United States</option><option value="CH">Switzerland</option><option value="EU">Euro area</option>
+                    {fundingCountriesData.countries.filter((country) => country.independent).map((country) => (
+                      <option value={country.code} key={country.code}>{country.name} · {country.code}</option>
+                    ))}
                   </select>
-                  <label className="field-label">BANK / PAYMENT PROVIDER</label>
-                  <select value={recipientBank} onChange={(event) => { setRecipientBank(event.target.value); setRecipientLookupStatus(""); }} aria-label="Recipient bank" disabled><option value="">Bank list loads from connected payout providers</option></select>
-                  <label className="field-label">RECIPIENT ACCOUNT NUMBER</label>
-                  <input value={recipientBankAccount} onChange={(event) => { setRecipientBankAccount(event.target.value); setRecipientLookupStatus(""); }} placeholder="Enter recipient account number" aria-label="Recipient bank account number" />
-                  <p className="recipient-lookup-status">Country selection is a preview. Live bank lists and account-name verification will appear when a payout provider is connected.</p>
+                  <label className="field-label">CHOOSE RECIPIENT BANK</label>
+                  <select value={recipientBank} onChange={(event) => setRecipientBank(event.target.value)} aria-label="Recipient bank" disabled={recipientBanksLoading || recipientBanks.length === 0}>
+                    <option value="">{recipientBanksLoading ? "Loading bank directory…" : recipientBanks.length ? "Select a bank" : "No banks available for this country"}</option>
+                    {recipientBanks.map((bank) => <option value={bank.code} key={bank.id}>{bank.name}</option>)}
+                  </select>
+                  <p className="recipient-lookup-status">{recipientBanksMessage}</p>
+                  {recipientBank ? <p className="recipient-lookup-status verified">Selected: {recipientBanks.find((bank) => bank.code === recipientBank)?.name}. Account details and payout steps will be added later.</p> : null}
                 </div> : <div className="recipient-lookup-row">
                   <input className="recipient-reference-input" value={recipientReference} onChange={(event) => { setRecipientReference(event.target.value); setRecipientProfile(null); setRecipientLookupStatus(""); }} placeholder={recipientType === "myraven" ? "MRV-XXXXXXXXXX" : recipientType === "account" ? "MYRAVEN account number" : "Paste Solana address"} aria-label="Recipient identifier" />
                 </div>}
                 {recipientType !== "local-bank" ? <button type="button" className="verify-recipient-button" onClick={verifyRecipient} disabled={recipientLookupLoading}>
                   <ShieldCheck size={13} /> {recipientLookupLoading ? "Checking recipient…" : recipientType === "solana" ? "Validate SOL address" : "Verify recipient"}
-                </button> : <button type="button" className="verify-recipient-button" onClick={verifyRecipient}><ShieldCheck size={13} /> Check bank details</button>}
+                </button> : null}
                 {recipientProfile ? <div className="recipient-verification-card">
                   <div className="recipient-avatar">{(recipientProfile.displayName || "M").slice(0, 1).toUpperCase()}</div>
                   <div className="recipient-verification-copy">
@@ -819,16 +881,18 @@ export default function Home() {
                   </div>
                 </div> : null}
                 {recipientLookupStatus ? <p className={recipientProfile ? "recipient-lookup-status verified" : "recipient-lookup-status"} role="status">{recipientLookupStatus}</p> : null}
-                <label className="field-label preference-label">ROUTE PRIORITY</label>
-                <div className="preference-options">{[{id:"balanced",label:"Balanced"},{id:"lowest-cost",label:"Lowest cost"},{id:"fastest",label:"Fastest"},{id:"most-reliable",label:"Reliability"}].map((option) => <button type="button" className={preference === option.id ? "preference-active" : ""} onClick={() => setPreference(option.id)} key={option.id}>{option.label}</button>)}</div>
-                <button className="primary-action" type="submit" disabled={loading}>{loading ? <RefreshCw size={16} className="spin" /> : <Sparkles size={16} />}{loading ? "Checking transfer…" : "Review & proceed"}<ArrowUpRight size={16} /></button>
+                {recipientType !== "local-bank" ? <>
+                  <label className="field-label preference-label">ROUTE PRIORITY</label>
+                  <div className="preference-options">{[{id:"balanced",label:"Balanced"},{id:"lowest-cost",label:"Lowest cost"},{id:"fastest",label:"Fastest"},{id:"most-reliable",label:"Reliability"}].map((option) => <button type="button" className={preference === option.id ? "preference-active" : ""} onClick={() => setPreference(option.id)} key={option.id}>{option.label}</button>)}</div>
+                  <button className="primary-action" type="submit" disabled={loading}>{loading ? <RefreshCw size={16} className="spin" /> : <Sparkles size={16} />}{loading ? "Checking transfer…" : "Review & proceed"}<ArrowUpRight size={16} /></button>
+                </> : <div className="bank-payout-stage-note"><Landmark size={16}/><span><b>Bank selection complete</b><small>This stage stops at the bank list. Account number, beneficiary verification and payout submission are not active yet.</small></span></div>}
               </form>
               <div className="notice-line"><ShieldCheck size={14} /> No funds move until you confirm the transfer.</div>
             </section>
 
             <section className="panel route-panel">
               <div className="panel-heading"><div><span className="panel-kicker">TRANSFER STATUS</span><h2>Ready to send</h2><p>MYRAVEN-to-MYRAVEN SOL transfers use your verified Devnet wallets.</p></div><span className="live-indicator"><i /> PREVIEW</span></div>
-              {quotes.length === 0 ? <div className="empty-routes"><div className="empty-orbit"><ArrowLeftRight size={23} /></div><b>Compare routes is not needed here</b><p>Verify the recipient, enter your SOL amount, then select “Review transfer”. You will approve the actual Devnet send on the next step.</p></div> : <div className="route-list">{quotes.map((quote, index) => <button className={`route-option ${selectedRoute === quote.id ? "route-selected" : ""}`} onClick={() => setSelectedRoute(quote.id)} key={quote.id}><span className={`route-icon ${quote.rail}`}>{quote.rail === "solana" ? "S" : "↗"}</span><span className="route-info"><b>{quote.label}{index === 0 ? <em>BEST MATCH</em> : null}</b><small>{quote.estimatedMinutes} min · {quote.reliability}% illustrative reliability</small></span><span className="route-output"><b>{recipientType === "local-bank" ? money(quote.recipientAmount, destinationCurrency) : solPriceUsd ? (quote.recipientAmount / solPriceUsd).toFixed(6) + " SOL" : "—"}</b><small>Fee {solPriceUsd ? (quote.estimatedFee / solPriceUsd).toFixed(6) + " SOL" : "—"}</small></span><span className="route-score">{quote.score}</span></button>)}</div>}
+              {quotes.length === 0 ? <div className="empty-routes"><div className="empty-orbit"><ArrowLeftRight size={23} /></div><b>{recipientType === "local-bank" ? "Local bank payout setup" : "Compare routes is not needed here"}</b><p>{recipientType === "local-bank" ? "Choose the recipient country and a bank. This stage ends at bank selection; account details and payout execution are not active yet." : "Verify the recipient, enter your SOL amount, then review the actual Devnet send on the next step."}</p></div> : <div className="route-list">{quotes.map((quote, index) => <button className={`route-option ${selectedRoute === quote.id ? "route-selected" : ""}`} onClick={() => setSelectedRoute(quote.id)} key={quote.id}><span className={`route-icon ${quote.rail}`}>{quote.rail === "solana" ? "S" : "↗"}</span><span className="route-info"><b>{quote.label}{index === 0 ? <em>BEST MATCH</em> : null}</b><small>{quote.estimatedMinutes} min · {quote.reliability}% illustrative reliability</small></span><span className="route-output"><b>{recipientType === "local-bank" ? money(quote.recipientAmount, destinationCurrency) : solPriceUsd ? (quote.recipientAmount / solPriceUsd).toFixed(6) + " SOL" : "—"}</b><small>Fee {solPriceUsd ? (quote.estimatedFee / solPriceUsd).toFixed(6) + " SOL" : "—"}</small></span><span className="route-score">{quote.score}</span></button>)}</div>}
               {quotes.length > 0 ? <div className="route-explanation"><Sparkles size={15} /><span><b>Why this route?</b> {bestQuote?.reasons.join(" · ")}</span></div> : <div className="route-footnote"><span><span className="legend-dot purple" /> Cost</span><span><span className="legend-dot cyan" /> Speed</span><span><span className="legend-dot green" /> Reliability</span></div>}
               {quotes.length > 0 ? <button className="secondary-action" onClick={() => setApprovalOpen(true)}>Review payment details <ArrowUpRight size={15} /></button> : null}
               <p className="simulation-note">{notice}</p>
