@@ -534,7 +534,8 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
         </nav>
         <div className="nav-caption tools-caption">TOOLS</div>
         <nav className="side-nav">
-          <a href="/dashboard/account-details"><Wallet size={17} />Account details</a>\n          <a href="#funding"><WalletCards size={17} />Funding</a>
+          <a href="/dashboard/account-details"><Wallet size={17} />Account details</a>
+          <a href="#funding"><WalletCards size={17} />Funding</a>
           <a href="#payment"><Globe2 size={17} />SmartRoute</a>
           <a href="#safety"><ShieldCheck size={17} />Payment safety</a>
           <a href="#ussd"><Globe2 size={17} />USSD simulator</a>
