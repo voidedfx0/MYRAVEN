@@ -25,10 +25,9 @@ type FundingDeposit = {
   created_at: string; updated_at: string;
   metadata?: {
     payment_state?: string; environment?: string;
-    mock_settlement?: {
-      transfer_status?: string; sol_amount?: number | string;
-      sol_price_usd?: number; fiat_usd_rate?: number; fiat_amount?: number;
-      fiat_currency?: string; quote_source?: string; completed_at?: string;
+    treasury_settlement?: {
+      transfer_status?: string; sol_amount?: number | string; action_id?: string;
+      blockchain_signature?: string; wallet_credited?: boolean; completed_at?: string;
     };
   } | null;
 };
@@ -104,8 +103,6 @@ export default function Home() {
   const [fundingHistory, setFundingHistory] = useState<FundingDeposit[]>([]);
   const [fundingHistoryLoading, setFundingHistoryLoading] = useState(false);
   const [fundingHistoryMessage, setFundingHistoryMessage] = useState("");
-  const [treasurySetupLoading, setTreasurySetupLoading] = useState(false);
-  const [treasurySetupMessage, setTreasurySetupMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -276,29 +273,21 @@ export default function Home() {
       const refreshedData = await refreshed.json();
       const latest = refreshed.ok && Array.isArray(refreshedData.deposits) ? refreshedData.deposits : deposits;
 
-      // Test-mode presentation only: never credits the spendable ledger or moves real SOL.
-      const latestDeposits: FundingDeposit[] = latest;
-      const readyForDemo = latestDeposits.filter((deposit) =>
+      // Verified test payments settle from the central Devnet treasury into the user's Privy wallet.
+      const readyForSettlement: FundingDeposit[] = latest.filter((deposit) =>
         deposit.status === "converting"
         && deposit.metadata?.payment_state === "successful"
         && deposit.metadata?.environment === "test"
-        && (deposit.metadata?.mock_settlement?.transfer_status !== "simulated_success"
-          || !deposit.metadata?.mock_settlement?.sol_price_usd
-          || !deposit.metadata?.mock_settlement?.fiat_usd_rate)
+        && deposit.target_asset === "SOL"
+        && deposit.metadata?.treasury_settlement?.transfer_status !== "confirmed"
       );
-      await Promise.all(readyForDemo.map((deposit) => {
-        const sourceAmount = Number(deposit.input_amount);
-        if (!deposit.id || !Number.isFinite(sourceAmount) || sourceAmount <= 0) return Promise.resolve(null);
-        return fetch("/api/funding/mock-settlement", {
+      await Promise.all(readyForSettlement.map((deposit) =>
+        fetch("/api/funding/settle", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            deposit_id: deposit.id,
-            usdc_amount: sourceAmount,
-            outcome: "success"
-          })
-        }).catch(() => null);
-      }));
+          body: JSON.stringify({ deposit_id: deposit.id }),
+        }).catch(() => null)
+      ));
       const finalResponse = await fetch("/api/funding/deposits", { cache: "no-store" });
       const finalData = await finalResponse.json();
       if (finalResponse.ok && Array.isArray(finalData.deposits)) setFundingHistory(finalData.deposits);
@@ -565,8 +554,6 @@ export default function Home() {
     setExternalBalanceError("");
     setWalletMessage("Wallet disconnected from this session.");
   }
-
-const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.metadata?.mock_settlement?.transfer_status === "simulated_success" ? Number(deposit.metadata.mock_settlement.sol_amount ?? 0) : 0), 0);
 
   const nav = [
     { label: "Overview", icon: LayoutDashboard },
@@ -842,15 +829,14 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
                   </span>
                   <span className={`funding-history-status status-${deposit.status}`}>
                     {deposit.status === "credited" ? "Wallet funded"
-                      : deposit.metadata?.mock_settlement?.transfer_status === "simulated_success" ? "SOL conversion complete · Demo"
+                      : deposit.metadata?.treasury_settlement?.transfer_status && deposit.metadata.treasury_settlement.transfer_status !== "confirmed" ? "Conversion · settling on-chain"
                       : deposit.status === "converting" ? "Payment successful · conversion pending"
                       : deposit.status === "submitted_onchain" || deposit.status === "confirming" ? "Crypto settlement pending"
                       : deposit.status === "awaiting_payment" ? "Awaiting payment confirmation"
                       : deposit.status.replaceAll("_", " ")}
-                    {deposit.metadata?.mock_settlement?.transfer_status === "simulated_success"
-                      ? <small>{deposit.metadata.mock_settlement.sol_amount} SOL simulated · not spendable</small>
-                      : deposit.credited_output_amount ? <small>{deposit.credited_output_amount} {deposit.target_asset} credited</small>
-                      : deposit.status === "converting" ? <small>Fiat received · conversion simulation processing</small> : null}
+                    {deposit.credited_output_amount ? <small>{deposit.credited_output_amount} {deposit.target_asset} credited to your wallet</small>
+                      : deposit.metadata?.treasury_settlement?.transfer_status ? <small>Devnet treasury transfer awaiting confirmation</small>
+                      : deposit.status === "converting" ? <small>Payment verified · preparing SOL settlement</small> : null}
                   </span>
                 </div>)}
               </div> : <p className="funding-history-empty">{fundingHistoryLoading ? "Loading funding activity…" : "Your verified funding requests will appear here."}</p>}
@@ -879,13 +865,12 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
             {wallets[0] ? <div className="receive-address-value external-receive-address"><div><span className="panel-kicker">EXTERNAL SOLANA DEVNET ADDRESS · READ ONLY</span><code>{wallets[0].address}</code></div><button className="connect-button" onClick={() => { void navigator.clipboard.writeText(wallets[0].address); setWalletMessage("External Solana address copied."); }}>Copy address</button></div> : null}
             <div className="wallet-balance-grid">
               <article className="wallet-balance-card myraven-wallet-card">
-                <div className="wallet-balance-card-top"><span><Wallet size={15} /> MYRAVEN WALLET</span><small>INTERNAL LEDGER</small></div>
+                <div className="wallet-balance-card-top"><span><Wallet size={15} /> MYRAVEN WALLET</span><small>ON-CHAIN SOL</small></div>
                 <strong>{balanceLoading ? "Loading…" : availableSol === null ? "— SOL" : `${availableSol.toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL`}</strong>
                 <p>Available to send from your MYRAVEN account. Pending funds are excluded.</p>
-                <small className="wallet-card-foot">Demo SOL from verified deposits: {demoSolBalance.toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL{solPriceLocal !== null ? " ≈ " + money(demoSolBalance * solPriceLocal, preferredCurrency) : ""} · simulated, not spendable</small>
                 <small className="wallet-card-foot">{solPriceLocal !== null ? "1 SOL ≈ " + money(solPriceLocal, preferredCurrency) + (solPriceUpdatedAt ? " · live market estimate" : "") : "Local SOL market estimate unavailable"}</small>
                 <small className="wallet-card-foot">{availableSol !== null && solPriceLocal !== null ? "≈ " + money(availableSol * solPriceLocal, preferredCurrency) + " · " + preferredCurrency : ""}</small>
-                <small className="wallet-card-foot">{balanceError ? "Balance could not be loaded" : "Ledger-backed balance · Solana Devnet · Test only"}</small>
+                <small className="wallet-card-foot">{balanceError ? "Balance could not be loaded" : "Live Solana Devnet balance · Test only"}</small>
               </article>
               <article className="wallet-balance-card external-wallet-card">
                 <div className="wallet-balance-card-top"><span><WalletCards size={15} /> CONNECTED WALLET</span><small>READ ONLY</small></div>
@@ -895,35 +880,6 @@ const demoSolBalance = fundingHistory.reduce((sum, deposit) => sum + (deposit.me
               </article>
             </div>
             <div className="wallet-security"><ShieldCheck size={15} /><span>External wallet balances are informational only. MYRAVEN does not receive signing permission, move funds, or access your seed phrase or private key.</span></div>
-            <div className="wallet-security">
-              <ShieldCheck size={15} />
-              <span>MYRAVEN test treasury · one-time Devnet wallet used to settle verified test deposits. It is separate from customer wallets.</span>
-              <button className="connect-button" type="button" disabled={treasurySetupLoading} onClick={async () => {
-                setTreasurySetupLoading(true);
-                setTreasurySetupMessage("");
-                try {
-                  const response = await fetch("/api/admin/treasury", { method: "POST", cache: "no-store" });
-                  const data = await response.json();
-                  if (!response.ok) throw new Error(data.error ?? "Treasury setup failed.");
-                  setTreasurySetupMessage("Treasury ready · " + data.address);
-                } catch (error) {
-                  setTreasurySetupMessage(error instanceof Error ? error.message : "Treasury setup failed.");
-                } finally {
-                  setTreasurySetupLoading(false);
-                }
-              }}>{treasurySetupLoading ? "Creating…" : "Create treasury"}</button>
-            </div>
-            {treasurySetupMessage ? <p className="wallet-message" role="status">{treasurySetupMessage}</p> : null}
-          </section>
-
-          <section className="panel ussd-panel" id="ussd">
-            <div className="panel-heading"><div><span className="panel-kicker">INCLUSIVE PAYMENTS · DEMO</span><h2>USSD payment simulator</h2><p>Preview how a basic-phone user could start a payment without a smartphone app.</p></div><span className="step-badge">*384#</span></div>
-            <div className="ussd-layout"><div className="ussd-phone"><div className="ussd-phone-top">MYRAVEN MOBILE</div><div className="ussd-screen"><b>MYRAVEN</b><span>1. Send money</span><span>2. Check balance</span><span>3. Add funds</span><span>4. Help</span><small>Demo USSD menu · No carrier connection</small></div><div className="ussd-keypad">1　 2　 3<br/>4　 5　 6<br/>7　 8　 9<br/>*　 0　 #</div></div>
-              <div className="ussd-form"><label className="field-label">RECIPIENT PHONE</label><input value={ussdPhone} onChange={(event) => setUssdPhone(event.target.value)} placeholder="+234 800 000 0000" />
-                <label className="field-label">AMOUNT (USD DEMO)</label><input type="number" min="0.01" value={ussdAmount} onChange={(event) => setUssdAmount(event.target.value)} />
-                <button className="primary-action" onClick={simulateUssd}>Simulate USSD request <ArrowUpRight size={15} /></button>
-                {ussdResult ? <p className="ussd-result">{ussdResult}</p> : null}
-              </div>
             </div>
           </section>
 
