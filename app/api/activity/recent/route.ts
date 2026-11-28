@@ -36,7 +36,7 @@ export async function GET() {
     const sent = description.startsWith("Sent ");
     const received = description.startsWith("Received ");
     const status = item.status === "posted" ? "Successful" : item.status === "failed" ? "Failed" : "Pending";
-    const amountMatch = description.match(/(?:Sent|Received)\\s+([0-9]+(?:\\.[0-9]+)?\\s+[A-Z]+)/i);
+    const amountMatch = description.match(/(?:Sent|Received)\s+([0-9]+(?:\.[0-9]+)?\s+[A-Z]+)/i);
     return {
       id: String(item.id),
       title: sent ? "Sent" : received ? "Received" : "Payment",
