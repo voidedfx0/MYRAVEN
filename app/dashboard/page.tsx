@@ -204,6 +204,8 @@ export default function Home() {
   const [transferSending, setTransferSending] = useState(false);
   const [transferMessage, setTransferMessage] = useState("");
   const [transferRequestId, setTransferRequestId] = useState("");
+  const [sendWindowSeconds, setSendWindowSeconds] = useState(0);
+  const [sendWindowActive, setSendWindowActive] = useState(false);
   const [payAiOpen, setPayAiOpen] = useState(false);
   const [payAiPrompt, setPayAiPrompt] = useState("");
   const [payAiMessage, setPayAiMessage] = useState("");
@@ -467,6 +469,57 @@ export default function Home() {
 
     setRecipientLookupStatus("MYRAVEN account-number lookup is not connected yet. Use a MYRAVEN ID for profile matching.");
   }
+
+  function beginSendCountdown() {
+    if (!recipientProfile || !["myraven", "account"].includes(recipientType)) {
+      setTransferMessage("Verify a MYRAVEN recipient before sending.");
+      return;
+    }
+    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0 || availableSol === null || Number(amount) + 0.00001 > availableSol) {
+      setTransferMessage("Insufficient available Devnet SOL or balance unavailable.");
+      return;
+    }
+    const requestId = crypto.randomUUID();
+    setTransferRequestId(requestId);
+    setSendWindowSeconds(60);
+    setSendWindowActive(true);
+    setActivities((current) => [{
+      id: "scheduled-" + requestId,
+      title: "Transfer pending",
+      detail: recipientProfile.displayName || recipientReference,
+      amount: "-" + String(amount) + " SOL",
+      status: "Cancels in 01:00",
+      category: "Pending",
+      time: "Just now",
+    }, ...current]);
+    setApprovalOpen(false);
+    setTransferMessage("Transfer scheduled. Cancel it from Activity within 60 seconds.");
+  }
+
+  function cancelScheduledSend() {
+    if (!sendWindowActive || !transferRequestId) return;
+    const scheduledId = "scheduled-" + transferRequestId;
+    setSendWindowActive(false);
+    setSendWindowSeconds(0);
+    setActivities((current) => current.map((item) => item.id === scheduledId ? { ...item, title: "Transfer cancelled", status: "Cancelled · Not sent" } : item));
+    setTransferRequestId("");
+    setTransferMessage("Transfer cancelled. No SOL was sent.");
+  }
+
+  useEffect(() => {
+    if (!sendWindowActive) return;
+    if (sendWindowSeconds <= 0) {
+      setSendWindowActive(false);
+      setActivities((current) => current.filter((item) => item.id !== "scheduled-" + transferRequestId));
+      void confirmDemoPayment();
+      return;
+    }
+    setActivities((current) => current.map((item) => item.id === "scheduled-" + transferRequestId
+      ? { ...item, status: "Cancels in " + String(Math.floor(sendWindowSeconds / 60)).padStart(2, "0") + ":" + String(sendWindowSeconds % 60).padStart(2, "0") }
+      : item));
+    const timer = window.setTimeout(() => setSendWindowSeconds((seconds) => seconds - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [sendWindowActive, sendWindowSeconds, transferRequestId]);
 
   async function confirmDemoPayment() {
     if (!recipientProfile || !["myraven", "account"].includes(recipientType)) {
@@ -894,7 +947,7 @@ export default function Home() {
       </section>
 
       {menuOpen ? <button className="mobile-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" /> : null}
-      {approvalOpen ? <div className="modal-backdrop" role="presentation" onClick={() => setApprovalOpen(false)}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setApprovalOpen(false)} aria-label="Close"><X size={18} /></button><span className="panel-kicker">DEVNET TRANSFER REVIEW</span><h2 id="approval-title">Review before you send</h2><p>Real SOL will move on Solana Devnet after you confirm. This is test-network SOL, not mainnet funds.</p><div className="review-rows"><span>Recipient <b>{recipientProfile?.displayName ?? (recipientType === "solana" ? "External Solana wallet" : recipientType === "local-bank" ? "Local bank payout" : "Not verified")}</b></span><span>Recipient check <b>{recipientProfile ? "MYRAVEN profile matched" : recipientLookupStatus || "Not checked"}</b></span><span>Identifier <b>{recipientReference || "Not provided"}</b></span><span>You send <b>{Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL</b></span><span>Route <b>MYRAVEN internal transfer · Solana Devnet</b></span><span>Network fee <b>Deducted by Solana at confirmation</b></span><span>Recipient receives <b>{Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL</b></span></div>{transferMessage ? <div className="approval-result"><Check size={16} /> {transferMessage}</div> : <div className="approval-result"><LockKeyhole size={16} /> Ready to submit a real Devnet SOL transfer to the verified MYRAVEN wallet.</div>}<button className="primary-action" type="button" onClick={() => void confirmDemoPayment()} disabled={transferSending || approved || !recipientProfile}>{transferSending ? "Submitting…" : approved ? "Transfer submitted" : "Send SOL"} <ArrowUpRight size={15} /></button><button className="cancel-review" type="button" onClick={() => setApprovalOpen(false)}>Go back</button></section></div> : null}
+      {approvalOpen ? <div className="modal-backdrop" role="presentation" onClick={() => setApprovalOpen(false)}><section className="approval-modal" role="dialog" aria-modal="true" aria-labelledby="approval-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setApprovalOpen(false)} aria-label="Close"><X size={18} /></button><span className="panel-kicker">DEVNET TRANSFER REVIEW</span><h2 id="approval-title">Review before you send</h2><p>Real SOL will move on Solana Devnet after you confirm. This is test-network SOL, not mainnet funds.</p><div className="review-rows"><span>Recipient <b>{recipientProfile?.displayName ?? (recipientType === "solana" ? "External Solana wallet" : recipientType === "local-bank" ? "Local bank payout" : "Not verified")}</b></span><span>Recipient check <b>{recipientProfile ? "MYRAVEN profile matched" : recipientLookupStatus || "Not checked"}</b></span><span>Identifier <b>{recipientReference || "Not provided"}</b></span><span>You send <b>{Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL</b></span><span>Route <b>MYRAVEN internal transfer · Solana Devnet</b></span><span>Network fee <b>Deducted by Solana at confirmation</b></span><span>Recipient receives <b>{Number(amount).toLocaleString("en-US", { maximumFractionDigits: 8 })} SOL</b></span></div>{transferMessage ? <div className="approval-result"><Check size={16} /> {transferMessage}</div> : <div className="approval-result"><LockKeyhole size={16} /> Ready to submit a real Devnet SOL transfer to the verified MYRAVEN wallet.</div>}<button className="primary-action" type="button" onClick={beginSendCountdown} disabled={transferSending || approved || sendWindowActive || !recipientProfile}>{transferSending ? "Submitting…" : approved ? "Transfer submitted" : sendWindowActive ? "Scheduled…" : "Send SOL"} <ArrowUpRight size={15} /></button><button className="cancel-review" type="button" onClick={() => setApprovalOpen(false)}>Go back</button></section></div> : null}
     </main>
   );
 }
