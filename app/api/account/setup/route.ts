@@ -12,7 +12,8 @@ export async function POST(request: Request) {
   const accountType: AccountType = body.accountType === "business" ? "business" : "personal";
   const firstName = (typeof body.firstName === "string" ? body.firstName : user.user_metadata?.first_name ?? "").trim().slice(0, 60);
   const lastName = (typeof body.lastName === "string" ? body.lastName : user.user_metadata?.last_name ?? "").trim().slice(0, 60);
-  const displayName = [firstName, lastName].filter(Boolean).join(" ") || (typeof body.displayName === "string" ? body.displayName : user.user_metadata?.display_name ?? "").trim().slice(0, 120);
+  const nickname = (typeof body.nickname === "string" ? body.nickname : user.user_metadata?.nickname ?? "").trim().slice(0, 60);
+  const displayName = nickname || (typeof body.displayName === "string" ? body.displayName : user.user_metadata?.display_name ?? [firstName, lastName].filter(Boolean).join(" ")).trim().slice(0, 120);
   const legalFullName = (typeof body.legalFullName === "string" ? body.legalFullName : user.user_metadata?.legal_full_name ?? displayName).trim().slice(0, 160);
   const countryName = (typeof body.countryName === "string" ? body.countryName : user.user_metadata?.country_name ?? "").trim().slice(0, 100);
   const businessName = (typeof body.businessName === "string" ? body.businessName : user.user_metadata?.business_name ?? "").trim().slice(0, 120);
