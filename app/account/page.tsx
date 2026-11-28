@@ -63,6 +63,7 @@ export default function AccountPage() {
             window.location.replace(requestedType === "business" ? "/business" : "/dashboard");
             return;
           }
+          await provisionWallet();
           window.location.replace(chosenType === "business" ? "/business" : "/dashboard");
           return;
         } catch (error) {
