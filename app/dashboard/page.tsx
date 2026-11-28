@@ -72,7 +72,7 @@ function shortAddress(address: string) {
 }
 
 export default function Home() {
-  const [amount, setAmount] = useState("100");
+  const [amount, setAmount] = useState("0.001");
   const [sourceCurrency, setSourceCurrency] = useState("USD");
   const [destinationCurrency, setDestinationCurrency] = useState("NGN");
   const [destination, setDestination] = useState("bank");
